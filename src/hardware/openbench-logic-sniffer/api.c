@@ -150,6 +150,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_usleep(RESPONSE_DELAY_US);
 
 	if (serial_has_receive_data(serial) == 0) {
+		serial_close(serial);
 		sr_dbg("Didn't get any ID reply.");
 		return NULL;
 	}
@@ -157,11 +158,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	num_read =
 		serial_read_blocking(serial, buf, 4, serial_timeout(serial, 4));
 	if (num_read < 0) {
+		serial_close(serial);
 		sr_err("Getting ID reply failed (%d).", num_read);
 		return NULL;
 	}
 
 	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4)) {
+		serial_close(serial);
 		GString *id = sr_hexdump_new((uint8_t *)buf, num_read);
 
 		sr_err("Invalid ID reply (got %s).", id->str);
@@ -380,6 +383,9 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	int num_ols_changrp, i;
+	uint64_t samplerates_ovrd[3];
+
+	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -387,7 +393,14 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts,
 				       devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		if (!devc)
+			return SR_ERR_ARG;
+		samplerates_ovrd[0] = samplerates[0];
+		samplerates_ovrd[1] = samplerates[1];
+		samplerates_ovrd[2] = samplerates[2];
+		if (devc->max_samplerate)
+			samplerates_ovrd[1] = devc->max_samplerate;
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates_ovrd));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));

@@ -64,6 +64,7 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_SIGNAL_GENERATOR, SR_T_STRING, NULL, "Signal generator", NULL},
 	{SR_CONF_POWERMETER, SR_T_STRING, NULL, "Power meter", NULL},
 	{SR_CONF_MULTIPLEXER, SR_T_STRING, NULL, "Multiplexer", NULL},
+	{SR_CONF_DELAY_GENERATOR, SR_T_STRING, NULL, "Delay generator", NULL},
 
 	/* Driver scan options */
 	{SR_CONF_CONN, SR_T_STRING, "conn",
@@ -216,6 +217,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Resistance Target", NULL},
 	{SR_CONF_OVER_CURRENT_PROTECTION_DELAY, SR_T_FLOAT, "ocp_delay",
 		"Over-current protection delay", NULL},
+	{SR_CONF_INVERTED, SR_T_BOOL, "inverted",
+		"Signal inverted", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",

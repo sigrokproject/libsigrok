@@ -60,7 +60,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	char ch_name[12];
 
 	dmm = (struct dmm_info *)di;
-
 	conn = dmm->conn;
 	serialcomm = dmm->serialcomm;
 	for (l = options; l; l = l->next) {
@@ -356,7 +355,16 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	 * Fold marks {{{ }}} with matching braces were added, to further
 	 * speed up navigation in the long list.
 	 */
-	/* asycii based meters {{{ */
+
+	DMM(
+		"digitech-qm1578", qm1578,
+		"Digitech", "QM1578", "115200/8n1",
+		DIGITECH_QM1578_PACKET_SIZE, 0, 0, NULL,
+		sr_digitech_qm1578_packet_valid, sr_digitech_qm1578_parse,
+		NULL
+	),
+
+        /* asycii based meters {{{ */
 	DMM(
 		"metrix-mx56c", asycii, "Metrix", "MX56C",
 		"2400/8n1", ASYCII_PACKET_SIZE, 0, 0, NULL,

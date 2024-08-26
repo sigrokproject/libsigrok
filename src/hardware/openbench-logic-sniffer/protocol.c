@@ -298,6 +298,11 @@ SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi)
 	/* Optionally amend received metadata, model specific quirks. */
 	ols_metadata_quirks(sdi);
 
+	/* Certain consumer modules, like srzip, don't like when we feed bigger
+	 * unitsize than they expect from maximum number of channels.
+	 */
+	devc->unitsize = (devc->max_channels + 7) / 8;
+
 	return SR_OK;
 }
 
@@ -446,8 +451,10 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				 * hardware and the PC. Expand that here before
 				 * submitting it over the session bus --
 				 * whatever is listening on the bus will be
-				 * expecting a full 32-bit sample, based on
-				 * the number of channels.
+				 * expecting a full sample of devc->unitsize bytes,
+				 * based on the maximum number of channels.
+				 * For simplicity we expand the sample to 32 bits
+				 * little endian, and crop below
 				 */
 				j = 0;
 				uint8_t tmp_sample[4] = { 0, 0, 0, 0 };
@@ -473,11 +480,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			 * the OLS sends its sample buffer backwards.
 			 * store it in reverse order here, so we can dump
 			 * this on the session bus later.
+			 * Here cropping to devc->unitsize happens
 			 */
-			offset = (devc->limit_samples - devc->num_samples) * 4;
+			offset = (devc->limit_samples - devc->num_samples) * devc->unitsize;
 			for (i = 0; i <= devc->rle_count; i++) {
-				memcpy(devc->raw_sample_buf + offset + (i * 4),
-				       devc->sample, 4);
+				memcpy(devc->raw_sample_buf + offset + (i * devc->unitsize),
+				       devc->sample, devc->unitsize);
 			}
 			memset(devc->sample, 0, 4);
 			devc->num_bytes = 0;
@@ -501,12 +509,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				/* There are pre-trigger samples, send those first. */
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
-				logic.length = devc->trigger_at_smpl * 4;
-				logic.unitsize = 4;
+				logic.length = devc->trigger_at_smpl * devc->unitsize;
+				logic.unitsize = devc->unitsize;
 				logic.data = devc->raw_sample_buf +
 					     (devc->limit_samples -
 					      devc->num_samples) *
-						     4;
+						     devc->unitsize;
 				sr_session_send(sdi, &packet);
 			}
 
@@ -522,12 +530,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		logic.length =
-			(devc->num_samples - num_pre_trigger_samples) * 4;
-		logic.unitsize = 4;
+			(devc->num_samples - num_pre_trigger_samples) * devc->unitsize;
+		logic.unitsize = devc->unitsize;
 		logic.data = devc->raw_sample_buf +
 			     (num_pre_trigger_samples + devc->limit_samples -
 			      devc->num_samples) *
-				     4;
+				     devc->unitsize;
 		sr_session_send(sdi, &packet);
 
 		g_free(devc->raw_sample_buf);
