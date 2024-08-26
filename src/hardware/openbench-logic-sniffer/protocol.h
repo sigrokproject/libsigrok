@@ -126,6 +126,8 @@ struct dev_context {
 	unsigned int rle_count;
 	unsigned char sample[4];
 	unsigned char *raw_sample_buf;
+
+	uint16_t unitsize;
 };
 
 SR_PRIV extern const char *ols_channel_names[];

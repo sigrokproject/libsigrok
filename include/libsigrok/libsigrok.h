@@ -755,6 +755,11 @@ enum sr_configkey {
 	 */
 	SR_CONF_MULTIPLEXER,
 
+	/**
+	 * The device can act as a digital delay generator.
+	 */
+	SR_CONF_DELAY_GENERATOR,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/
@@ -1136,6 +1141,15 @@ enum sr_configkey {
 	 * @arg set: set new delay
 	 */
 	SR_CONF_OVER_CURRENT_PROTECTION_DELAY,
+
+	/**
+	 * Signal inversion.
+	 * @arg type: boolean
+	 * @arg get: @b true if the signal is inverted or has negative polarity,
+	 *           @b false otherwise
+	 * @arg set: set @b true to invert the signal
+	 */
+	SR_CONF_INVERTED,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 

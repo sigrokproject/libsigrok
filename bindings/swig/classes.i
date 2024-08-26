@@ -152,6 +152,8 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attributestring(sigrok::Device, std::string, vendor, vendor);
 %attributestring(sigrok::Device, std::string, model, model);
 %attributestring(sigrok::Device, std::string, version, version);
+%attributestring(sigrok::Device, std::string, serial_number, serial_number);
+%attributestring(sigrok::Device, std::string, connection_id, connection_id);
 
 %attributevector(Device,
     std::vector<std::shared_ptr<sigrok::Channel> >,

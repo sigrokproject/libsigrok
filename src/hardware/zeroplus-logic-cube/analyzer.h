@@ -34,6 +34,7 @@
 
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
+#include "protocol.h"
 
 #define STATUS_FLAG_NONE	0x00
 #define STATUS_FLAG_RESET	0x01
@@ -74,6 +75,7 @@
 #define COMPRESSION_ENABLE	0x8001
 #define COMPRESSION_DOUBLE	0x8002
 
+SR_PRIV void analyzer_set_ext_clock(int enable, ext_clock_edge_t edge);
 SR_PRIV void analyzer_set_freq(int freq, int scale);
 SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);

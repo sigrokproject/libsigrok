@@ -114,6 +114,9 @@ static int g_trigger_count = 1;
 static int g_filter_status[8] = { 0 };
 static int g_filter_enable = 0;
 
+static int g_ext_clock = 0;
+static ext_clock_edge_t g_ext_clock_edge = LAPC_CLOCK_EDGE_RISING;
+
 static int g_freq_value = 1;
 static int g_freq_scale = FREQ_SCALE_MHZ;
 static int g_memory_size = MEMORY_SIZE_8K;
@@ -459,7 +462,14 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	gl_reg_write(devh, MEMORY_LENGTH, g_memory_size);
 
 	/* Sele_Inside_Outside_Clock */
-	gl_reg_write(devh, CLOCK_SOURCE, 0x03);
+	if (!g_ext_clock)
+		gl_reg_write(devh, CLOCK_SOURCE, 0x01);
+	else {
+		if (g_ext_clock_edge == LAPC_CLOCK_EDGE_RISING)
+			gl_reg_write(devh, CLOCK_SOURCE, 0x02);
+		else
+			gl_reg_write(devh, CLOCK_SOURCE, 0x0);
+	}
 
 	/* Set_Trigger_Status */
 	for (i = 0; i < 8; i++)
@@ -577,6 +587,12 @@ SR_PRIV void analyzer_add_filter(int channel, int type)
 SR_PRIV void analyzer_set_trigger_count(int count)
 {
 	g_trigger_count = count;
+}
+
+SR_PRIV void analyzer_set_ext_clock(int enable, ext_clock_edge_t edge)
+{
+	g_ext_clock = enable;
+	g_ext_clock_edge = edge;
 }
 
 SR_PRIV void analyzer_set_freq(int freq, int scale)

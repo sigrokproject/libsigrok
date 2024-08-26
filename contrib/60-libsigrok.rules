@@ -266,6 +266,9 @@ ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", ENV{ID_SIGROK}="1"
 # Rohde&Schwarz HMC series power supply (previously branded Hameg) VCP/USBTMC mode
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0135", ENV{ID_SIGROK}="1"
 
+# Rohde&Schwarz NGE100B series power supply VCP/USBTMC mode
+ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0197", ENV{ID_SIGROK}="1"
+
 # Sainsmart DDS120 / Rocktech BM102, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Sainsmart DDS120
 ATTRS{idVendor}=="8102", ATTRS{idProduct}=="8102", ENV{ID_SIGROK}="1"
 
@@ -368,6 +371,8 @@ ATTRS{idVendor}=="d4a2", ATTRS{idProduct}=="5660", ENV{ID_SIGROK}="1"
 # 0c12:700e: LAP-C(16032)
 # 0c12:7016: LAP-C(162000)
 # 0c12:7025: LAP-C(16128+)
+# 0c12:7060: Logian-16L
+# 0c12:7064: Logian-16L
 # 0c12:7100: AKIP-9101
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7002", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7007", ENV{ID_SIGROK}="1"
@@ -379,6 +384,8 @@ ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7025", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7060", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7064", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7100", ENV{ID_SIGROK}="1"
 
 LABEL="libsigrok_rules_end"

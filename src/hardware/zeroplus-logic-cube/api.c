@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include "analyzer.h"
 #include "protocol.h"
 
 #define USB_INTERFACE			0
@@ -51,6 +52,7 @@ static const struct zp_model zeroplus_models[] = {
 	{0x0c12, 0x700e, "LAP-C(16032)",  16, 32,   100},
 	{0x0c12, 0x7016, "LAP-C(162000)", 16, 2048, 200},
 	{0x0c12, 0x7025, "LAP-C(16128+)", 16, 128,  200},
+	{0x0c12, 0x7060, "Logian-16L",    16, 128,  200},
 	{0x0c12, 0x7064, "Logian-16L",    16, 128,  200},
 	{0x0c12, 0x7100, "AKIP-9101",     16, 256,  200},
 	ALL_ZERO
@@ -66,6 +68,13 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const char *ext_clock_edges[] = {
+	[LAPC_CLOCK_EDGE_RISING] = "rising",
+	[LAPC_CLOCK_EDGE_FALLING] = "falling",
 };
 
 static const int32_t trigger_matches[] = {
@@ -358,6 +367,7 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	const char *ext_clock_text;
 
 	(void)cg;
 
@@ -376,6 +386,13 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
 		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		*data = g_variant_new_boolean(devc->use_ext_clock);
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		ext_clock_text = ext_clock_edges[devc->ext_clock_edge];
+		*data = g_variant_new_string(ext_clock_text);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -387,6 +404,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int idx;
 	gdouble low, high;
 
 	(void)cg;
@@ -404,6 +422,17 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
 		return set_voltage_threshold(devc, (low + high) / 2.0);
+	case SR_CONF_EXTERNAL_CLOCK:
+		devc->use_ext_clock = g_variant_get_boolean(data);
+		analyzer_set_ext_clock(devc->use_ext_clock, (ext_clock_edge_t)devc->ext_clock_edge);
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		idx = std_str_idx(data, ARRAY_AND_SIZE(ext_clock_edges));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->ext_clock_edge = (ext_clock_edge_t)idx;
+		analyzer_set_ext_clock(devc->use_ext_clock, devc->ext_clock_edge);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -443,6 +472,10 @@ static int config_list(uint32_t key, GVariant **data,
 		devc = sdi->priv;
 		*data = std_gvar_tuple_u64(0, devc->max_sample_depth);
 		break;
+	case SR_CONF_CLOCK_EDGE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(ext_clock_edges));
+		break;
+
 	default:
 		return SR_ERR_NA;
 	}
