@@ -63,6 +63,9 @@ static int parse_value(const uint8_t *buf,
 	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-OL")) ? 1 : 0;
 	if (is_ol != 0) {
 		*result = INFINITY;
+		
+		sr_spew("Over limit.");
+		
 		return SR_OK;
 	}
 
@@ -74,6 +77,8 @@ static int parse_value(const uint8_t *buf,
 		*exponent = -(cnt - dot_pos - 1);
 	else
 		*exponent = 0;
+
+	sr_spew("The display value is %f.", *result);
 	
 	return SR_OK;
 }
@@ -106,7 +111,8 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 		if (buf[9 + i] != ' ')
 			unit[cnt++] = buf[9 + i];
 	}
-
+	sr_spew("Bytes 9..10 without spaces \"%.4s\".", unit);
+	
 	/* Bytes 9-10: Unit */
 	u = (const char *)&unit;
 
