@@ -318,9 +318,9 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DHO1000), "DHO1104", {2, 1000000000}, CH_INFO(4, false), std_cmd},
 	{SERIES(DHO1000), "DHO1202", {2, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DHO1000), "DHO1204", {2, 1000000000}, CH_INFO(4, false), std_cmd},
-	{SERIES(DHO4000), "DHO1074", {2, 1000000000}, CH_INFO(4, false), std_cmd},
-	{SERIES(DHO4000), "DHO1104", {2, 1000000000}, CH_INFO(4, false), std_cmd},
-	{SERIES(DHO4000), "DHO1204", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO4000), "DHO4204", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO4000), "DHO4404", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO4000), "DHO4804", {2, 1000000000}, CH_INFO(4, false), std_cmd},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
