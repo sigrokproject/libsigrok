@@ -99,7 +99,7 @@ SR_EXTRA_CXX_LIBS=
 SR_ARG_OPT_PKG([zlib], [ZLIB], , [zlib])
 AM_CONDITIONAL([HAVE_ZLIB], [test "x$sr_have_zlib" = xyes])
 AM_COND_IF([HAVE_ZLIB], [
-	SR_APPEND([sr_deps_avail], [crc32 zlib])
+	SR_APPEND([sr_deps_avail], ['crc32 zlib'])
 	SR_PREPEND([SR_EXTRA_LIBS], [-lz])
 ])
 
