@@ -671,6 +671,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/serial-lcr/protocol.c \
 	src/hardware/serial-lcr/api.c
 endif
+if HW_SIGLENT_SDL10X0
+src_libdrivers_la_SOURCES += \
+	src/hardware/siglent-sdl10x0/protocol.h \
+	src/hardware/siglent-sdl10x0/protocol.c \
+	src/hardware/siglent-sdl10x0/api.c
+endif
 if HW_SIGLENT_SDS
 src_libdrivers_la_SOURCES += \
 	src/hardware/siglent-sds/protocol.h \
