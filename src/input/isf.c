@@ -60,7 +60,7 @@
 
 #define LOG_PREFIX "input/isf"
 
-#define CHUNK_SIZE	(4 * 1024 * 1024)
+#define CHUNK_SIZE (4 * 1024 * 1024)
 
 /* Maximum header size. */
 #define MAX_HEADER_SIZE 1024
@@ -179,16 +179,14 @@ static char *find_data_section(GString *buf)
 	if (offset >= buf->len)
 		return NULL;
 
-	/*
-	 * Curve metadata length is encoded as an ASCII
-	 * digit '0' to '9'.
-	 */
-	metadata_length = (size_t) *data_ptr;
-	if (metadata_length < '0' || metadata_length > '9')
+	/* Curve metadata length is encoded as an ASCII digit '0' to '9'. */
+	metadata_length = (size_t)*data_ptr;
+	if ((metadata_length < '0') || (metadata_length > '9'))
 		return NULL;
+
 	metadata_length -= '0';
-	data_ptr += 1 + metadata_length;
-	offset = (size_t) (data_ptr - buf->str);
+	data_ptr += (1 + metadata_length);
+	offset = (size_t)(data_ptr - buf->str);
 
 	if (offset >= buf->len)
 		return NULL;
@@ -208,17 +206,15 @@ static void extract_channel_name(struct context *inc, const char *buf, size_t bu
 	size_t i, channel_ix;
 
 	channel_ix = 0;
-	/*
-	 * ISF WFID looks something like WFID "Ch1, ...";
+
+	/* ISF WFID looks something like WFID "Ch1, ..."
 	 * hence we must skip character '"'
 	 */
 	i = 1;
-	while (i < buflen &&
-			buf[i] != ',' &&
-			buf[i] != '"' &&
-			channel_ix < MAX_CHANNEL_NAME_SIZE - 1) {
+	while ((i < buflen) && (buf[i] != ',') && (buf[i] != '"') &&
+		(channel_ix < MAX_CHANNEL_NAME_SIZE - 1))
 		inc->channel_name[channel_ix++] = buf[i++];
-	}
+
 	inc->channel_name[channel_ix] = 0;
 }
 
@@ -231,12 +227,13 @@ static void find_string_value(const char *buf, size_t buflen, char *value, size_
 	size_t i;
 
 	i = 0;
-	while (i < buflen && buf[i] != ';' && i < value_size - 1) {
+	while ((i < buflen) && (buf[i] != ';') && (i < value_size - 1)) {
 		value[i] = buf[i];
-		++i;
+		i++;
 	}
+
 	value[i] = 0;
-	if (i >= buflen || buf[i] != ';')
+	if ((i >= buflen) || (buf[i] != ';'))
 		memset(value, 0, value_size);
 }
 
@@ -248,7 +245,7 @@ static int find_encoding(const char *buf, size_t buflen)
 	find_string_value(buf, buflen, value, MAX_ENCODING_STRING_SIZE);
 
 	/* "BIN" and "BINARY" are accepted. */
-	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
+	if ((strcmp(value, "BINARY") != 0) && (strcmp(value, "BIN") != 0)) {
 		sr_err("Only binary encoding supported.");
 		return SR_ERR_NA;
 	}
@@ -278,8 +275,8 @@ static gboolean check_item_length(const char *buf, size_t buflen)
 {
 	size_t i = 0;
 
-	while (i < buflen && buf[i] != ';')
-		++i;
+	while ((i < buflen) && (buf[i] != ';'))
+		i++;
 
 	return i < buflen;
 }
@@ -300,7 +297,7 @@ static gboolean str_to_float(const char *str, size_t buflen, float *result)
 
 	value = g_ascii_strtod(str, &endptr);
 	/* The conversion wasn't performed. */
-	if (value == 0 && endptr == str)
+	if ((value == 0) && (endptr == str))
 		return FALSE;
 	/* Detect overflow/underflow. */
 	if ((value == HUGE_VAL || value == DBL_MIN) && errno == ERANGE)
@@ -309,7 +306,7 @@ static gboolean str_to_float(const char *str, size_t buflen, float *result)
 	if (*endptr != ';')
 		return FALSE;
 
-	*result = (float) value;
+	*result = (float)value;
 	return TRUE;
 }
 
@@ -329,7 +326,7 @@ static gboolean str_to_uint(const char *str, size_t buflen, unsigned int *result
 
 	value = g_ascii_strtoll(str, &endptr, 10);
 	/* The conversion wasn't performed. */
-	if (value == 0 && endptr == str)
+	if ((value == 0) && (endptr == str))
 		return FALSE;
 	/* Detect overflow/underflow. */
 	if ((value == LLONG_MIN || value == LLONG_MAX) && errno == ERANGE)
@@ -338,10 +335,10 @@ static gboolean str_to_uint(const char *str, size_t buflen, unsigned int *result
 	if (*endptr != ';')
 		return FALSE;
 
-	if (value < 0 || value > UINT_MAX)
+	if ((value < 0) || (value > UINT_MAX))
 		return FALSE;
 
-	*result = (unsigned int) value;
+	*result = (unsigned int)value;
 	return TRUE;
 }
 
@@ -418,7 +415,7 @@ static int process_header_item(const char *buf, size_t buflen, struct context *i
 	default:
 		return SR_ERR_ARG;
 	}
-	
+
 	return SR_OK;
 }
 
@@ -435,10 +432,11 @@ static int parse_isf_header(GString *buf, struct context *inc)
 	data_section = find_data_section(buf);
 	if (data_section == NULL)
 		return SR_ERR_DATA;
-	data_section_offset = (size_t) (data_section - buf->str);
+
+	data_section_offset = (size_t)(data_section - buf->str);
 
 	/* Search for all header items. */
-	for (i = 0; i < HEADER_ITEMS_PARAMETERS; ++i) {
+	for (i = 0; i < HEADER_ITEMS_PARAMETERS; i++) {
 		pattern = find_item(buf->str, data_section_offset, header_items[i]);
 		if (pattern == NULL) {
 			/* Return an error if a mandatory item is not found. */
@@ -451,7 +449,7 @@ static int parse_isf_header(GString *buf, struct context *inc)
 		 * Calculate the offset of the header item value in the buffer
 		 * as well as its distance from the data section.
 		 */
-		item_offset = (size_t) (pattern - buf->str);
+		item_offset = (size_t)(pattern - buf->str);
 		item_offset += strlen(header_items[i]);
 		if (item_offset >= data_section_offset)
 			return SR_ERR_DATA;
@@ -481,7 +479,7 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
 	/* Check if the header contains NR_PT item. */
-	if (buf == NULL || g_strstr_len(buf->str, buf->len, nr_pt) == NULL)
+	if ((buf == NULL) || (g_strstr_len(buf->str, buf->len, nr_pt) == NULL))
 		return SR_ERR;
 
 	/* The header contains NR_PT item, the confidence is high. */
@@ -492,9 +490,8 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 	if (fn != NULL) {
 		fn_len = strlen(fn);
 		if (fn_len >= strlen(default_extension) &&
-			g_ascii_strcasecmp(fn + fn_len - strlen(default_extension), default_extension) == 0) {
+			g_ascii_strcasecmp(fn + fn_len - strlen(default_extension), default_extension) == 0)
 			*confidence += 10;
-		}
 	}
 	return SR_OK;
 }
@@ -534,28 +531,29 @@ static float read_int_sample(struct sr_input *in, size_t offset)
 
 	if (bytnr > MAX_INT_BYTNR)
 		return 0;
+
 	memcpy(data, in->buf->str + offset, bytnr);
 	value = 0;
 	if (inc->byte_order == MSB) {
-		for (i = 0; i < (int) bytnr; ++i) {
+		for (i = 0; i < (int)bytnr; i++) {
 			value = value << 8;
 			value |= data[i];
 		}
 	} else {
-		for (i = (int) bytnr - 1; i >= 0; --i) {
+		for (i = (int)bytnr - 1; i >= 0; i--) {
 			value = value << 8;
 			value |= data[i];
 		}
 	}
 
 	/* Check if the loaded value is negative. */
-	if ((value & (1 << (8*bytnr - 1))) != 0) {
+	if ((value & (1 << (8 * bytnr - 1))) != 0) {
 		/* Extend the 64-bit integer if the value is negative. */
-		i = ~((1 << (8*bytnr - 1)) - 1);
+		i = ~((1 << (8 * bytnr - 1)) - 1);
 		value |= i;
 	}
 
-	return (float) value;
+	return (float)value;
 }
 
 /*
@@ -574,20 +572,21 @@ static float read_unsigned_int_sample(struct sr_input *in, size_t offset)
 
 	if (inc->bytnr > MAX_INT_BYTNR)
 		return 0;
+
 	memcpy(data, in->buf->str + offset, inc->bytnr);
 	if (inc->byte_order == MSB) {
-		for (i = 0; i < (int) inc->bytnr; ++i) {
+		for (i = 0; i < (int)inc->bytnr; i++) {
 			value <<= 8;
 			value |= data[i];
 		}
 	} else {
-		for (i = (int) inc->bytnr; i >= 0; --i) {
+		for (i = (int)inc->bytnr; i >= 0; i--) {
 			value <<= 8;
 			value |= data[i];
 		}
 	}
 
-	return (float) value;
+	return (float)value;
 }
 
 /*
@@ -609,15 +608,16 @@ static float read_float_sample(struct sr_input *in, size_t offset)
 
 	if (bytnr > FLOAT_BYTNR)
 		return 0;
+
 	memcpy(data, in->buf->str + offset, bytnr);
 
 	if (inc->byte_order == MSB) {
-		for (i = 0; i < (int) bytnr; ++i) {
+		for (i = 0; i < (int)bytnr; i++) {
 			fp.i = fp.i << 8;
 			fp.i |= data[i];
 		}
 	} else {
-		for (i = (int) bytnr - 1; i >= 0; --i) {
+		for (i = (int)bytnr - 1; i >= 0; i--) {
 			fp.i = fp.i << 8;
 			fp.i |= data[i];
 		}
@@ -641,7 +641,7 @@ static void send_chunk(struct sr_input *in, size_t initial_offset, size_t num_sa
 	inc = in->priv;
 	offset = initial_offset;
 	fdata = g_malloc0(sizeof(float) * num_samples);
-	for (i = 0; i < num_samples; ++i) {
+	for (i = 0; i < num_samples; i++) {
 		if (inc->bn_fmt == RI) {
 			fdata[i] = (read_int_sample(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
 		} else if (inc->bn_fmt == RP) {
@@ -682,7 +682,7 @@ static int process_buffer(struct sr_input *in)
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi);
 		/* Send samplerate. */
-		(void) sr_session_send_meta(in->sdi, SR_CONF_SAMPLERATE, g_variant_new_uint64((uint64_t) (1 / inc->xincr)));
+		(void) sr_session_send_meta(in->sdi, SR_CONF_SAMPLERATE, g_variant_new_uint64((uint64_t)(1 / inc->xincr)));
 		inc->started = TRUE;
 	}
 
@@ -695,16 +695,15 @@ static int process_buffer(struct sr_input *in)
 		}
 		offset = data - in->buf->str;
 		inc->found_data_section = TRUE;
-	} else {
+	} else
 		offset = 0;
-	}
 
 	/* Slice the buffer data into chunks, send them and clear the buffer. */
 	processed = 0;
 	chunk_samples = (in->buf->len - offset) / inc->bytnr;
 	max_chunk_samples = CHUNK_SIZE / inc->bytnr;
 	total_samples = chunk_samples;
-	
+
 	while (processed < total_samples) {
 		if (chunk_samples > max_chunk_samples)
 			num_samples = max_chunk_samples;
@@ -712,7 +711,7 @@ static int process_buffer(struct sr_input *in)
 			num_samples = chunk_samples;
 
 		send_chunk(in, offset, num_samples);
-		offset += num_samples * inc->bytnr;
+		offset += (num_samples * inc->bytnr);
 		chunk_samples -= num_samples;
 		processed += num_samples;
 	}
