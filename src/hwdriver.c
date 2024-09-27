@@ -252,6 +252,15 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_TEST_MODE, SR_T_STRING, "test_mode",
 		"Test mode", NULL},
 
+	{SR_CONF_OVER_POWER_PROTECTION_ENABLED, SR_T_BOOL, "opp_enabled",
+		"Over-power protection enabled", NULL},
+	{SR_CONF_OVER_POWER_PROTECTION_ACTIVE, SR_T_BOOL, "opp_active",
+		"Over-power protection active", NULL},
+	{SR_CONF_OVER_POWER_PROTECTION_THRESHOLD, SR_T_FLOAT, "opp_threshold",
+		"Over-power protection threshold", NULL},
+
+	{SR_CONF_RESISTANCE, SR_T_FLOAT, "resistance",
+		"Resistance", NULL},
 	ALL_ZERO
 };
 
