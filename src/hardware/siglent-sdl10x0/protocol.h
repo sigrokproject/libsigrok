@@ -27,9 +27,43 @@
 
 #define LOG_PREFIX "siglent-sdl10x0"
 
-struct dev_context {
+/*
+ * Operating modes.
+ */
+enum siglent_sdl10x0_modes {
+	CC = 0,
+	CV = 1,
+	CP = 2,
+	CR = 3,
+	LED = 4,
+	SDL10x0_MODES, /* Total count, for internal use. */
 };
 
-SR_PRIV int siglent_sdl10x0_receive_data(int fd, int revents, void *cb_data);
+/*
+ * Possible states in an acquisition.
+ */
+enum acquisition_state {
+	ACQ_REQUESTED_VOLTAGE,
+	ACQ_REQUESTED_CURRENT,
+	ACQ_REQUESTED_POWER,
+	ACQ_REQUESTED_RESISTANCE,
+};
+
+struct dev_context {
+	struct sr_sw_limits limits;
+	enum acquisition_state acq_state;
+	float voltage;
+	float current;
+	double maxpower;
+};
+
+SR_PRIV const char *siglent_sdl10x0_mode_to_string(enum siglent_sdl10x0_modes mode);
+SR_PRIV const char *siglent_sdl10x0_mode_to_longstring(enum siglent_sdl10x0_modes mode);
+SR_PRIV int siglent_sdl10x0_string_to_mode(const char *modename, enum siglent_sdl10x0_modes *mode);
+
+SR_PRIV void siglent_sdl10x0_send_value(const struct sr_dev_inst *sdi, float value, enum sr_mq mq, enum sr_mqflag mqflags, enum sr_unit unit, int digits);
+
+SR_PRIV int siglent_sdl10x0_receive_data(struct sr_dev_inst *sdi);
+SR_PRIV int siglent_sdl10x0_handle_events(int fd, int revents, void *cb_data);
 
 #endif
