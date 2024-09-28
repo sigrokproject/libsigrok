@@ -1792,8 +1792,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(keysight_e36300a_cg),
 		keysight_e36300a_cmd,
 		.probe_channels = NULL,
-		.init_acquisition=NULL,
-		.update_status=NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Keysight E36312A */
@@ -1804,8 +1804,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(keysight_e36300a_cg),
 		keysight_e36300a_cmd,
 		.probe_channels = NULL,
-		.init_acquisition=NULL,
-		.update_status=NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Keysight E36313A; NOT TESTED*/
@@ -1816,8 +1816,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(keysight_e36300a_cg),
 		keysight_e36300a_cmd,
 		.probe_channels = NULL,
-		.init_acquisition=NULL,
-		.update_status=NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Rigol DP700 series */
