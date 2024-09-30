@@ -790,7 +790,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial,
  * Try to find a valid packet in a serial data stream.
  *
  * @param[in] serial Previously initialized serial port structure.
- * @param[in] buf Buffer containing the bytes to write.
+ * @param[in] buf Buffer to write to.
  * @param[in] buflen Size of the buffer.
  * @param[in] packet_size Size, in bytes, of a valid packet.
  * @param[in] is_valid Callback that assesses whether the packet is valid or not.

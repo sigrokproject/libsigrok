@@ -2830,6 +2830,14 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- scale/uss_dbs.c ----------------------------------------------------------*/
+
+struct uss_dbs_info {};
+
+SR_PRIV gboolean sr_uss_dbs_packet_valid(const uint8_t *buf);
+SR_PRIV enum sr_error_code sr_uss_dbs_parse(const uint8_t *buf,
+		struct sr_datafeed_analog *analog, double *result);
+
 /*--- sw_limits.c -----------------------------------------------------------*/
 
 struct sr_sw_limits {

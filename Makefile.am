@@ -215,7 +215,8 @@ endif
 
 # Hardware (Scale protocol parsers)
 libsigrok_la_SOURCES += \
-	src/scale/kern.c
+	src/scale/kern.c \
+	src/scale/uss_dbs.c
 
 # Hardware drivers
 noinst_LTLIBRARIES = src/libdrivers.la \
@@ -492,6 +493,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/kern-scale/protocol.h \
 	src/hardware/kern-scale/protocol.c \
 	src/hardware/kern-scale/api.c
+endif
+if HW_USS_SCALE
+src_libdrivers_la_SOURCES += \
+	src/hardware/uss-scale/protocol.h \
+	src/hardware/uss-scale/protocol.c \
+	src/hardware/uss-scale/api.c
 endif
 if HW_KINGST_LA2016
 src_libdrivers_la_SOURCES += \

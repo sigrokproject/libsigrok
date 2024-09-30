@@ -342,6 +342,10 @@ enum sr_unit {
 	SR_UNIT_COULOMB,
 	/** Electric charge in ampere hour [Ah]. */
 	SR_UNIT_AMPERE_HOUR,
+	/* Mass in dram [dr] */
+	SR_UNIT_DRAM,
+	/* Area density in gm^-2 */
+	SR_UNIT_GRAMMAGE,
 
 	/*
 	 * Update unit_strings[] (analog.c) and fancyprint() (output/analog.c)
@@ -403,6 +407,10 @@ enum sr_mqflag {
 	SR_MQFLAG_UNSTABLE = 0x100000,
 	/** Measurement is four wire (e.g. Kelvin connection). */
 	SR_MQFLAG_FOUR_WIRE = 0x200000,
+	/** Tael measurement in */
+	SR_MQFLAG_TAEL_TAIWAN = 0x400000, /* 37.50 g/tael */
+	SR_MQFLAG_TAEL_HONGKONG_TROY = 0x800000, /* 37.43 g/tael */
+	SR_MQFLAG_TAEL_JAPAN = 0x1000000, /* 37.80 g/tael */
 
 	/*
 	 * Update mq_strings[] (analog.c) and fancyprint() (output/analog.c)

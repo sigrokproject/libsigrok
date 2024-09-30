@@ -17,32 +17,12 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_KERN_SCALE_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_KERN_SCALE_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_USS_SCALE_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_USS_SCALE_PROTOCOL_H
 
-#define LOG_PREFIX "kern-scale"
+#define LOG_PREFIX "uss-scale"
 
-struct scale_info {
-	/** libsigrok driver info struct. */
-	struct sr_dev_driver di;
-	/** Manufacturer/brand. */
-	const char *vendor;
-	/** Model. */
-	const char *device;
-	/** serialconn string. */
-	const char *conn;
-	/** Packet size in bytes. */
-	int packet_size;
-	/** Packet validation function. */
-	gboolean (*packet_valid)(const uint8_t *);
-	/** Packet parsing function. */
-	int (*packet_parse)(const uint8_t *, float *,
-			    struct sr_datafeed_analog *, void *);
-	/** Size of chipset info struct. */
-	gsize info_size;
-};
-
-#define SCALE_BUFSIZE 256
+#define SCALE_BUFSIZE 4096
 
 struct dev_context {
 	struct sr_sw_limits limits;
@@ -51,6 +31,19 @@ struct dev_context {
 	int buflen;
 };
 
-SR_PRIV int kern_scale_receive_data(int fd, int revents, void *cb_data);
+struct scale_info {
+	struct sr_dev_driver di;
+	const char *vendor;
+	const char *device;
+	/* I've seen some documentation describing models with 16-byte packets,
+	 * so the packet_size is parameterised. */
+	int packet_size;
+	gboolean (*packet_valid)(const uint8_t *);
+	int (*packet_parse)(const uint8_t *,
+			    struct sr_datafeed_analog *, double *);
+};
+
+
+SR_PRIV int uss_scale_receive_data(int fd, int revents, void *cb_data);
 
 #endif

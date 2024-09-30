@@ -91,6 +91,8 @@ static struct unit_mq_string unit_strings[] = {
 	{ SR_UNIT_JOULE, "J" },
 	{ SR_UNIT_COULOMB, "C" },
 	{ SR_UNIT_AMPERE_HOUR, "Ah" },
+	{ SR_UNIT_DRAM, "dr" },
+	{ SR_UNIT_GRAMMAGE, "g/m^2" },
 	ALL_ZERO
 };
 
@@ -119,6 +121,10 @@ static struct unit_mq_string mq_strings[] = {
 	{ SR_MQFLAG_REFERENCE, " REF" },
 	{ SR_MQFLAG_UNSTABLE, " UNSTABLE" },
 	{ SR_MQFLAG_FOUR_WIRE, " 4-WIRE" },
+	/* Different variants of the tael unit. */
+	{ SR_MQFLAG_TAEL_HONGKONG_TROY, " HONGKONG" },
+	{ SR_MQFLAG_TAEL_TAIWAN, " TAIWAN" },
+	{ SR_MQFLAG_TAEL_JAPAN, " JAPAN" },
 	ALL_ZERO
 };
 
