@@ -42,21 +42,21 @@
 
 /* Hardware register definitions */
 #define CONTROL_REG 0x80
-#define START_BIT   0x01
-#define STOP_BIT    0x02
-#define CLR_BIT     0x04
+#define START_BIT 0x01
+#define STOP_BIT 0x02
+#define CLR_BIT 0x04
 
 struct dev_context {
-  struct ftdi_context *ftdic;
+	struct ftdi_context* ftdic;
 
-  unsigned char* raw_data_buf;
-  unsigned char* decoded_data_buf;
-  uint64_t samples_sent;
+	unsigned char* raw_data_buf;
+	unsigned char* decoded_data_buf;
+	uint64_t samples_sent;
 	uint64_t bytes_received;
 
-	char **channel_names;
+	char** channel_names;
 
-	const uint64_t *samplerates;
+	const uint64_t* samplerates;
 	int num_samplerates;
 
 	uint64_t cur_samplerate;
@@ -64,14 +64,14 @@ struct dev_context {
 
 	uint64_t capture_ratio;
 
-  struct soft_trigger_logic *stl;
+	struct soft_trigger_logic* stl;
 	gboolean trigger_fired;
 };
 
-SR_PRIV int fwili_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
-SR_PRIV struct dev_context *fwili_dev_new(void);
-SR_PRIV int fwili_start_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV void fwili_abort_acquisition(struct dev_context *devc);
-SR_PRIV int fwili_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int fwili_dev_open(struct sr_dev_inst* sdi, struct sr_dev_driver* di);
+SR_PRIV struct dev_context* fwili_dev_new(void);
+SR_PRIV int fwili_start_acquisition(const struct sr_dev_inst* sdi);
+SR_PRIV void fwili_abort_acquisition(struct dev_context* devc);
+SR_PRIV int fwili_receive_data(int fd, int revents, void* cb_data);
 
 #endif
