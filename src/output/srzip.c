@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <zip.h>
+
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -68,11 +68,134 @@ static int init(struct sr_output *o, GHashTable *options)
 	return SR_OK;
 }
 
+#include <gio/gio.h>
+
+/* Recursively delete @file and its children. @file may be a file or a
+   directory.
+
+   https://stackoverflow.com/questions/43377924
+*/
+static gboolean
+rm_rf (GFile         *file,
+       GCancellable  *cancellable,
+       GError       **error)
+{
+
+	g_autoptr(GFileEnumerator) enumerator = NULL;
+
+	enumerator = g_file_enumerate_children (file, G_FILE_ATTRIBUTE_STANDARD_NAME,
+	                                        G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS,
+	                                        cancellable, NULL);
+
+	while (enumerator != NULL)
+		{
+			GFile *child;
+
+			if (!g_file_enumerator_iterate (enumerator, NULL, &child, cancellable, error))
+				return FALSE;
+			if (child == NULL)
+				break;
+			if (!rm_rf (child, cancellable, error))
+				return FALSE;
+		}
+
+	return g_file_delete (file, cancellable, error);
+}
+
+static gboolean rm_rf_unlink(const char *path)
+{
+	GFile *f = g_file_new_for_path(path);
+	GError *err = NULL;
+
+	gboolean ret = rm_rf(f, NULL, &err);
+
+	if (err) {
+		g_error_free(err);
+	}
+
+	g_object_unref(f);
+	return ret;
+}
+
+static gboolean my_mkdir(const char *path)
+{
+	GFile *f = g_file_new_for_path(path);
+	GError *err = NULL;
+	gboolean ret = g_file_make_directory(f, NULL, &err);
+
+	if (err) {
+		sr_err("Failed to mkdir %s: %s",
+		       path,
+		       err->message);
+		g_error_free(err);
+	}
+	return ret;
+}
+
+static gboolean write_to_file(const char *dirpath,
+                              const char *filepath,
+                              const void *data, size_t len)
+{
+	gchar *path = g_build_filename(dirpath,
+	                               filepath,
+	                               NULL);
+
+	// in newer glib could just use g_file_set_contents()
+
+	errno = 0;
+	FILE *fd = fopen(path, "wb");
+
+	if (!fd) {
+		sr_err("Failed to open file %s: %s",
+		       path, strerror(errno));
+		g_free(path);
+		return 0;
+	}
+
+	if ((1 != fwrite(data, len, 1, fd)) || errno) {
+		sr_err("Failed to write to file %s: %s",
+		       path, strerror(errno));
+		g_free(path);
+		return 0;
+	}
+
+	if (fclose(fd)) {
+		sr_err("Failed to close file %s: %s",
+		       path, strerror(errno));
+		g_free(path);
+		return 0;
+	}
+	g_free(path);
+	return 1;
+}
+
+static GKeyFile *open_keyfile(const char *dirpath,
+                              const char *filepath)
+{
+	gchar *path = g_build_filename(dirpath,
+	                               filepath,
+	                               NULL);
+	GError *err = NULL;
+	GKeyFile *keyfile = g_key_file_new();
+
+	g_key_file_load_from_file(keyfile, path, G_KEY_FILE_NONE, &err);
+
+	if (err) {
+		sr_err("Failed to load key file %s: %s",
+		       path,
+		       err->message);
+		g_error_free(err);
+	}
+
+	g_free(path);
+	return keyfile;
+}
+
 static int zip_create(const struct sr_output *o)
 {
 	struct out_context *outc;
-	struct zip *zipfile;
-	struct zip_source *versrc, *metasrc;
+	//struct zip *zipfile;
+	//struct zip_source *versrc, *metasrc;
 	struct sr_channel *ch;
 	size_t ch_nr;
 	size_t alloc_size;
@@ -94,19 +217,14 @@ static int zip_create(const struct sr_output *o)
 		g_variant_unref(gvar);
 	}
 
-	/* Quietly delete it first, libzip wants replace ops otherwise. */
-	g_unlink(outc->filename);
-	zipfile = zip_open(outc->filename, ZIP_CREATE, NULL);
-	if (!zipfile)
+	/* Quietly delete it first. */
+	rm_rf_unlink(outc->filename);
+	if (!my_mkdir(outc->filename)) {
 		return SR_ERR;
+	}
 
 	/* "version" */
-	versrc = zip_source_buffer(zipfile, "2", 1, FALSE);
-	if (zip_add(zipfile, "version", versrc) < 0) {
-		sr_err("Error saving version into zipfile: %s",
-			zip_strerror(zipfile));
-		zip_source_free(versrc);
-		zip_discard(zipfile);
+	if (!write_to_file(outc->filename, "version", "2", 1)) {
 		return SR_ERR;
 	}
 
@@ -230,22 +348,10 @@ static int zip_create(const struct sr_output *o)
 	metabuf = g_key_file_to_data(meta, &metalen, NULL);
 	g_key_file_free(meta);
 
-	metasrc = zip_source_buffer(zipfile, metabuf, metalen, FALSE);
-	if (zip_add(zipfile, "metadata", metasrc) < 0) {
-		sr_err("Error saving metadata into zipfile: %s",
-			zip_strerror(zipfile));
-		zip_source_free(metasrc);
-		zip_discard(zipfile);
-		g_free(metabuf);
-		return SR_ERR;
-	}
+	write_to_file(outc->filename,
+	              "metadata",
+	              metabuf, metalen);
 
-	if (zip_close(zipfile) < 0) {
-		sr_err("Error saving zipfile: %s", zip_strerror(zipfile));
-		zip_discard(zipfile);
-		g_free(metabuf);
-		return SR_ERR;
-	}
 	g_free(metabuf);
 
 	return SR_OK;
@@ -265,11 +371,6 @@ static int zip_append(const struct sr_output *o,
 	uint8_t *buf, size_t unitsize, size_t length)
 {
 	struct out_context *outc;
-	struct zip *archive;
-	struct zip_source *logicsrc;
-	int64_t i, num_files;
-	struct zip_stat zs;
-	struct zip_source *metasrc;
 	GKeyFile *kf;
 	GError *error;
 	uint64_t chunk_num;
@@ -283,17 +384,9 @@ static int zip_append(const struct sr_output *o,
 		return SR_OK;
 
 	outc = o->priv;
-	if (!(archive = zip_open(outc->filename, 0, NULL)))
-		return SR_ERR;
+	kf = open_keyfile(outc->filename, "metadata");
 
-	if (zip_stat(archive, "metadata", 0, &zs) < 0) {
-		sr_err("Failed to open metadata: %s", zip_strerror(archive));
-		zip_discard(archive);
-		return SR_ERR;
-	}
-	kf = sr_sessionfile_read_metadata(archive, &zs);
 	if (!kf) {
-		zip_discard(archive);
 		return SR_ERR_DATA;
 	}
 	/*
@@ -307,7 +400,6 @@ static int zip_append(const struct sr_output *o,
 			sr_err("Failed to check unitsize key: %s", error->message);
 			g_error_free(error);
 			g_key_file_free(kf);
-			zip_discard(archive);
 			return SR_ERR;
 		}
 		g_clear_error(&error);
@@ -315,25 +407,25 @@ static int zip_append(const struct sr_output *o,
 		/* Add unitsize field. */
 		g_key_file_set_integer(kf, "device 1", "unitsize", unitsize);
 		metabuf = g_key_file_to_data(kf, &metalen, NULL);
-		metasrc = zip_source_buffer(archive, metabuf, metalen, FALSE);
 
-		if (zip_replace(archive, zs.index, metasrc) < 0) {
-			sr_err("Failed to replace metadata: %s",
-				zip_strerror(archive));
+		if (!write_to_file(outc->filename,
+		                   "metadata",
+		                   metabuf, metalen)) {
 			g_key_file_free(kf);
-			zip_source_free(metasrc);
-			zip_discard(archive);
 			g_free(metabuf);
 			return SR_ERR;
 		}
 	}
 	g_key_file_free(kf);
 
+	GDir *d = g_dir_open(outc->filename, 0, NULL);
 	next_chunk_num = 1;
-	num_files = zip_get_num_entries(archive, 0);
-	for (i = 0; i < num_files; i++) {
-		entry_name = zip_get_name(archive, i, 0);
-		if (!entry_name || strncmp(entry_name, "logic-1", 7) != 0)
+
+	while (d) {
+		entry_name = g_dir_read_name(d);
+		if (!entry_name)
+			break;
+		if (strncmp(entry_name, "logic-1", 7) != 0)
 			continue;
 		if (entry_name[7] == '\0') {
 			/*
@@ -341,11 +433,20 @@ static int zip_append(const struct sr_output *o,
 			 * "logic-1". Rename it to "logic-1-1" and continue
 			 * with chunk 2.
 			 */
-			if (zip_rename(archive, i, "logic-1-1") < 0) {
-				sr_err("Failed to rename 'logic-1' to 'logic-1-1': %s",
-					zip_strerror(archive));
-				zip_discard(archive);
-				g_free(metabuf);
+
+			gchar *path1 = g_build_filename(outc->filename,
+			                                "logic-1",
+			                                NULL);
+			gchar *path2 = g_build_filename(outc->filename,
+			                                "logic-1-1",
+			                                NULL);
+
+			int res = g_rename(path1, path2);
+			g_free(path1);
+			g_free(path2);
+
+			if (res < 0) {
+				sr_err("Failed to rename 'logic-1' to 'logic-1-1'");
 				return SR_ERR;
 			}
 			next_chunk_num = 2;
@@ -357,29 +458,20 @@ static int zip_append(const struct sr_output *o,
 		}
 	}
 
+	g_dir_close(d);
+
 	if (length % unitsize != 0) {
 		sr_warn("Chunk size %zu not a multiple of the"
 			" unit size %zu.", length, unitsize);
 	}
-	logicsrc = zip_source_buffer(archive, buf, length, FALSE);
+
 	chunkname = g_strdup_printf("logic-1-%u", next_chunk_num);
-	i = zip_add(archive, chunkname, logicsrc);
+
+	gboolean res = write_to_file(outc->filename, chunkname, buf, length);
 	g_free(chunkname);
-	if (i < 0) {
-		sr_err("Failed to add chunk 'logic-1-%u': %s",
-			next_chunk_num, zip_strerror(archive));
-		zip_source_free(logicsrc);
-		zip_discard(archive);
-		g_free(metabuf);
+	if (!res) {
 		return SR_ERR;
 	}
-	if (zip_close(archive) < 0) {
-		sr_err("Error saving session file: %s", zip_strerror(archive));
-		zip_discard(archive);
-		g_free(metabuf);
-		return SR_ERR;
-	}
-	g_free(metabuf);
 
 	return SR_OK;
 }
@@ -513,11 +605,7 @@ static int zip_append_analog(const struct sr_output *o,
 	const float *values, size_t count, size_t ch_nr)
 {
 	struct out_context *outc;
-	struct zip *archive;
-	struct zip_source *analogsrc;
-	int64_t i, num_files;
 	size_t size;
-	struct zip_stat zs;
 	uint64_t chunk_num;
 	const char *entry_name;
 	char *basename;
@@ -527,22 +615,17 @@ static int zip_append_analog(const struct sr_output *o,
 
 	outc = o->priv;
 
-	if (!(archive = zip_open(outc->filename, 0, NULL)))
-		return SR_ERR;
-
-	if (zip_stat(archive, "metadata", 0, &zs) < 0) {
-		sr_err("Failed to open metadata: %s", zip_strerror(archive));
-		zip_discard(archive);
-		return SR_ERR;
-	}
-
 	basename = g_strdup_printf("analog-1-%zu", ch_nr);
 	baselen = strlen(basename);
+
+	GDir *d = g_dir_open(outc->filename, 0, NULL);
 	next_chunk_num = 1;
-	num_files = zip_get_num_entries(archive, 0);
-	for (i = 0; i < num_files; i++) {
-		entry_name = zip_get_name(archive, i, 0);
-		if (!entry_name || strncmp(entry_name, basename, baselen) != 0) {
+
+	while (d) {
+		entry_name = g_dir_read_name(d);
+		if (!entry_name)
+			break;
+		if (strncmp(entry_name, basename, baselen) != 0) {
 			continue;
 		} else if (entry_name[baselen] == '-') {
 			chunk_num = g_ascii_strtoull(entry_name + baselen + 1, NULL, 10);
@@ -551,27 +634,17 @@ static int zip_append_analog(const struct sr_output *o,
 		}
 	}
 
-	size = sizeof(values[0]) * count;
-	analogsrc = zip_source_buffer(archive, values, size, FALSE);
-	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
-	i = zip_add(archive, chunkname, analogsrc);
-	if (i < 0) {
-		sr_err("Failed to add chunk '%s': %s", chunkname, zip_strerror(archive));
-		g_free(chunkname);
-		g_free(basename);
-		zip_source_free(analogsrc);
-		zip_discard(archive);
-		return SR_ERR;
-	}
-	g_free(chunkname);
-	if (zip_close(archive) < 0) {
-		sr_err("Error saving session file: %s", zip_strerror(archive));
-		g_free(basename);
-		zip_discard(archive);
-		return SR_ERR;
-	}
+	g_dir_close(d);
 
+	size = sizeof(values[0]) * count;
+
+	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
+
+	gboolean res = write_to_file(outc->filename, chunkname, values, size);
+	g_free(chunkname);
 	g_free(basename);
+	if (!res)
+		return SR_ERR;
 
 	return SR_OK;
 }
@@ -681,6 +754,120 @@ static int zip_append_analog_queue(const struct sr_output *o,
 	return SR_OK;
 }
 
+#include "miniz/miniz.c"
+
+// zip up our directory to a standard "sr" file.
+static gboolean zip_to_srfile(gchar *filename)
+{
+	gboolean ret = TRUE;
+
+	// "example.sr" --> "example.sr.dir"
+	gchar *dirname = g_strdup_printf("%s.dir", filename);
+
+	/* Quietly delete it first. */
+	rm_rf_unlink(dirname);
+
+	int res = g_rename(filename, dirname);
+	if (res) {
+		sr_err("Failed to rename %s to %s",
+		       filename,
+		       dirname);
+		ret = FALSE;
+		goto cleanup_dir_rename;
+	}
+
+	uint8_t compression_level = MZ_BEST_SPEED;
+
+	const gchar *compression = g_getenv("SR_COMPRESSION_LEVEL");
+	if (compression) {
+		errno = 0;
+		long int comp_level = strtol(compression, NULL, 0);
+		if ((errno == 0) && (comp_level >= 0) && (comp_level <= 10)) {
+			compression_level = comp_level;
+		}
+	}
+
+	mz_zip_error zip_err = 0;
+	mz_zip_archive zip_archive;
+	mz_zip_zero_struct(&zip_archive);
+	mz_uint level_and_flags = compression_level | MZ_ZIP_FLAG_WRITE_ZIP64;
+
+	if (!mz_zip_writer_init_file_v2(&zip_archive, filename, 0, level_and_flags)) {
+		zip_err = zip_archive.m_last_error;
+		sr_err("Failed to create zip %s: %d (%s)",
+		       filename, zip_err, mz_zip_get_error_string(zip_err));
+		ret = FALSE;
+		goto cleanup_dir_rename;
+	}
+
+	GDir *d = g_dir_open(dirname, 0, NULL);
+
+	if (!d) {
+		ret = FALSE;
+		goto cleanup_dir_open;
+	}
+
+	while (ret) {
+
+		const gchar *entry_name = g_dir_read_name(d);
+		if (entry_name == NULL)
+			break;
+
+		gchar *file_in_dirname = g_build_filename(dirname,
+		                                          entry_name,
+		                                          NULL);
+
+		mz_bool status = mz_zip_writer_add_file(&zip_archive,
+		                                        entry_name,
+		                                        file_in_dirname,
+		                                        NULL, 0,
+		                                        level_and_flags);
+
+		if (!status) {
+			zip_err = zip_archive.m_last_error;
+			sr_err("Failed to compress %s: %d (%s)",
+			       entry_name, zip_err, mz_zip_get_error_string(zip_err));
+			ret = FALSE;
+		}
+
+		g_free(file_in_dirname);
+	}
+
+ cleanup_dir_open:
+	g_dir_close(d);
+
+    if (!mz_zip_writer_finalize_archive(&zip_archive))
+    {
+	    zip_err = zip_archive.m_last_error;
+	    sr_err("Failed to finalize %s: %d (%s)",
+	           filename, zip_err, mz_zip_get_error_string(zip_err));
+	    ret = FALSE;
+    }
+
+    if (!mz_zip_writer_end_internal(&zip_archive, ret))
+    {
+	    zip_err = zip_archive.m_last_error;
+	    sr_err("Failed to end %s: %d (%s)",
+	           filename, zip_err, mz_zip_get_error_string(zip_err));
+	    ret = FALSE;
+    }
+
+	if (ret) {
+		if (!rm_rf_unlink(dirname)) {
+			sr_err("Failed to remove directory %s",
+			       dirname);
+		}
+	} else {
+		/* Something went wrong, so just delete our zip. */
+		(void)MZ_DELETE_FILE(filename);
+	}
+
+ cleanup_dir_rename:
+	g_free(dirname);
+
+	return ret;
+}
+
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
@@ -738,6 +925,10 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			ret = zip_append_analog_queue(o, NULL, TRUE);
 			if (ret != SR_OK)
 				return ret;
+
+			if (!zip_to_srfile(outc->filename)) {
+				return SR_ERR;
+			}
 		}
 		break;
 	}
