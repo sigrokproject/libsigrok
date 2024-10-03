@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2012-2013 Uwe Hermann <uwe@hermann-uwe.de>
- * Copyright (C) 2018 Matthias Schulz <matthschulz@arcor.de>
+ * Copyright (C) 2018 Matthias Schulz <matthias.schulz@mailbox.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 /*
  * Voltcraft 13-bytes ASCII protocol parser.
+ * derived from metex14.c
  *
  * Bytes 1-3 measuring mode, byte 4 '-' for negative,
  * bytes 5-9 value, bytes 10-11 unit, bytes 12-13 CRLF 0d 0a.
@@ -37,13 +38,11 @@
 #define LOG_PREFIX "vc96"
 
 /** Parse value from buf, byte 3-8. */
-static int parse_value(const uint8_t *buf, struct vc96_info *info,
+static int parse_value(const uint8_t *buf,
 			float *result, int *exponent)
 {
 	int i, is_ol, cnt, dot_pos;
-	char valstr[8 + 1];
-
-	(void)info;
+	char valstr[6 + 1];
 
 	/* Strip all spaces from bytes 3-8. */
 	memset(&valstr, 0, 6 + 1);
@@ -63,12 +62,14 @@ static int parse_value(const uint8_t *buf, struct vc96_info *info,
 	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-OL.")) ? 1 : 0;
 	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-OL")) ? 1 : 0;
 	if (is_ol != 0) {
-		sr_spew("Over limit.");
 		*result = INFINITY;
+		
+		sr_spew("Over limit.");
+		
 		return SR_OK;
 	}
 
-	/* Bytes 3-10: Sign, value (up to 5 digits) and decimal point */
+	/* Bytes 3-10: Sign, value (up to 5 digits including decimal point) */
 	sr_atof_ascii((const char *)&valstr, result);
 
 	dot_pos = strcspn(valstr, ".");
@@ -78,9 +79,10 @@ static int parse_value(const uint8_t *buf, struct vc96_info *info,
 		*exponent = 0;
 
 	sr_spew("The display value is %f.", *result);
-
+	
 	return SR_OK;
 }
+
 
 static void parse_flags(const char *buf, struct vc96_info *info)
 {
@@ -92,8 +94,12 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 	info->is_ac = !strncmp(buf, "AC", 2);
 	info->is_dc = !strncmp(buf, "DC", 2);
 
-	/* Bytes 0-2: Measurement mode DIO, OHM */
-	info->is_ohm = !strncmp(buf, "OHM", 3);
+	/*
+	 * Note:
+	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
+	 */
+	/* Bytes 0-2: Measurement mode, except AC/DC */
+	info->is_ohm = !strncmp(buf, "OHM", 3) || !strncmp(buf, "BEP", 3);
 	info->is_diode = !strncmp(buf, "DIO", 3);
 	info->is_hfe = !strncmp(buf, "hfe", 3);
 
@@ -106,39 +112,27 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 			unit[cnt++] = buf[9 + i];
 	}
 	sr_spew("Bytes 9..10 without spaces \"%.4s\".", unit);
-
+	
 	/* Bytes 9-10: Unit */
 	u = (const char *)&unit;
-	if (!g_ascii_strcasecmp(u, "A"))
-		info->is_ampere = TRUE;
-	else if (!g_ascii_strcasecmp(u, "mA"))
+
+	if (!g_ascii_strcasecmp(u, "mA"))
 		info->is_milli = info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "uA"))
 		info->is_micro = info->is_ampere = TRUE;
-	else if (!g_ascii_strcasecmp(u, "V"))
-		info->is_volt = TRUE;
+	else if (!g_ascii_strcasecmp(u, "A"))
+		info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "mV"))
 		info->is_milli = info->is_volt = TRUE;
-	else if (!g_ascii_strcasecmp(u, "K"))
+	else if (!g_ascii_strcasecmp(u, "V"))
+		info->is_volt = TRUE;
+	/* ignore case, VC96 sends wrong upper case "K" */
+	else if (!g_ascii_strncasecmp(u, "K", 1))
 		info->is_kilo = TRUE;
-	else if (!g_ascii_strcasecmp(u, "M"))
+	else if (strchr(u, (int)'M'))
 		info->is_mega = TRUE;
 	else if (!g_ascii_strcasecmp(u, ""))
 		info->is_unitless = TRUE;
-
-	/* Bytes 0-2: Measurement mode, except AC/DC */
-	info->is_resistance = !strncmp(buf, "OHM", 3) ||
-		(!strncmp(buf, "  ", 3) && info->is_ohm);
-	info->is_diode = !strncmp(buf, "DIO", 3) ||
-		(!strncmp(buf, "  ", 3) && info->is_volt && info->is_milli);
-	info->is_hfe = !strncmp(buf, "hfe", 3) ||
-		(!strncmp(buf, "  ", 3) && !info->is_ampere && !info->is_volt &&
-		!info->is_resistance && !info->is_diode);
-
-	/*
-	 * Note:
-	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
-	 */
 
 	/* Byte 12: Always '\r' (carriage return, 0x0d, 12) */
 	/* Byte 13: Always '\n' (carriage return, 0x0a, 13) */
@@ -151,7 +145,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 
 	(void)exponent;
 
-	/* Factors */
+	/* Factors representing the exponent of 123Exx */
 	factor = 0;
 	if (info->is_micro)
 		factor -= 6;
@@ -161,7 +155,9 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		factor += 3;
 	if (info->is_mega)
 		factor += 6;
+
 	*floatval *= powf(10, factor);
+	*exponent += factor;
 
 	/* Measurement modes */
 	if (info->is_volt) {
@@ -272,11 +268,6 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 	sr_dbg("DMM packet: \"%.11s\".", buf);
 
 	memset(info_local, 0x00, sizeof(struct vc96_info));
-
-	if ((ret = parse_value(buf, info_local, floatval, &exponent)) < 0) {
-		sr_dbg("Error parsing value: %d.", ret);
-		return ret;
-	}
 
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
