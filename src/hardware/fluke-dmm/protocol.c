@@ -26,28 +26,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static int count_digits(const char *str)
-{
-	int digits;
-
-	if (*str == '-' || *str == '+')
-		str++;
-
-	while (*str >= '0' && *str <= '9')
-		str++;
-
-	digits = 0;
-	if (*str == '.') {
-		str++;
-		while (*str >= '0' && *str <= '9') {
-			str++;
-			digits++;
-		}
-	}
-
-	return digits;
-}
-
 static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 {
 	struct dev_context *devc;
@@ -84,12 +62,11 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 		while (*e && *e != ' ')
 			e++;
 		*e++ = '\0';
-		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK) {
+		if (sr_atof_ascii_digits(tokens[1], &fvalue, &digits) != SR_OK) {
 			/* Happens all the time, when switching modes. */
 			sr_dbg("Invalid float: '%s'", tokens[1]);
 			return;
 		}
-		digits = count_digits(tokens[1]);
 	}
 	while (*e && *e == ' ')
 		e++;
@@ -312,11 +289,11 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 		 * is rather problematic, we'll cut through this here. */
 		fvalue = NAN;
 	} else {
-		if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK || fvalue == 0.0) {
+		if (sr_atof_ascii_digits(tokens[0], &fvalue, &digits) != SR_OK ||
+		    fvalue == 0.0) {
 			sr_err("Invalid float '%s'.", tokens[0]);
 			return;
 		}
-		digits = count_digits(tokens[0]);
 	}
 
 	devc = sdi->priv;
