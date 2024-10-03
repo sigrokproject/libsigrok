@@ -234,7 +234,7 @@ SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi)
 			if (serial_read_blocking(serial, &tmp_int, 4,
 						 delay_ms) != 4)
 				break;
-			tmp_int = RB32(&tmp_int);
+			tmp_int = RL32(&tmp_int);
 			sr_dbg("Got metadata token 0x%.2x value 0x%.8x.", key,
 			       tmp_int);
 			switch (key) {
