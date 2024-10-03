@@ -398,6 +398,33 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 }
 
 /**
+ * Convert text to a floating point value, and get its precision.
+ *
+ * @param[in] str The input text to convert.
+ * @param[out] ret The conversion result, a double precision float number.
+ * @param[out] digits The number of significant decimals.
+ *
+ * @returns SR_OK in case of successful text to number conversion.
+ * @returns SR_ERR when conversion fails.
+ */
+SR_PRIV int sr_atof_ascii_digits(const char *str, float *ret, int *digits)
+{
+	int d;
+	float f;
+
+	if (sr_count_digits(str, &d) != SR_OK || sr_atof_ascii(str, &f) != SR_OK)
+		return SR_ERR;
+
+	if (ret)
+		*ret = f;
+
+	if (digits)
+		*digits = d;
+
+	return SR_OK;
+}
+
+/**
  * Get the precision of a floating point number.
  *
  * @param[in] str The input text to convert.
