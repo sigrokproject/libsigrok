@@ -53,13 +53,13 @@ static const char *scan_conn[] = {
 };
 
 static const struct flukedmm_profile supported_flukedmm[] = {
-	{ FLUKE_87, "87", 100, 1000 },
-	{ FLUKE_89, "89", 100, 1000 },
-	{ FLUKE_187, "187", 100, 1000 },
-	{ FLUKE_189, "189", 100, 1000 },
-	{ FLUKE_190, "199B", 1000, 3500 },
-	{ FLUKE_287, "287", 100, 1000 },
-	{ FLUKE_289, "289", 100, 1000 },
+	{ FLUKE_87, "87", fluke_handle_qm_18x, 100, 1000 },
+	{ FLUKE_89, "89", fluke_handle_qm_18x, 100, 1000 },
+	{ FLUKE_187, "187", fluke_handle_qm_18x, 100, 1000 },
+	{ FLUKE_189, "189", fluke_handle_qm_18x, 100, 1000 },
+	{ FLUKE_190, "199B", fluke_handle_qm_190, 1000, 3500 },
+	{ FLUKE_287, "287", fluke_handle_qm_28x, 100, 1000 },
+	{ FLUKE_289, "289", fluke_handle_qm_28x, 100, 1000 },
 };
 
 static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,

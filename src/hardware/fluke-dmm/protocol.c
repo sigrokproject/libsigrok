@@ -50,34 +50,18 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	tokens = g_strsplit(devc->buf, ",", 0);
 	if (tokens[0]) {
-		switch (devc->profile->model) {
-		case FLUKE_87:
-		case FLUKE_89:
-		case FLUKE_187:
-		case FLUKE_189:
-			devc->expect_response = FALSE;
-			fluke_handle_qm_18x(sdi, tokens);
-			break;
-		case FLUKE_190:
-			devc->expect_response = FALSE;
-			fluke_handle_qm_190(sdi, tokens);
-			if (devc->meas_type) {
-				/*
-				 * Slip the request in now, before the main
-				 * timer loop asks for metadata again.
-				 */
-				n = sprintf(cmd, "QM %d\r", devc->meas_type);
-				ret = serial_write_blocking(serial,
-					cmd, n, SERIAL_WRITE_TIMEOUT_MS);
-				if (ret < 0)
-					sr_err("Cannot send QM (measurement).");
-			}
-			break;
-		case FLUKE_287:
-		case FLUKE_289:
-			devc->expect_response = FALSE;
-			fluke_handle_qm_28x(sdi, tokens);
-			break;
+		devc->expect_response = FALSE;
+		devc->profile->handler(sdi, tokens);
+		if (devc->profile->model == FLUKE_190 && devc->meas_type) {
+			/*
+			 * Slip the request in now, before the main
+			 * timer loop asks for metadata again.
+			 */
+			n = sprintf(cmd, "QM %d\r", devc->meas_type);
+			ret = serial_write_blocking(serial,
+				cmd, n, SERIAL_WRITE_TIMEOUT_MS);
+			if (ret < 0)
+				sr_err("Cannot send QM (measurement).");
 		}
 	}
 	g_strfreev(tokens);

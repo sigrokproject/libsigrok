@@ -42,6 +42,8 @@ enum {
 struct flukedmm_profile {
 	int model;
 	const char *modelname;
+	/* Response handler */
+	void (*handler)(const struct sr_dev_inst *sdi, char **tokens);
 	/* How often to poll, in ms. */
 	int poll_period;
 	/* If no response received, how long to wait before retrying. */
