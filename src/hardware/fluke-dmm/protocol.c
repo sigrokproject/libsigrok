@@ -50,34 +50,18 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	tokens = g_strsplit(devc->buf, ",", 0);
 	if (tokens[0]) {
-		switch (devc->profile->model) {
-		case FLUKE_87:
-		case FLUKE_89:
-		case FLUKE_187:
-		case FLUKE_189:
-			devc->expect_response = FALSE;
-			fluke_handle_qm_18x(sdi, tokens);
-			break;
-		case FLUKE_190:
-			devc->expect_response = FALSE;
-			fluke_handle_qm_190(sdi, tokens);
-			if (devc->meas_type) {
-				/*
-				 * Slip the request in now, before the main
-				 * timer loop asks for metadata again.
-				 */
-				n = sprintf(cmd, "QM %d\r", devc->meas_type);
-				ret = serial_write_blocking(serial,
-					cmd, n, SERIAL_WRITE_TIMEOUT_MS);
-				if (ret < 0)
-					sr_err("Cannot send QM (measurement).");
-			}
-			break;
-		case FLUKE_287:
-		case FLUKE_289:
-			devc->expect_response = FALSE;
-			fluke_handle_qm_28x(sdi, tokens);
-			break;
+		devc->expect_response = FALSE;
+		devc->profile->handler(sdi, tokens);
+		if (devc->profile->model == FLUKE_190 && devc->meas_type) {
+			/*
+			 * Slip the request in now, before the main
+			 * timer loop asks for metadata again.
+			 */
+			n = sprintf(cmd, "QM %d\r", devc->meas_type);
+			ret = serial_write_blocking(serial,
+				cmd, n, SERIAL_WRITE_TIMEOUT_MS);
+			if (ret < 0)
+				sr_err("Cannot send QM (measurement).");
 		}
 	}
 	g_strfreev(tokens);
@@ -89,6 +73,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	const char *poll_cmd;
 	int len;
 	int64_t now, elapsed;
 
@@ -99,6 +84,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 
 	if (!(devc = sdi->priv))
 		return TRUE;
+
+	poll_cmd = devc->profile->poll_cmd;
 
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
@@ -129,8 +116,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	 * out-of-sync or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > devc->profile->timeout) {
-		if (serial_write_blocking(serial, "QM\r", 3, SERIAL_WRITE_TIMEOUT_MS) < 0)
-			sr_err("Unable to send QM.");
+		if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd), SERIAL_WRITE_TIMEOUT_MS) < 0)
+			sr_err("Unable to send poll command.");
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;
 	}
