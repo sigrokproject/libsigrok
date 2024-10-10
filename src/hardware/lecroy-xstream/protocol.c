@@ -274,6 +274,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	unsigned int i, j;
 	char command[MAX_COMMAND_SIZE];
 	char *tmp_str;
+	int ret;
 
 	for (i = 0; i < config->analog_channels; i++) {
 		g_snprintf(command, sizeof(command), "C%d:TRACE?", i + 1);
@@ -287,13 +288,13 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j) != SR_OK) {
-			g_free(tmp_str);
+		ret = array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j);
+		g_free(tmp_str);
+		if (ret != SR_OK) {
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
 		}
 
-		g_free(tmp_str);
 		state->analog_channels[i].vdiv = j;
 
 		g_snprintf(command, sizeof(command), "C%d:OFFSET?", i + 1);
@@ -306,13 +307,13 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-
-		if (scope_state_get_array_option(tmp_str, config->coupling_options,
-				 config->num_coupling_options,
-				 &state->analog_channels[i].coupling) != SR_OK)
+		ret = scope_state_get_array_option(tmp_str, config->coupling_options,
+				config->num_coupling_options,
+				&state->analog_channels[i].coupling);
+		g_free(tmp_str);
+		if (ret != SR_OK)
 			return SR_ERR;
 
-		g_free(tmp_str);
 	}
 
 	return SR_OK;

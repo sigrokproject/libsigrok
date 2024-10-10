@@ -1008,6 +1008,89 @@ static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+
+/* Keysight E36300A series */
+
+static const uint32_t keysight_e36300a_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t keysight_e36300a_devopts_cg[] = {
+	SR_CONF_ENABLED | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_REGULATION | SR_CONF_GET,
+};
+
+/* NOT TESTED; estimated from the E36312A results and data sheet. */
+/* The measurement resolution of CHs 2 and 3 of E36311A is 10mV, different from 1mV in E36312A, */
+/*    but the data sheet does not provide us with the programming resolution. */
+static const struct channel_spec keysight_e36311a_ch[] = {
+	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 5.15, 0.001, 3, 8 }, { 0, 31.827  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { -25.75, 0, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+};
+
+/* fetched from the equipment using the ':SOUR:VOLT? MAX,(@N)' command (where N=1,2,3) */
+static const struct channel_spec keysight_e36312a_ch[] = {
+	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 5.15, 0.001, 3, 8 }, { 0, 31.827  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+};
+
+/* NOT TESTED; estimated from the E36312A results and data sheet. */
+static const struct channel_spec keysight_e36313a_ch[] = {
+	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 10.3, 0.001, 3, 8 }, { 0, 63.654  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 2.06, 0.001, 3, 8 }, { 0, 53.045 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 2.06, 0.001, 3, 8 }, { 0, 53.045 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS, NO_OCP_DELAY },
+};
+
+static const struct channel_group_spec keysight_e36300a_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP | PPS_OTP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP | PPS_OTP, SR_MQFLAG_DC },
+	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP | PPS_OTP, SR_MQFLAG_DC },
+};
+
+static const struct scpi_command keysight_e36300a_cmd[] = {
+	/*
+	 * Only tested on an E36312A connected via LAN.
+	 * E36311A, E36312A, and E36313A support the USB connection
+	 * while E36312A and E36313A also support GPIB with an optional interface card,
+	 * but these are not tested.
+	 */
+	{ SCPI_CMD_REMOTE, "SYST:REM" },
+	{ SCPI_CMD_LOCAL, "SYST:LOC" },
+	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP:STAT ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP:STAT OFF" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED, ":CURR:PROT:STAT?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, ":CURR:PROT:STAT 1" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, ":CURR:PROT:STAT 0" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE, ":CURR:PROT:TRIP?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE, ":VOLT:PROT:TRIP?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":VOLT:PROT?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":VOLT:PROT %.6f" },
+	{ SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE, ":STAT:QUES:INST:ISUM%s:COND?" },
+	{ SCPI_CMD_GET_OUTPUT_REGULATION, ":STAT:QUES:INST:ISUM%s:COND?" },
+	ALL_ZERO
+};
+
 /* Owon P4000 series */
 static const uint32_t owon_p4000_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -1699,6 +1782,42 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.probe_channels = NULL,
 		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
+	},
+
+	/* Keysight E36311A; NOT TESTED*/
+	{ "Keysight", "E36311A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
+		ARRAY_AND_SIZE(keysight_e36311a_ch),
+		ARRAY_AND_SIZE(keysight_e36300a_cg),
+		keysight_e36300a_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
+	/* Keysight E36312A */
+	{ "Keysight", "E36312A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
+		ARRAY_AND_SIZE(keysight_e36312a_ch),
+		ARRAY_AND_SIZE(keysight_e36300a_cg),
+		keysight_e36300a_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
+	/* Keysight E36313A; NOT TESTED*/
+	{ "Keysight", "E36313A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
+		ARRAY_AND_SIZE(keysight_e36313a_ch),
+		ARRAY_AND_SIZE(keysight_e36300a_cg),
+		keysight_e36300a_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Rigol DP700 series */

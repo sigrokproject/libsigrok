@@ -95,6 +95,7 @@ libsigrok_la_SOURCES += \
 	src/input/trace32_ad.c \
 	src/input/vcd.c \
 	src/input/wav.c \
+	src/input/isf.c \
 	src/input/null.c
 if HAVE_INPUT_STF
 libsigrok_la_SOURCES += \
@@ -358,6 +359,9 @@ if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/protocol.h \
 	src/hardware/fluke-dmm/protocol.c \
+	src/hardware/fluke-dmm/fluke-18x.c \
+	src/hardware/fluke-dmm/fluke-190.c \
+	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
 endif
 if HW_FTDI_LA
@@ -666,6 +670,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/serial-lcr/protocol.h \
 	src/hardware/serial-lcr/protocol.c \
 	src/hardware/serial-lcr/api.c
+endif
+if HW_SIGLENT_SDL10X0
+src_libdrivers_la_SOURCES += \
+	src/hardware/siglent-sdl10x0/protocol.h \
+	src/hardware/siglent-sdl10x0/protocol.c \
+	src/hardware/siglent-sdl10x0/api.c
 endif
 if HW_SIGLENT_SDS
 src_libdrivers_la_SOURCES += \

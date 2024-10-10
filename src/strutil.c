@@ -340,59 +340,17 @@ SR_PRIV int sr_atod_ascii(const char *str, double *ret)
  */
 SR_PRIV int sr_atod_ascii_digits(const char *str, double *ret, int *digits)
 {
-	const char *p;
-	int *dig_ref, m_dig, exp;
-	char c;
+	int d;
 	double f;
 
-	/*
-	 * Convert floating point text to the number value, _and_ get
-	 * the value's precision in the process. Steps taken to do it:
-	 * - Skip leading whitespace.
-	 * - Count the number of decimals after the mantissa's period.
-	 * - Get the exponent's signed value.
-	 *
-	 * This implementation still uses common code for the actual
-	 * conversion, but "violates API layers" by duplicating the
-	 * text scan, to get the number of significant digits.
-	 */
-	p = str;
-	while (*p && isspace(*p))
-		p++;
-	if (*p == '-' || *p == '+')
-		p++;
-	m_dig = 0;
-	exp = 0;
-	dig_ref = NULL;
-	while (*p) {
-		c = *p++;
-		if (toupper(c) == 'E') {
-			exp = strtol(p, NULL, 10);
-			break;
-		}
-		if (c == '.') {
-			m_dig = 0;
-			dig_ref = &m_dig;
-			continue;
-		}
-		if (isdigit(c)) {
-			if (dig_ref)
-				(*dig_ref)++;
-			continue;
-		}
-		/* Need not warn, conversion will fail. */
-		break;
-	}
-	sr_spew("atod digits: txt \"%s\" -> m %d, e %d -> digits %d",
-		str, m_dig, exp, m_dig + -exp);
-	m_dig += -exp;
-
-	if (sr_atod_ascii(str, &f) != SR_OK)
+	if (sr_count_digits(str, &d) != SR_OK || sr_atod_ascii(str, &f) != SR_OK)
 		return SR_ERR;
+
 	if (ret)
 		*ret = f;
+
 	if (digits)
-		*digits = m_dig;
+		*digits = d;
 
 	return SR_OK;
 }
@@ -436,6 +394,100 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 	*/
 
 	*ret = (float) tmp;
+	return SR_OK;
+}
+
+/**
+ * Convert text to a floating point value, and get its precision.
+ *
+ * @param[in] str The input text to convert.
+ * @param[out] ret The conversion result, a double precision float number.
+ * @param[out] digits The number of significant decimals.
+ *
+ * @returns SR_OK in case of successful text to number conversion.
+ * @returns SR_ERR when conversion fails.
+ */
+SR_PRIV int sr_atof_ascii_digits(const char *str, float *ret, int *digits)
+{
+	int d;
+	float f;
+
+	if (sr_count_digits(str, &d) != SR_OK || sr_atof_ascii(str, &f) != SR_OK)
+		return SR_ERR;
+
+	if (ret)
+		*ret = f;
+
+	if (digits)
+		*digits = d;
+
+	return SR_OK;
+}
+
+/**
+ * Get the precision of a floating point number.
+ *
+ * @param[in] str The input text to convert.
+ * @param[out] digits The number of significant decimals.
+ *
+ * @returns SR_OK in case of successful.
+ * @returns SR_ERR when conversion fails.
+ *
+ * @private
+ */
+SR_PRIV int sr_count_digits(const char *str, int *digits)
+{
+	const char *p = str;
+	char *exp_end;
+	int d_int = 0;
+	int d_dec = 0;
+	int exp = 0;
+
+	/* Skip leading spaces */
+	while ((*p) && isspace(*p))
+		p++;
+
+	/* Skip the integer part */
+	if ((*p == '-') || (*p == '+'))
+		p++;
+	while (isdigit(*p)) {
+		d_int++;
+		p++;
+	}
+
+	/* Count decimal digits. */
+	if (*p == '.') {
+		p++;
+		while (isdigit(*p)) {
+			p++;
+			d_dec++;
+		}
+	}
+
+	/* Parse the exponent */
+	if (toupper(*p) == 'E') {
+		p++;
+		errno = 0;
+		exp = strtol(p, &exp_end, 10);
+		if (errno) {
+			sr_spew("Failed to parse exponent: txt \"%s\", e \"%s\"",
+				str, p);
+			return SR_ERR;
+		}
+		p = exp_end;
+	}
+
+	sr_spew("count digits: txt \"%s\" -> d_int %d, d_dec %d, e %d "
+		"-> digits %d\n",
+		str, d_int, d_dec, exp, d_dec - exp);
+
+	/* We should have parsed the whole string by now. Return an
+	 * error if not. */
+	if ((*p) || (d_dec == 0 && d_int == 0)) {
+		return SR_ERR;
+	}
+
+	*digits = d_dec - exp;
 	return SR_OK;
 }
 
