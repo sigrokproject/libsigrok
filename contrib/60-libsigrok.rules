@@ -287,9 +287,11 @@ ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1005", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1006", ENV{ID_SIGROK}="1"
 
 # Siglent USBTMC devices.
-# f4ec:ee3a: E.g. SDS1052DL+ scope
+# f4ec:1012: E.g. SDS1104X-U scope
 # f4ec:ee38: E.g. SDS1104X-E scope or SDM3055 Multimeter
+# f4ec:ee3a: E.g. SDS1052DL+ scope
 # f4ed:ee3a: E.g. SDS1202X-E scope or SDG1010 waveform generator
+ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="1012", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="ee38", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ed", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
