@@ -148,7 +148,7 @@ static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch,
 	do {
 		/* Try and read end of block if not in last block or end of wave when in last block */
 		maxlen = MIN(devc->num_samples-devc->num_block_bytes,devc->max_points-devc->num_bytes_current_block);
-		/* For analog channels, blocks are read one at a time, for digital all blocks are read in on buffer */
+		/* For analog channels, blocks are read one at a time, for digital all blocks are read in one buffer */
 		len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + (digital ? devc->num_block_bytes : devc->num_bytes_current_block)), maxlen);
 		if (len == -1 || len == 0) {
 			sr_err("Read error, aborting capture.");
