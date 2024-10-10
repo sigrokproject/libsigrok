@@ -146,6 +146,7 @@ SR_PRIV int siglent_sdl10x0_receive_data(struct sr_dev_inst *sdi)
 		return FALSE;
 	}
 
+	return TRUE;
 }
 
 SR_PRIV int siglent_sdl10x0_handle_events(int fd, int revents, void *cb_data)
