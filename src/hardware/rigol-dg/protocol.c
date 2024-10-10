@@ -22,26 +22,21 @@
 #include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type)
+SR_PRIV int rigol_dg_string_to_waveform(
+		const struct channel_spec *ch, const char *s, enum waveform_type *wf)
 {
-	switch (type) {
-	case WF_DC:
-		return "DC";
-	case WF_SINE:
-		return "Sine";
-	case WF_SQUARE:
-		return "Square";
-	case WF_RAMP:
-		return "Ramp";
-	case WF_PULSE:
-		return "Pulse";
-	case WF_NOISE:
-		return "Noise";
-	case WF_ARB:
-		return "Arb";
+	unsigned int i;
+
+	for (i = 0; i < ch->num_waveforms; i++) {
+		if (g_ascii_strncasecmp(s, ch->waveforms[i].scpi_name, strlen(ch->waveforms[i].scpi_name)) == 0 ||
+				g_ascii_strncasecmp(s, ch->waveforms[i].user_name, strlen(ch->waveforms[i].user_name)) == 0) {
+			*wf = ch->waveforms[i].waveform;
+			return SR_OK;
+		}
 	}
 
-	return "Unknown";
+	sr_warn("Unknown waveform: %s\n", s);
+	return SR_ERR;
 }
 
 SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
@@ -59,6 +54,46 @@ SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
 	}
 
 	return spec;
+}
+
+SR_PRIV int rigol_dg_get_double_param(const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg, int psg_cmd, double *value)
+{
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi;
+	const char *command;
+	GVariant *data;
+	gchar *response, **params;
+	const gchar *s;
+	int ret;
+
+	devc = sdi->priv;
+	scpi = sdi->conn;
+	data = NULL;
+	params = NULL;
+	response = NULL;
+	ret = SR_ERR_NA;
+
+	command = sr_scpi_cmd_get(devc->cmdset, psg_cmd);
+	if (command && *command) {
+		sr_scpi_get_opc(scpi);
+		ret = sr_scpi_cmd_resp(sdi, devc->cmdset,
+			PSG_CMD_SELECT_CHANNEL, cg->name, &data,
+			G_VARIANT_TYPE_STRING, psg_cmd, cg->name);
+		if (ret == SR_OK) {
+			response = g_variant_dup_string(data, NULL);
+			g_strstrip(response);
+			s = sr_scpi_unquote_string(response);
+			sr_spew("Double value is: '%s'", s);
+
+			*value = g_ascii_strtod(s, NULL);
+		}
+	}
+
+	g_variant_unref(data);
+	g_free(response);
+	g_strfreev(params);
+	return ret;
 }
 
 SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
@@ -89,6 +124,34 @@ SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 	ch = cg->channels->data;
 	ch_status = &devc->ch_status[ch->index];
 
+	command = sr_scpi_cmd_get(devc->cmdset, PSG_CMD_GET_SOURCE_NO_PARAM);
+	if (command && *command) {
+		sr_scpi_get_opc(scpi);
+		ret = sr_scpi_cmd_resp(sdi, devc->cmdset,
+			PSG_CMD_SELECT_CHANNEL, cg->name, &data,
+			G_VARIANT_TYPE_STRING, PSG_CMD_GET_SOURCE_NO_PARAM, cg->name);
+		if (ret != SR_OK)
+			goto done;
+		response = g_variant_dup_string(data, NULL);
+		g_strstrip(response);
+		s = sr_scpi_unquote_string(response);
+		sr_spew("Channel state: '%s'", s);
+
+		if ((ret = rigol_dg_string_to_waveform(
+				&devc->device->channels[ch->index], s, &wf)) != SR_OK)
+			goto done;
+
+		ch_status->wf = wf;
+		ch_status->wf_spec = rigol_dg_get_waveform_spec(
+				&devc->device->channels[ch->index], wf);
+
+		/* Ignore errors on read, keep default value */
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_FREQUENCY, &ch_status->freq);
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_AMPLITUDE, &ch_status->ampl);
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_OFFSET, &ch_status->offset);
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_PHASE, &ch_status->phase);
+	}
+
 	command = sr_scpi_cmd_get(devc->cmdset, PSG_CMD_GET_SOURCE);
 	if (command && *command) {
 		sr_scpi_get_opc(scpi);
@@ -108,22 +171,10 @@ SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 		/* First parameter is the waveform type */
 		if (!(s = params[0]))
 			goto done;
-		if (g_ascii_strncasecmp(s, "SIN", strlen("SIN")) == 0)
-			wf = WF_SINE;
-		else if (g_ascii_strncasecmp(s, "SQU", strlen("SQU")) == 0)
-			wf = WF_SQUARE;
-		else if (g_ascii_strncasecmp(s, "RAMP", strlen("RAMP")) == 0)
-			wf = WF_RAMP;
-		else if (g_ascii_strncasecmp(s, "PULSE", strlen("PULSE")) == 0)
-			wf = WF_PULSE;
-		else if (g_ascii_strncasecmp(s, "NOISE", strlen("NOISE")) == 0)
-			wf = WF_NOISE;
-		else if (g_ascii_strncasecmp(s, "USER", strlen("USER")) == 0)
-			wf = WF_ARB;
-		else if (g_ascii_strncasecmp(s, "DC", strlen("DC")) == 0)
-			wf = WF_DC;
-		else
+		if ((ret = rigol_dg_string_to_waveform(
+				&devc->device->channels[ch->index], s, &wf)) != SR_OK)
 			goto done;
+
 		ch_status->wf = wf;
 		ch_status->wf_spec = rigol_dg_get_waveform_spec(
 				&devc->device->channels[ch->index], wf);

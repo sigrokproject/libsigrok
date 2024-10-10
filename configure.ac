@@ -99,7 +99,7 @@ SR_EXTRA_CXX_LIBS=
 SR_ARG_OPT_PKG([zlib], [ZLIB], , [zlib])
 AM_CONDITIONAL([HAVE_ZLIB], [test "x$sr_have_zlib" = xyes])
 AM_COND_IF([HAVE_ZLIB], [
-	SR_APPEND([sr_deps_avail], [crc32 zlib])
+	SR_APPEND([sr_deps_avail], ['crc32 zlib'])
 	SR_PREPEND([SR_EXTRA_LIBS], [-lz])
 ])
 
@@ -375,6 +375,7 @@ SR_DRIVER([SCPI DMM], [scpi-dmm])
 SR_DRIVER([SCPI PPS], [scpi-pps])
 SR_DRIVER([serial DMM], [serial-dmm], [serial_comm])
 SR_DRIVER([serial LCR], [serial-lcr], [serial_comm])
+SR_DRIVER([SIGLENT SDL10x0], [siglent-sdl10x0])
 SR_DRIVER([Siglent SDS], [siglent-sds])
 SR_DRIVER([Sysclk LWLA], [sysclk-lwla], [libusb])
 SR_DRIVER([Sysclk SLA5032], [sysclk-sla5032], [libusb])
