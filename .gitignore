@@ -15,6 +15,7 @@
 .*.sw*
 /*.kdev4
 /Makefile.am.user
+.vscode/
 
 # clangd language server cruft
 .cache/
@@ -80,4 +81,3 @@ stamp-h?
 /tests/*.log
 /tests/*.trs
 /tests/main
-.vscode/
