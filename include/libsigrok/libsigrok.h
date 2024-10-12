@@ -760,6 +760,11 @@ enum sr_configkey {
 	 */
 	SR_CONF_DELAY_GENERATOR,
 
+	/**
+	 * The device can act as a frequency counter.
+	 */
+	SR_CONF_FREQUENCY_COUNTER,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/
@@ -1256,6 +1261,12 @@ enum sr_configkey {
 	 * @arg get: get measured resistance
 	 */
 	SR_CONF_RESISTANCE,
+
+	/**
+	 * Gate time.
+	 */
+	SR_CONF_GATE_TIME,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };
 
