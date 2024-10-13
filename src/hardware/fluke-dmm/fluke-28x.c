@@ -41,7 +41,7 @@ struct state_mapping {
 	enum measurement_state state;
 };
 
-static struct state_mapping state_map[] = {
+static const struct state_mapping state_map[] = {
 	{ "INVALID", MEAS_S_INVALID },
 	{ "NORMAL", MEAS_S_NORMAL },
 	{ "BLANK", MEAS_S_BLANK },
@@ -69,7 +69,7 @@ struct attribute_mapping {
 	enum measurement_attribute attribute;
 };
 
-static struct attribute_mapping attribute_map[] = {
+static const struct attribute_mapping attribute_map[] = {
 	{ "NONE", MEAS_A_NONE },
 	{ "OPEN_CIRCUIT", MEAS_A_OPEN_CIRCUIT },
 	{ "SHORT_CIRCUIT", MEAS_A_SHORT_CIRCUIT },
@@ -88,7 +88,7 @@ struct unit_mapping {
 	enum sr_mqflag mqflags;
 };
 
-static struct unit_mapping unit_map[] = {
+static const struct unit_mapping unit_map[] = {
 	{ "VDC", SR_MQ_VOLTAGE, SR_UNIT_VOLT, SR_MQFLAG_DC },
 	{ "VAC", SR_MQ_VOLTAGE, SR_UNIT_VOLT, SR_MQFLAG_AC | SR_MQFLAG_RMS },
 	{ "ADC", SR_MQ_CURRENT, SR_UNIT_AMPERE, SR_MQFLAG_DC },
