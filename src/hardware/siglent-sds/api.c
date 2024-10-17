@@ -106,7 +106,7 @@ static const uint64_t timebases[][2] = {
 
 static const uint64_t vdivs[][2] = {
 	/* microvolts */
-	{ 500, 100000 },
+	{ 500, 1000000 },
 	/* millivolts */
 	{ 1, 1000 },
 	{ 2, 1000 },
@@ -171,6 +171,16 @@ enum series {
 	SDS1000XP,
 	SDS1000XE,
 	SDS2000X,
+	SDS2000XP,
+	SDS800XHD,
+	SDS1000XHD,
+	SDS2000XHD,
+	SDS3000XHD,
+	SDS5000X,
+	SDS6000L,
+	SDS6000A,
+	SDS6000PRO,
+	SDS7000A,
 };
 
 /* short name, full name */
@@ -183,19 +193,39 @@ static const struct siglent_sds_vendor supported_vendors[] = {
  * number of vertical divs, live waveform samples, memory buffer samples */
 static const struct siglent_sds_series supported_series[] = {
 	[SDS1000CML] = {VENDOR(SIGLENT), "SDS1000CML", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000CNL] = {VENDOR(SIGLENT), "SDS1000CNL", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000DL] = {VENDOR(SIGLENT), "SDS1000DL", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000X] = {VENDOR(SIGLENT), "SDS1000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS1000XP] = {VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", ESERIES,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
+	[SDS2000XP] = {VENDOR(SIGLENT), "SDS2000X+", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 14000363},
+	[SDS800XHD] = {VENDOR(SIGLENT), "SDS800XHD", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 50000000},
+	[SDS1000XHD] = {VENDOR(SIGLENT), "SDS1000XHD", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 100000000},
+	[SDS2000XHD] = {VENDOR(SIGLENT), "SDS2000XHD", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 200000000},
+	[SDS3000XHD] = {VENDOR(SIGLENT), "SDS3000XHD", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 400000000},
+	[SDS5000X] = {VENDOR(SIGLENT), "SDS5000X", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 250000000},
+	[SDS6000L] = {VENDOR(SIGLENT), "SDS6000L", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
+	[SDS6000A] = {VENDOR(SIGLENT), "SDS6000A", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
+	[SDS6000PRO] = {VENDOR(SIGLENT), "SDS6000PRO", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
+	[SDS7000A] = {VENDOR(SIGLENT), "SDS7000A", E11,
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -227,6 +257,62 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS2000X), "SDS2204X", { 2, 1000000000 }, 4, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2302X", { 2, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, FALSE, 0 },
+	{ SERIES(SDS2000XP), "SDS2102X Plus", { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2104X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2204X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2354X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2504X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 800X HD Series
+	{ SERIES(SDS800XHD),  "SDS802X HD",   { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS800XHD),  "SDS804X HD",   { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS800XHD),  "SDS812X HD",   { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS800XHD),  "SDS814X HD",   { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS800XHD),  "SDS822X HD",   { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS800XHD),  "SDS824X HD",   { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 1000X HD Series
+	{ SERIES(SDS1000XHD), "SDS1102X HD",  { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS1000XHD), "SDS1104X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS1000XHD), "SDS1202X HD",  { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS1000XHD), "SDS1204X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 2000X HD Series
+	{ SERIES(SDS2000XHD), "SDS2104X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XHD), "SDS2204X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XHD), "SDS2354X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XHD), "SDS2504X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 3000X HD Series
+	{ SERIES(SDS3000XHD), "SDS3034X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS3000XHD), "SDS3054X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS3000XHD), "SDS3104X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 5000X Series
+	{ SERIES(SDS5000X),   "SDS5032X",     { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS5000X),   "SDS5034X",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS5000X),   "SDS5052X",     { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS5000X),   "SDS5054X",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS5000X),   "SDS5102X",     { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS5000X),   "SDS5104X",     { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 6000L Series
+	{ SERIES(SDS6000L),   "SDS6208L",     { 1, 1000000000 }, 8, TRUE, 16 },
+	{ SERIES(SDS6000L),   "SDS6204L",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000L),   "SDS6108L",     { 1, 1000000000 }, 8, TRUE, 16 },
+	{ SERIES(SDS6000L),   "SDS6104L",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000L),   "SDS6058L",     { 1, 1000000000 }, 8, TRUE, 16 },
+	{ SERIES(SDS6000L),   "SDS6054L",     { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 6000A Series
+	{ SERIES(SDS6000A),   "SDS6054A",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000A),   "SDS6104A",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000A),   "SDS6204A",     { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 6000 Pro Series
+	{ SERIES(SDS6000PRO), "SDS6034 H10 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6034 H12 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6054 H10 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6054 H12 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6104 H10 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6104 H12 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6204 H10 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS6000PRO), "SDS6204 H12 Pro", { 1, 1000000000 }, 4, TRUE, 16 },
+	// SDS 7000A Series
+	{ SERIES(SDS7000A),   "SDS7404A",     { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS7000A),   "SDS7304A",     { 1, 1000000000 }, 4, TRUE, 16 },
 };
 
 static struct sr_dev_driver siglent_sds_driver_info;
@@ -628,17 +714,22 @@ static int config_set(uint32_t key, GVariant *data,
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 			return SR_ERR_ARG;
 		devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
-		p = vdivs[idx][0];
-		switch (vdivs[idx][1]) {
-		case 1:
-			cmd = g_strdup_printf("%" PRIu64 "V", p);
-			break;
-		case 1000:
-			cmd = g_strdup_printf("%" PRIu64 "MV", p);
-			break;
-		case 100000:
-			cmd = g_strdup_printf("%" PRIu64 "UV", p);
-			break;
+		if(devc->model->series->protocol == E11) {
+			/* E11 models don't support "MV" format for values bellow 10mV => switch to scientific format */
+			cmd = g_strdup_printf("%.0E", devc->vdiv[i]);
+		} else {
+			p = vdivs[idx][0];
+			switch (vdivs[idx][1]) {
+			case 1:
+				cmd = g_strdup_printf("%" PRIu64 "V", p);
+				break;
+			case 1000:
+				cmd = g_strdup_printf("%" PRIu64 "MV", p);
+				break;
+			case 1000000:
+				cmd = g_strdup_printf("%" PRIu64 "UV", p);
+				break;
+			}
 		}
 		ret = siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
 		g_free(cmd);
@@ -770,6 +861,7 @@ static int config_list(uint32_t key, GVariant **data,
 			break;
 		case SPO_MODEL:
 		case ESERIES:
+		case E11:
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 			break;
 		}
@@ -877,11 +969,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (siglent_sds_config_set(sdi, "ACQW SAMPLING") != SR_OK)
 			return SR_ERR;
 		break;
+	case E11:
+		/** TODO : handle acquisition mode (sampling / average) */
+		break;
 	default:
 		break;
 	}
 
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 7000,
+	int tiemout = (devc->model->series->protocol == E11) ? 50 : 7000;
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, tiemout,
 		siglent_sds_receive, (void *) sdi);
 
 	std_session_send_df_header(sdi);
