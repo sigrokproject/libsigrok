@@ -294,7 +294,7 @@ m4_define([_SR_DRIVER], [
 		[sr_hw_info=yes[]m4_ifval([$4], [
 		sr_check_driver_deps $4 \
 			|| if test "x[$]$3" != xcheck; then
-				AC_MSG_ERROR([driver $2 is enabled, but deps are missing: $sr_deps_missing])
+				AC_MSG_ERROR([driver $2 is enabled, but these deps are missing: $sr_deps_missing. Either install the dependency or disable the driver with --disable-$2.])
 			else
 				$3=no sr_hw_info="no (missing: $sr_deps_missing)"
 			fi;
