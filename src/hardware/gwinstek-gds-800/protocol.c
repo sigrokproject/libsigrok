@@ -84,6 +84,24 @@ SR_PRIV int gwinstek_gds_800_fetch_volts_per_div(struct sr_scpi_dev_inst *scpi, 
 	return SR_OK;
 }
 
+SR_PRIV int gwinstek_gds_800_fetch_probe_factor(struct sr_scpi_dev_inst *scpi, int channel, float * output)
+{
+	char command[32];
+	int atten_id;
+
+	snprintf(command, sizeof(command), ":CHAN%d:PROBe?", channel + 1);
+	if (sr_scpi_get_int(scpi, command, &atten_id) != SR_OK) {
+		sr_err("Failed to get probe attenuation.");
+		return SR_ERR;
+	}
+	if (atten_id < 0 || atten_id > 2) {
+		sr_err("unexpected probe attenuation parameter.");
+		return SR_ERR;
+	}
+	*output = powf(10.0f, (float)atten_id);
+	return SR_OK;
+}
+
 
 SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 {
@@ -96,6 +114,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	float volts_per_division;
+	float probe_factor;
 	int num_samples, i;
 	float samples[MAX_SAMPLES];
 	uint32_t sample_rate;
@@ -243,11 +262,17 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 		}
 
+		if (gwinstek_gds_800_fetch_probe_factor(sdi->conn, devc->cur_acq_channel, &probe_factor) != SR_OK) {
+			sr_err("Failed to get probe attenuation factor.");
+			sr_dev_acquisition_stop(sdi);
+			return TRUE;
+		}
+
 		num_samples = (devc->data_size - 8) / 2;
 		sr_spew("Received %d number of samples from channel "
 			"%d.", num_samples, devc->cur_acq_channel + 1);
 
-		float vbit = volts_per_division * VERTICAL_DIVISIONS / 256.0;
+		float vbit = volts_per_division * probe_factor / 256.0;
 		float vbitlog = log10f(vbit);
 		int digits = -(int)vbitlog + (vbitlog < 0.0);
 

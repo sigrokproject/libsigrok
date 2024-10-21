@@ -41,8 +41,12 @@ static const uint32_t devopts[] = {
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const uint64_t probe_factor[] = {
+        1, 10, 100,
+};
 
 static const struct {
 	uint16_t num;
@@ -258,6 +262,13 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_FRAMES:
 		*data = g_variant_new_uint64(devc->frame_limit);
 		break;
+	case SR_CONF_PROBE_FACTOR:
+		if ((channel = std_cg_idx(cg, devc->analog_groups, devc->num_acq_channel)) < 0) {
+			sr_dbg("Negative channel: %d.", channel);
+			return SR_ERR_ARG;
+		}
+		*data = g_variant_new_uint64(devc->probe_factor[channel]);
+		break;
 	case SR_CONF_VDIV:
 		if ((channel = std_cg_idx(cg, devc->analog_groups, devc->num_acq_channel)) < 0) {
 			sr_dbg("Negative channel: %d.", channel);
@@ -303,6 +314,20 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
 		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg) {
+			sr_err("No channel group specified");
+			return SR_ERR_CHANNEL_GROUP;
+		}
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->num_acq_channel)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(probe_factor))) < 0)
+			return SR_ERR_ARG;
+		devc->probe_factor[i] = probe_factor[idx];
+		err = sr_scpi_send(sdi->conn, ":CHANnel%i:PROBe %i", i + 1, idx);
+		if (SR_OK != err)
+			sr_err("Failed to set probe attenuation factor");
+		return err;
 	case SR_CONF_VDIV:
 		if (!cg) {
 			sr_err("No channel group specified");
@@ -347,6 +372,9 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_OK;
 		case SR_CONF_VDIV:
 			*data = vdiv_tuple_array();
+			return SR_OK;
+		case SR_CONF_PROBE_FACTOR:
+			*data = std_gvar_array_u64(ARRAY_AND_SIZE(probe_factor));
 			return SR_OK;
 		default:
 			return SR_ERR_NA;
