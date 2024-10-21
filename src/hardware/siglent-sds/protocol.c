@@ -208,61 +208,15 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 			siglent_sds_set_wait_event(devc, WAIT_STOP);
 		}
 		break;
-	case ESERIES:
-		if (devc->data_source == DATA_SOURCE_SCREEN) {
-			char *buf;
-			int out;
 
-			sr_dbg("Starting data capture for active frameset %" PRIu64 " of %" PRIu64,
-				devc->num_frames + 1, devc->limit_frames);
-			if (siglent_sds_config_set(sdi, "ARM") != SR_OK)
-				return SR_ERR;
-			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
-				return SR_ERR;
-			sr_atoi(buf, &out);
-			g_free(buf);
-			if (out == DEVICE_STATE_TRIG_RDY) {
-				siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
-			} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
-				sr_spew("Device triggered.");
-				siglent_sds_set_wait_event(devc, WAIT_BLOCK);
-				return SR_OK;
-			} else {
-				sr_spew("Device did not enter ARM mode.");
-				return SR_ERR;
-			}
-		} else { /* TODO: Implement history retrieval. */
-			unsigned int framecount;
-			char buf[200];
-			int ret;
-
-			sr_dbg("Starting data capture for history frameset.");
-			if (siglent_sds_config_set(sdi, "FPAR?") != SR_OK)
-				return SR_ERR;
-			ret = sr_scpi_read_data(sdi->conn, buf, 200);
-			if (ret < 0) {
-				sr_err("Read error while reading data header.");
-				return SR_ERR;
-			}
-			memcpy(&framecount, buf + 40, 4);
-			if (devc->limit_frames > framecount)
-				sr_err("Frame limit higher than frames in buffer of device!");
-			else if (devc->limit_frames == 0)
-				devc->limit_frames = framecount;
-			sr_dbg("Starting data capture for history frameset %" PRIu64 " of %" PRIu64,
-				devc->num_frames + 1, devc->limit_frames);
-			if (siglent_sds_config_set(sdi, "FRAM %i", devc->num_frames + 1) != SR_OK)
-				return SR_ERR;
-			if (siglent_sds_channel_start(sdi) != SR_OK)
-				return SR_ERR;
-			siglent_sds_set_wait_event(devc, WAIT_STOP);
-		}
-		break;
 	case NON_SPO_MODEL:
 		siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
 		break;
-	}
 
+	default:
+		sr_err("Unsupported protocol for sds_capture_start");
+		return SR_ERR;
+	}
 	return SR_OK;
 }
 
@@ -288,17 +242,9 @@ SR_PRIV int siglent_sds_channel_start(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		siglent_sds_set_wait_event(devc, WAIT_NONE);
 		break;
-	case ESERIES:
-		if (ch->type == SR_CHANNEL_ANALOG) {
-			if (sr_scpi_send(sdi->conn, "C%d:WF? ALL",
-				ch->index + 1) != SR_OK)
-				return SR_ERR;
-		}
-		siglent_sds_set_wait_event(devc, WAIT_NONE);
-		if (sr_scpi_read_begin(sdi->conn) != SR_OK)
-			return TRUE;
-		siglent_sds_set_wait_event(devc, WAIT_BLOCK);
-		break;
+	default:
+		sr_err("Unsupported protocol in sds_channel_start");
+		return SR_ERR;
 	}
 
 	devc->num_channel_bytes = 0;
@@ -526,14 +472,9 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 				if (sr_scpi_read_begin(scpi) != SR_OK)
 					return TRUE;
 				break;
-			case ESERIES:
-				/* The newer models (ending with the E) have faster CPUs but still need time when a slow timebase is selected. */
-				if (sr_scpi_read_begin(scpi) != SR_OK)
-					return TRUE;
-				wait = ((devc->timebase * devc->model->series->num_horizontal_divs) * 100000);
-				sr_dbg("Waiting %.f0 ms for device to prepare the output buffers", wait / 1000);
-				g_usleep(wait);
-				break;
+			default:
+				sr_err("Unsupported protocol");
+				return SR_ERR;
 			}
 
 			sr_dbg("New block with header expected.");
@@ -777,45 +718,54 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		sr_dbg("CH%d %s", i + 1, devc->coupling[i]);
 
 	/* Trigger source. */
+	// TODO ESERIES
 	response = NULL;
 	tokens = NULL;
-	if (sr_scpi_get_string(sdi->conn, "TRSE?", &response) != SR_OK)
-		return SR_ERR;
-	tokens = g_strsplit(response, ",", 0);
-	num_tokens = g_strv_length(tokens);
-	if (num_tokens < 4) {
-		sr_dbg("IDN response not according to spec: %80.s.", response);
-		g_strfreev(tokens);
-		g_free(response);
-		return SR_ERR_DATA;
-	}
-	g_free(response);
-	devc->trigger_source = g_strstrip(g_strdup(tokens[2]));
-	sr_dbg("Current trigger source: %s.", devc->trigger_source);
+	switch (devc->model->series->protocol) {
+	case ESERIES:
+		sr_dbg("Skip setting trigger source for eseries");
+		devc->trigger_source = "LINE";
+		devc->trigger_level = 0;
+		devc->trigger_slope = 0;
+		break;
+	default:
+		if (sr_scpi_get_string(sdi->conn, "TRSE?", &response) != SR_OK)
+            return SR_ERR;
+        tokens = g_strsplit(response, ",", 0);
+        num_tokens = g_strv_length(tokens);
+        if (num_tokens < 4) {
+            sr_dbg("IDN response not according to spec: %80.s.", response);
+            g_strfreev(tokens);
+            g_free(response);
+            return SR_ERR_DATA;
+        }
+        g_free(response);
+        devc->trigger_source = g_strstrip(g_strdup(tokens[2]));
+        sr_dbg("Current trigger source: %s.", devc->trigger_source);
 
-	/* TODO: Horizontal trigger position. */
-	response = "";
-	trigger_pos = 0;
-	// if (sr_scpi_get_string(sdi->conn, g_strdup_printf("%s:TRDL?", devc->trigger_source), &response) != SR_OK)
-	// 	return SR_ERR;
-	// len = strlen(response);
-	len = strlen(tokens[4]);
-	if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "us")) {
-		trigger_pos = atof(tokens[4]) / SR_GHZ(1);
-		sr_dbg("Current trigger position us %s.", tokens[4] );
-	} else if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "ns")) {
-		trigger_pos = atof(tokens[4]) / SR_MHZ(1);
-		sr_dbg("Current trigger position ms %s.", tokens[4] );
-	} else if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "ms")) {
-		trigger_pos = atof(tokens[4]) / SR_KHZ(1);
-		sr_dbg("Current trigger position ns %s.", tokens[4] );
-	} else if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "s")) {
-		trigger_pos = atof(tokens[4]);
-		sr_dbg("Current trigger position s %s.", tokens[4] );
-	};
-	devc->horiz_triggerpos = trigger_pos;
+		/* TODO: Horizontal trigger position. */
+		response = "";
+		trigger_pos = 0;
+		// if (sr_scpi_get_string(sdi->conn, g_strdup_printf("%s:TRDL?", devc->trigger_source), &response) != SR_OK)
+		// 	return SR_ERR;
+		// len = strlen(response);
+		len = strlen(tokens[4]);
+		if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "us")) {
+			trigger_pos = atof(tokens[4]) / SR_GHZ(1);
+			sr_dbg("Current trigger position us %s.", tokens[4] );
+		} else if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "ns")) {
+			trigger_pos = atof(tokens[4]) / SR_MHZ(1);
+			sr_dbg("Current trigger position ms %s.", tokens[4] );
+		} else if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "ms")) {
+			trigger_pos = atof(tokens[4]) / SR_KHZ(1);
+			sr_dbg("Current trigger position ns %s.", tokens[4] );
+		} else if (!g_ascii_strcasecmp(tokens[4] + (len - 2), "s")) {
+			trigger_pos = atof(tokens[4]);
+			sr_dbg("Current trigger position s %s.", tokens[4] );
+		};
+		devc->horiz_triggerpos = trigger_pos;
 
-	sr_dbg("Current horizontal trigger position %.10f.", devc->horiz_triggerpos);
+		sr_dbg("Current horizontal trigger position %.10f.", devc->horiz_triggerpos);
 
 	/* Trigger slope. */
 	cmd = g_strdup_printf("%s:TRSL?", devc->trigger_source);
@@ -827,16 +777,17 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	sr_dbg("Current trigger slope: %s.", devc->trigger_slope);
 
-	/* Trigger level, only when analog channel. */
-	if (g_str_has_prefix(tokens[2], "C")) {
-		cmd = g_strdup_printf("%s:TRLV?", devc->trigger_source);
-		res = sr_scpi_get_float(sdi->conn, cmd, &devc->trigger_level);
-		g_free(cmd);
-		if (res != SR_OK)
-			return SR_ERR;
-		sr_dbg("Current trigger level: %g.", devc->trigger_level);
+		/* Trigger level, only when analog channel. */
+		if (g_str_has_prefix(tokens[2], "C")) {
+			cmd = g_strdup_printf("%s:TRLV?", devc->trigger_source);
+			res = sr_scpi_get_float(sdi->conn, cmd, &devc->trigger_level);
+			g_free(cmd);
+			if (res != SR_OK)
+				return SR_ERR;
+			sr_dbg("Current trigger level: %g.", devc->trigger_level);
+		}
+		break;
 	}
-
 	return SR_OK;
 }
 
@@ -944,5 +895,391 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 	sr_dbg("Current samplerate: %0f.", devc->samplerate);
 	sr_dbg("Current memory depth: %" PRIu64 ".", devc->memory_depth_analog);
 
+	return SR_OK;
+}
+
+
+SR_PRIV int siglent_sds_eseries_receive(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+
+	if (!(sdi = cb_data))
+		return TRUE;
+
+	if (!(devc = sdi->priv))
+		return TRUE;
+
+	if (!(revents == G_IO_IN || revents == 0))
+		return TRUE;
+
+	switch (devc->acq_state) {
+	case ACQ_SETUP:
+		return siglent_sds_eseries_acq_setup(sdi, devc);
+	case ACQ_WAIT_STOP:
+		return siglent_sds_eseries_acq_wait_stop(sdi, devc);
+	case ACQ_REQUEST_WAVEFORM:
+		return siglent_sds_eseries_acq_request_waveform(sdi, devc);
+	case ACQ_READ_WAVEFORM_HEADER:
+		return siglent_sds_eseries_acq_read_waveform_header(sdi, devc);
+	case ACQ_READ_WAVEFORM_DATA:
+		return siglent_sds_eseries_acq_read_waveform_data(sdi, devc);
+	case ACQ_FINALIZE_WAVEFORM:
+		return siglent_sds_eseries_acq_finalize_waveform(sdi, devc);
+	case ACQ_DONE:
+		return siglent_sds_eseries_stop_acquisition(sdi);
+	}
+}
+
+SR_PRIV int siglent_sds_eseries_acq_setup(const struct sr_dev_inst *sdi, struct dev_context *devc) {
+	char *buf;
+	int frame_count;
+
+	switch(devc->data_source) {
+	case DATA_SOURCE_SINGLE:
+		sr_dbg("Single shot capture");
+		devc->limit_frames = 1;
+		if (siglent_sds_config_set(sdi, "TRMD SINGLE") != SR_OK)
+			return siglent_sds_eseries_acq_error(devc);
+
+		break;
+	case DATA_SOURCE_HISTORY:
+		sr_dbg("History capture");
+		// If current state is stopped, we don't want to close history
+		// because it resumes run mode!
+		if (sr_scpi_get_string(sdi->conn, ":TRMD?", &buf) != SR_OK)
+			return siglent_sds_eseries_acq_error(devc);
+		if (g_strcmp0(buf, "STOP") == 0) {
+			devc->close_history = FALSE;
+
+		} else {
+			devc->close_history = TRUE;
+		}
+		g_free(buf);
+
+		// Enable history mode if necessary
+		if (sr_scpi_get_string(sdi->conn, ":HSMD?", &buf) != SR_OK) {
+			return siglent_sds_eseries_acq_error(devc);
+		}
+		if (g_strcmp0(buf, "OFF") == 0) {
+			if (siglent_sds_config_set(sdi, ":HSMD ON") != SR_OK) {
+				return siglent_sds_eseries_acq_error(devc);
+			}
+		} else {
+			// History is already open, so we can't trust FRAM? to get the total frame count
+			// Set FRAM to silly big number and it will be set to the max frame
+			if (siglent_sds_config_set(sdi, ":FRAM 10000000") != SR_OK) {
+				return siglent_sds_eseries_acq_error(devc);
+			}
+		}
+		g_free(buf);
+
+		if (sr_scpi_get_int(sdi->conn, ":FRAM?", &frame_count) != SR_OK) {
+			return siglent_sds_eseries_acq_error(devc);
+		}
+
+		if (frame_count < 1) {
+			sr_err("Number of frames less than 1");
+			return siglent_sds_eseries_acq_error(devc);
+		}
+
+		devc->limit_frames = (uint64_t) frame_count;
+
+		// TODO can we somehow configure which frames to capture?
+		// Not fun to wait 100000 frames being transfered
+		if (siglent_sds_config_set(sdi, ":FRAM 1") != SR_OK)
+			return siglent_sds_eseries_acq_error(devc);
+
+		sr_dbg("Start history capture with %d frames", frame_count);
+		break;
+
+	case DATA_SOURCE_READ_ONLY:
+		sr_dbg("Read-only capture");
+		devc->limit_frames = 1;
+		break;
+
+	default:
+		sr_err("Unknown capture mode");
+		return siglent_sds_eseries_acq_error(devc);
+	}
+	devc->acq_state = ACQ_WAIT_STOP;
+	return TRUE;
+}
+
+
+SR_PRIV int siglent_sds_eseries_acq_wait_stop(const struct sr_dev_inst *sdi, struct dev_context *devc) {
+	char *response;
+	if (sr_scpi_get_string(sdi->conn, "TRMD?", &response) != SR_OK)
+		return siglent_sds_eseries_acq_error(devc);
+
+	if (!g_strcmp0(response, "STOP")) {
+		// User could tweak the scope to get a trigger
+		// while we are waiting for the device to stop
+		// So check horizontal and vertical cfgs always after stop.
+		siglent_sds_get_dev_cfg_vertical(sdi);
+		siglent_sds_get_dev_cfg_horizontal(sdi);
+		devc->acq_state = ACQ_REQUEST_WAVEFORM;
+	}
+
+	g_free(response);
+	return TRUE;
+}
+
+SR_PRIV int siglent_sds_eseries_acq_request_waveform(const struct sr_dev_inst *sdi, struct dev_context *devc) {
+	struct sr_channel *ch;
+	ch = devc->channel_entry->data;
+
+	if (ch->type == SR_CHANNEL_ANALOG) {
+		if (sr_scpi_send(sdi->conn, "C%d:WF? DAT2",
+			ch->index + 1) != SR_OK)
+			return siglent_sds_eseries_acq_error(devc);
+		if (sr_scpi_read_begin(sdi->conn) != SR_OK)
+			return siglent_sds_eseries_acq_error(devc);
+	} else {
+		sr_err("Digital acquisition is not supported");
+		return siglent_sds_eseries_acq_error(devc);
+	}
+	devc->acq_state = ACQ_READ_WAVEFORM_HEADER;
+	return TRUE;
+}
+
+SR_PRIV int siglent_sds_eseries_acq_read_waveform_header(const struct sr_dev_inst *sdi, struct dev_context *devc) {
+	char *buf;
+	int len;
+	buf = (char *) devc->buffer;
+
+	// Read signature
+	len = sr_scpi_read_data(sdi->conn, buf, 7);
+	buf[7] = '\0';
+	if (len != 7 || g_strcmp0(buf, "DAT2,#9") != 0) {
+		sr_err("Bad header signature");
+		return siglent_sds_eseries_acq_error(devc);
+	}
+
+	// Read waveform length
+	len = sr_scpi_read_data(sdi->conn, buf, 9);
+	buf[9] = '\0';
+	if (len != 9 || sr_atoi(buf, (int *) &devc->num_samples) != SR_OK) {
+		sr_err("Failed to read waveform length");
+		return siglent_sds_eseries_acq_error(devc);
+	}
+
+	sr_dbg("Waveform sample count: %" PRIu64, devc->num_samples);
+	devc->num_block_bytes = 0;
+	devc->num_block_read = 0;
+
+	devc->acq_state = ACQ_READ_WAVEFORM_DATA;
+	return TRUE;
+}
+
+
+SR_PRIV int siglent_sds_eseries_acq_read_waveform_data(const struct sr_dev_inst *sdi, struct dev_context *devc) {
+	struct sr_channel *ch;
+	int len;
+
+	ch = devc->channel_entry->data;
+	len = 0;
+	uint64_t bytes_available = devc->num_samples - devc->num_block_bytes + 2; // Add 2 for the linefeeds
+	guint loop_bytes_read = 0;
+	char *buf;
+	buf = (char *) devc->buffer;
+
+	do {
+		len = sr_scpi_read_data(sdi->conn, (char *)buf, (int) (devc->num_samples - devc->num_block_bytes + 2)); // Add 2 for the linefeeds
+		if (len == -1) {
+			if (loop_bytes_read > 0) {
+				sr_dbg("Read error, passing data forward");
+				break;
+			}
+			if (devc->retry_count > 10) {
+				sr_err("Read error and retry count exceeded, aborting capture");
+				siglent_sds_eseries_stop_acquisition(sdi);
+				return siglent_sds_eseries_acq_error(devc);
+			}
+			devc->retry_count++;
+			g_usleep(10000);
+			return TRUE;
+		} else if (len == 0) {
+			sr_dbg("Empty read");
+			if (devc->retry_count > 10) {
+				sr_err("Empty read and retry count exceeded, aborting capture");
+				siglent_sds_eseries_stop_acquisition(sdi);
+				return siglent_sds_eseries_acq_error(devc);
+			}
+			devc->retry_count++;
+			g_usleep(10000);
+		} else if (len == 2 && devc->num_block_bytes == 0) {
+			// Waveform contains only two linefeeds. Probably a bug in hardware.
+			sr_err("Promised waveform was missing.");
+			siglent_sds_eseries_stop_acquisition(sdi);
+			return siglent_sds_eseries_acq_error(devc);
+		}
+		devc->retry_count = 0;
+		loop_bytes_read += (guint) len;
+		devc->num_block_bytes += (unsigned long) len;
+		buf += len;
+		devc->num_block_read++;
+		sr_dbg("Received block: %d, %d bytes.", devc->num_block_read, len);
+	} while (loop_bytes_read < MIN(102400, bytes_available));
+
+	// The waveform ends in two linefeed bytes, we don't want to pass those onwards as analog data.
+	// Ignore bytes that exceed num_samples
+	sr_dbg("loop_bytes_read prewrap: %d", loop_bytes_read);
+	if (devc->num_block_bytes > devc->num_samples) {
+		loop_bytes_read = MAX(loop_bytes_read - (guint) MAX(devc->num_block_bytes - devc->num_samples, 0), 0);
+	}
+
+
+	if (loop_bytes_read > 0) {
+		sr_dbg("Sending %d bytes of waveform data", loop_bytes_read);
+		siglent_sds_eseries_send_waveform(sdi, devc, loop_bytes_read);
+	} else {
+		sr_dbg("Nothing to send");
+	}
+
+	if (devc->num_block_bytes >= devc->num_samples) {
+		sr_dbg("Waveform data read completed");
+		devc->acq_state = ACQ_FINALIZE_WAVEFORM;
+	}
+
+	return TRUE;
+}
+
+SR_PRIV int siglent_sds_eseries_send_waveform(const struct sr_dev_inst *sdi, struct dev_context *devc, guint bytes_read) {
+	struct sr_channel *ch;
+	ch = devc->channel_entry->data;
+	guint i;
+
+	float vdiv = devc->vdiv[ch->index];
+	float offset = devc->vert_offset[ch->index];
+	GArray *float_data;
+	static GArray *data;
+	float voltage, vdivlog;
+	int digits;
+
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+
+	data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), bytes_read);
+	g_array_append_vals(data, devc->buffer, bytes_read);
+	float_data = g_array_new(FALSE, FALSE, sizeof(float));
+	for (i = 0; i < bytes_read; i++) {
+		voltage = (float)g_array_index(data, int8_t, i) / 25;
+		voltage = ((vdiv * voltage) - offset);
+		g_array_append_val(float_data, voltage);
+	}
+	vdivlog = log10f(vdiv);
+	digits = -(int) vdivlog + (vdivlog < (float) 0.0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
+	analog.meaning->channels = g_slist_append(NULL, ch);
+	analog.num_samples = float_data->len;
+	analog.data = (void *) float_data->data;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	//analog.meaning->mqflags = 0;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(sdi, &packet);
+	g_slist_free(analog.meaning->channels);
+	g_array_free(data, TRUE);
+	return TRUE;
+}
+
+SR_PRIV int siglent_sds_eseries_acq_finalize_waveform(const struct sr_dev_inst *sdi, struct dev_context *devc) {
+	char *cmd;
+
+	if (devc->channel_entry->next) {
+		devc->channel_entry = devc->channel_entry->next;
+	} else {
+		std_session_send_df_frame_end(sdi);
+		if (++devc->num_frames == devc->limit_frames) {
+			sdi->driver->dev_acquisition_stop(sdi);
+			devc->acq_state = ACQ_DONE;
+			if (devc->data_source == DATA_SOURCE_HISTORY && devc->close_history) {
+				if (siglent_sds_config_set(sdi, ":HSMD OFF") != SR_OK) {
+					sr_err("Failed to close history");
+					return siglent_sds_eseries_acq_error(devc);
+				}
+			}
+			return TRUE;
+		} else {
+			devc->channel_entry = devc->enabled_channels;
+			cmd = g_strdup_printf(":FRAM %" PRIu64, devc->num_frames + 1);
+			if (siglent_sds_config_set(sdi, cmd) != SR_OK) {
+				sr_err("Changing to frame %" PRIu64 " failed", devc->num_frames + 1);
+				siglent_sds_eseries_stop_acquisition(sdi);
+				return siglent_sds_eseries_acq_error(devc);
+			}
+			g_free(cmd);
+			std_session_send_df_frame_begin(sdi);
+		}
+	}
+	devc->acq_state = ACQ_REQUEST_WAVEFORM;
+	return TRUE;
+}
+
+SR_PRIV int siglent_sds_eseries_stop_acquisition(const struct sr_dev_inst *sdi) {
+	std_session_send_df_frame_end(sdi);
+	sdi->driver->dev_acquisition_stop(sdi);
+	return TRUE;
+}
+
+SR_PRIV int siglent_sds_eseries_acq_error(struct dev_context *devc) {
+	devc->acq_error = TRUE;
+	sr_dbg("Set acq_error flag");
+	return SR_ERR;
+}
+
+SR_PRIV int siglent_sds_flush_buffers(const struct sr_dev_inst *sdi) {
+	/* Unexpected errors can leave stale data into the receive buffers.
+	 * This function attempts to flush the buffers by sending a command
+	 * with a known response, and it then attempts to read byte by byte
+	 * until it sees the expected response (OFF\n)
+	 */
+	char flush_buf[5];
+	int flush_count = -3;
+	int len;
+	int retry_count = 0;
+
+	if (sr_scpi_send(sdi->conn, ":CHDR?") != SR_OK)
+		return SR_ERR;
+	if (sr_scpi_read_begin(sdi->conn) != SR_OK)
+		return SR_ERR;
+
+	memset(&flush_buf[0], ' ', sizeof(flush_buf));
+	flush_buf[4] = '\0';
+	do {
+		flush_buf[0] = flush_buf[1];
+		flush_buf[1] = flush_buf[2];
+		flush_buf[2] = flush_buf[3];
+		sr_dbg("Try to read 1 byte..");
+		// USBTMC safety loop..
+		do {
+			len = sr_scpi_read_data(sdi->conn, &flush_buf[3], 1);
+			if (len == -1) {
+				if (retry_count > 10) {
+					sr_err("Flush retry attempts exceeded");
+					return SR_ERR;
+				}
+				retry_count++;
+				sr_err("Read error during flush.");
+				g_usleep(10000);
+			}
+		} while (len == -1);
+
+		if (len == 0) {
+			sr_err("Read empty during flush.");
+			return SR_ERR;
+		}
+		sr_dbg("Flush buf: %s", flush_buf);
+		if (g_strcmp0(flush_buf, "OFF\n") == 0) {
+			break;
+		}
+		flush_count++;
+	} while (1);
+	sr_dbg("Flushed %d bytes.", flush_count);
 	return SR_OK;
 }
