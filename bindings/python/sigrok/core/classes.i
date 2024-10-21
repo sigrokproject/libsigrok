@@ -342,12 +342,11 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         return Glib::Variant<gint32>::create(PyInt_AsLong(input));
     else if (type == SR_T_UINT32 && PyInt_Check(input))
         return Glib::Variant<guint32>::create(PyInt_AsLong(input));
-    else if ((type == SR_T_RATIONAL_VOLT) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
+    else if (((type == SR_T_RATIONAL_PERIOD) || (type == SR_T_RATIONAL_VOLT)) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
         PyObject *numObj = PyTuple_GetItem(input, 0);
         PyObject *denomObj = PyTuple_GetItem(input, 1);
         if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
-          const std::vector<guint64> v = {(guint64)PyInt_AsLong(numObj), (guint64)PyInt_AsLong(denomObj)};
-          return Glib::Variant< std::vector<guint64> >::create(v);
+          return Glib::VariantBase(g_variant_new("(tt)", (guint64)PyInt_AsLong(numObj), (guint64)PyInt_AsLong(denomObj)), false);
         }
     }
     throw sigrok::Error(SR_ERR_ARG);
