@@ -191,6 +191,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
 	devc->trigger_at_smpl = OLS_NO_TRIGGER;
+	devc->trigger_rle_at_smpl_from_end = OLS_NO_TRIGGER;
 	devc->channel_names = sr_parse_probe_names(probe_names,
 		ols_channel_names, ARRAY_SIZE(ols_channel_names),
 		ARRAY_SIZE(ols_channel_names), &ch_max);
@@ -457,17 +458,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Reset all operational states. */
-	devc->rle_count = devc->num_transfers = 0;
-	devc->num_samples = devc->num_bytes = 0;
-	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
-	memset(devc->sample, 0, 4);
+	devc->rle_count = 0;
+	devc->trigger_rle_at_smpl_from_end = OLS_NO_TRIGGER;
+	devc->cnt_samples = devc->raw_sample_size = 0;
+	devc->cnt_rx_bytes = devc->cnt_rx_raw_samples = 0;
+	memset(devc->raw_sample, 0, 4);
 
 	std_session_send_df_header(sdi);
 
 	/* If the device stops sending for longer than it takes to send a byte,
-	 * that means it's finished. But wait at least 100 ms to be safe.
+	 * that means it's finished. Since the device can be used over a slow
+	 * network link, give it 10 seconds to reply.
 	 */
-	return serial_source_add(sdi->session, serial, G_IO_IN, 100,
+	return serial_source_add(sdi->session, serial, G_IO_IN, 10 * 1000,
 				 ols_receive_data, (struct sr_dev_inst *)sdi);
 }
 
