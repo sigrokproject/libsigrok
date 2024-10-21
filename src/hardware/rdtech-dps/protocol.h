@@ -4,6 +4,7 @@
  * Copyright (C) 2018 James Churchill <pelrun@gmail.com>
  * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  * Copyright (C) 2021 Gerhard Sittig <gerhard.sittig@gmx.net>
+ * Copyright (C) 2021 Constantin Wenger <constantin.wenger@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +37,7 @@ enum rdtech_dps_model_type {
 	MODEL_NONE,
 	MODEL_DPS,
 	MODEL_RD,
+	MODEL_ETOMMENS,
 };
 
 struct rdtech_dps_range {
@@ -45,6 +47,7 @@ struct rdtech_dps_range {
 	unsigned int max_power;
 	unsigned int current_digits;
 	unsigned int voltage_digits;
+	unsigned int power_digits;
 };
 
 struct rdtech_dps_model {
@@ -55,18 +58,35 @@ struct rdtech_dps_model {
 	size_t n_ranges;
 };
 
+struct etommens_etm_xxxxp_model {
+	unsigned int classid;
+	unsigned int modelid;
+	const char *name;
+};
+
+
+union model {
+	const struct rdtech_dps_model *rdtech_model;
+	const struct etommens_etm_xxxxp_model *etm_model;
+};
+
 struct dev_context {
-	const struct rdtech_dps_model *model;
+	enum rdtech_dps_model_type model_type;
+	union model model;
 	double current_multiplier;
 	double voltage_multiplier;
+	double power_multiplier;
 	struct sr_sw_limits limits;
 	GMutex rw_mutex;
 	gboolean curr_ovp_state;
 	gboolean curr_ocp_state;
+	gboolean curr_otp_state;
 	gboolean curr_cc_state;
 	gboolean curr_out_state;
-	size_t curr_range;
+	gboolean curr_output_state;
 	gboolean acquisition_started;
+	size_t curr_range_index;
+	struct rdtech_dps_range curr_range;
 };
 
 /* Container to get and set parameter values. */
@@ -86,10 +106,12 @@ struct rdtech_dps_state {
 		STATE_CURRENT = 1 << 11,
 		STATE_POWER = 1 << 12,
 		STATE_RANGE = 1 << 13,
+		STATE_OTP_THRESHOLD = 1 << 14,
+		STATE_PROTECT_OTP = 1 << 15,
 	} mask;
 	gboolean lock;
 	gboolean output_enabled, regulation_cc;
-	gboolean protect_ovp, protect_ocp, protect_enabled;
+	gboolean protect_ovp, protect_ocp, protect_otp, protect_enabled;
 	float voltage_target, current_limit;
 	float ovp_threshold, ocp_threshold;
 	float voltage, current, power;
@@ -114,5 +136,10 @@ SR_PRIV void rdtech_dps_update_multipliers(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_update_range(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data);
-
+SR_PRIV int etommens_etm_xxxxp_device_info_get(struct sr_modbus_dev_inst *modbus,
+				uint16_t *model, uint16_t *dclass,
+				uint16_t *max_voltage, uint16_t *max_current,
+				uint16_t *digits_voltage,
+				uint16_t *digits_current,
+				uint16_t *digits_power);
 #endif
