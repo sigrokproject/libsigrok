@@ -111,6 +111,9 @@ AM_COND_IF([HAVE_INPUT_STF], [
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 	[libserialport >= 0.1.1])
 
+SR_ARG_OPT_PKG([libm2k], [LIBM2K], ,
+	[libm2k])
+
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
 # pkg-config file names: MinGW/MacOSX: hidapi; Linux: hidapi-hidraw/-libusb
@@ -151,6 +154,14 @@ AS_IF([test "x$sr_have_libieee1284" = xyes],
 	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
 
 SR_ARG_OPT_PKG([libgio], [LIBGIO], , [gio-2.0 >= 2.24.0])
+
+AC_LANG_PUSH([C++])
+PKG_CHECK_MODULES(LIBM2K, [libm2k] )
+AC_DEFINE([HAVE_LIBM2K], [1], [Have libm2k dep.])
+#SR_APPEND([SR_PKGLIBS], ['libm2k'])
+SR_APPEND([sr_deps_avail], [libm2k])
+AM_CONDITIONAL([NEED_LIBM2K], [test "x$sr_have_libm2k" = xyes])
+AC_LANG_POP([C++])
 
 # See if any of the (potentially platform specific) libs are available
 # which provide some means of Bluetooth communication.
@@ -309,6 +320,7 @@ m4_define([_SR_DRIVER], [
 m4_define([SR_DRIVER],
 	[_SR_DRIVER([$1], [$2], m4_expand([AS_TR_CPP([HW_$2])]), [$3])])
 
+SR_DRIVER([ADALM2000], [adalm2000], [libm2k])
 SR_DRIVER([Agilent DMM], [agilent-dmm], [serial_comm])
 SR_DRIVER([Appa 55II], [appa-55ii], [serial_comm])
 SR_DRIVER([Arachnid Labs Re:load Pro], [arachnid-labs-re-load-pro], [serial_comm])
@@ -670,6 +682,8 @@ AC_SUBST([SR_PKGLIBS])
 
 # Retrieve the compile and link flags for all modules combined.
 # Also, bail out at this point if any module dependency is not met.
+
+PKG_CHECK_MODULES([LIBSIGROK], [libm2k $SR_PKGLIBS])
 PKG_CHECK_MODULES([LIBSIGROK], [glib-2.0 >= 2.32.0 $SR_PKGLIBS])
 PKG_CHECK_MODULES([TESTS], [$SR_PKGLIBS_TESTS glib-2.0 $SR_PKGLIBS])
 
@@ -753,6 +767,7 @@ $sr_driver_summary
 Enabled serial communication transports:
   - serial comm ................... $sr_have_serial_comm
   - libserialport ................. $sr_have_libserialport
+  - libm2k ........................ $sr_have_libm2k
   - hidapi ........................ $sr_have_libhidapi
   - bluetooth ..................... $sr_have_bluetooth
   - bluez ......................... $sr_have_libbluez
