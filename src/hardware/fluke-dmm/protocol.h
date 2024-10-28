@@ -22,7 +22,7 @@
 
 #define LOG_PREFIX "fluke-dmm"
 
-#define FLUKEDMM_BUFSIZE 256
+#define FLUKEDMM_BUFSIZE 512
 
 /* Always USB-serial, 1ms is plenty. */
 #define SERIAL_WRITE_TIMEOUT_MS 1
@@ -42,6 +42,12 @@ enum {
 struct flukedmm_profile {
 	int model;
 	const char *modelname;
+	/* Initialize the device channel list */
+	void (*init_channels)(struct sr_dev_inst *sdi);
+	/* Which poll command to use */
+	const char *poll_cmd;
+	/* Response handler */
+	void (*handler)(const struct sr_dev_inst *sdi, char **tokens);
 	/* How often to poll, in ms. */
 	int poll_period;
 	/* If no response received, how long to wait before retrying. */
@@ -63,9 +69,12 @@ struct dev_context {
 	enum sr_mqflag mqflags;
 };
 
+
+SR_PRIV void fluke_init_channels_28x(struct sr_dev_inst *sdi);
+
 SR_PRIV void fluke_handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens);
 SR_PRIV void fluke_handle_qm_190(const struct sr_dev_inst *sdi, char **tokens);
-SR_PRIV void fluke_handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens);
+SR_PRIV void fluke_handle_qdda_28x(const struct sr_dev_inst *sdi, char **tokens);
 
 SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);
 
