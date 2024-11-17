@@ -760,6 +760,11 @@ enum sr_configkey {
 	 */
 	SR_CONF_DELAY_GENERATOR,
 
+	/**
+	 * The device can act as a frequency counter.
+	 */
+	SR_CONF_FREQUENCY_COUNTER,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/
@@ -1225,6 +1230,42 @@ enum sr_configkey {
 
 	/** Self test mode. */
 	SR_CONF_TEST_MODE,
+
+	/**
+	 * Over-power protection (OPP) feature
+	 * @arg type: boolean
+	 * @arg get: @b true if currently enabled
+	 * @arg set: enable/disable
+	 */
+	SR_CONF_OVER_POWER_PROTECTION_ENABLED,
+
+	/**
+	 * Over-power protection (OPP) active
+	 * @arg type: boolean
+	 * @arg get: @b true if device has activated OPP, i.e. the current power
+	 *      exceeds the over-power protection threshold.
+	 */
+	SR_CONF_OVER_POWER_PROTECTION_ACTIVE,
+
+	/**
+	 * Over-power protection (OPP) threshold
+	 * @arg type: double (current)
+	 * @arg get: get current threshold
+	 * @arg set: set new threshold
+	 */
+	SR_CONF_OVER_POWER_PROTECTION_THRESHOLD,
+
+	/**
+	 * Current Resistance.
+	 * @arg type: double
+	 * @arg get: get measured resistance
+	 */
+	SR_CONF_RESISTANCE,
+
+	/**
+	 * Gate time.
+	 */
+	SR_CONF_GATE_TIME,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };

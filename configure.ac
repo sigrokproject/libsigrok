@@ -99,7 +99,7 @@ SR_EXTRA_CXX_LIBS=
 SR_ARG_OPT_PKG([zlib], [ZLIB], , [zlib])
 AM_CONDITIONAL([HAVE_ZLIB], [test "x$sr_have_zlib" = xyes])
 AM_COND_IF([HAVE_ZLIB], [
-	SR_APPEND([sr_deps_avail], [crc32 zlib])
+	SR_APPEND([sr_deps_avail], ['crc32 zlib'])
 	SR_PREPEND([SR_EXTRA_LIBS], [-lz])
 ])
 
@@ -281,8 +281,8 @@ sr_check_driver_deps() {
 
 AC_ARG_ENABLE([all-drivers],
 	[AS_HELP_STRING([--enable-all-drivers],
-			[enable all drivers by default [default=yes]])],
-	[], [enable_all_drivers=yes])
+			[enable all drivers by default [default=check]])],
+	[], [enable_all_drivers=check])
 
 ## _SR_DRIVER(Device name, driver-name, var-name, [dependencies...])
 m4_define([_SR_DRIVER], [
@@ -290,13 +290,18 @@ m4_define([_SR_DRIVER], [
 		[AS_HELP_STRING([--enable-$2], [enable $1 support])],
 		[$3=$enableval], [$3=$enable_all_drivers])
 
-	AS_IF([test "x[$]$3" = xyes], [sr_hw_info=yes[]m4_ifval([$4], [
+	AS_IF([test "x[$]$3" != xno],
+		[sr_hw_info=yes[]m4_ifval([$4], [
 		sr_check_driver_deps $4 \
-			|| $3=no sr_hw_info="no (missing: $sr_deps_missing)"
+			|| if test "x[$]$3" != xcheck; then
+				AC_MSG_ERROR([driver $2 is enabled, but these deps are missing: $sr_deps_missing. Either install the dependency or disable the driver with --disable-$2.])
+			else
+				$3=no sr_hw_info="no (missing: $sr_deps_missing)"
+			fi;
 	])], [sr_hw_info='no (disabled)'])
 	sr_driver_summary_append "$2" "$sr_hw_info"
 
-	AM_CONDITIONAL([$3], [test "x[$]$3" = xyes])
+	AM_CONDITIONAL([$3], [test "x[$]$3" = xyes || test "x[$]$3" == xcheck])
 	AM_COND_IF([$3], [AC_DEFINE([HAVE_$3], [1], [Whether to support $1 device.]) AC_DEFINE([HAVE_DRIVERS], [1], [Whether at least one driver is enabled.])])
 ])
 
@@ -313,6 +318,7 @@ SR_DRIVER([Atorch], [atorch], [serial_comm])
 SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx], [serial_comm])
 SR_DRIVER([BayLibre ACME], [baylibre-acme], [sys_timerfd_h])
 SR_DRIVER([BeagleLogic], [beaglelogic], [sys_mman_h sys_ioctl_h])
+SR_DRIVER([BK Precision 1856D], [bkprecision-1856d], [serial_comm])
 SR_DRIVER([CEM DT-885x], [cem-dt-885x], [serial_comm])
 SR_DRIVER([Center 3xx], [center-3xx], [serial_comm])
 SR_DRIVER([ChronoVu LA], [chronovu-la], [libusb libftdi])
@@ -330,6 +336,7 @@ SR_DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x], [serial_comm])
 SR_DRIVER([Great Scott Gadgets GreatFET One], [greatfet], [libusb])
 SR_DRIVER([GW Instek GDS-800], [gwinstek-gds-800], [serial_comm])
 SR_DRIVER([GW Instek GPD], [gwinstek-gpd], [serial_comm])
+SR_DRIVER([GW Instek PSP], [gwinstek-psp])
 SR_DRIVER([Hameg HMO], [hameg-hmo])
 SR_DRIVER([Hantek 4032L], [hantek-4032l], [libusb])
 SR_DRIVER([Hantek 6xxx], [hantek-6xxx], [libusb])
@@ -351,6 +358,7 @@ SR_DRIVER([Korad KAxxxxP], [korad-kaxxxxp], [serial_comm])
 SR_DRIVER([Lascar EL-USB], [lascar-el-usb], [libusb])
 SR_DRIVER([LeCroy LogicStudio], [lecroy-logicstudio], [libusb])
 SR_DRIVER([LeCroy X-Stream], [lecroy-xstream])
+SR_DRIVER([Link Instruments MSO-19], [link-mso19], [libserialport])
 SR_DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx], [serial_comm])
 SR_DRIVER([Mastech MS6514], [mastech-ms6514], [serial_comm])
 SR_DRIVER([maynuo-m97], [maynuo-m97])
@@ -375,6 +383,7 @@ SR_DRIVER([SCPI DMM], [scpi-dmm])
 SR_DRIVER([SCPI PPS], [scpi-pps])
 SR_DRIVER([serial DMM], [serial-dmm], [serial_comm])
 SR_DRIVER([serial LCR], [serial-lcr], [serial_comm])
+SR_DRIVER([SIGLENT SDL10x0], [siglent-sdl10x0])
 SR_DRIVER([Siglent SDS], [siglent-sds])
 SR_DRIVER([Sysclk LWLA], [sysclk-lwla], [libusb])
 SR_DRIVER([Sysclk SLA5032], [sysclk-sla5032], [libusb])

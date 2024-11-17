@@ -95,6 +95,7 @@ libsigrok_la_SOURCES += \
 	src/input/trace32_ad.c \
 	src/input/vcd.c \
 	src/input/wav.c \
+	src/input/isf.c \
 	src/input/null.c
 if HAVE_INPUT_STF
 libsigrok_la_SOURCES += \
@@ -294,6 +295,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/beaglelogic/beaglelogic_native.c \
 	src/hardware/beaglelogic/beaglelogic_tcp.c
 endif
+if HW_BKPRECISION_1856D
+src_libdrivers_la_SOURCES += \
+	src/hardware/bkprecision-1856d/protocol.h \
+	src/hardware/bkprecision-1856d/protocol.c \
+	src/hardware/bkprecision-1856d/api.c
+endif
 if HW_CEM_DT_885X
 src_libdrivers_la_SOURCES += \
 	src/hardware/cem-dt-885x/protocol.h \
@@ -358,6 +365,9 @@ if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/protocol.h \
 	src/hardware/fluke-dmm/protocol.c \
+	src/hardware/fluke-dmm/fluke-18x.c \
+	src/hardware/fluke-dmm/fluke-190.c \
+	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
 endif
 if HW_FTDI_LA
@@ -395,6 +405,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/gwinstek-gpd/protocol.h \
 	src/hardware/gwinstek-gpd/protocol.c \
 	src/hardware/gwinstek-gpd/api.c
+endif
+if HW_GWINSTEK_PSP
+src_libdrivers_la_SOURCES += \
+	src/hardware/gwinstek-psp/protocol.h \
+	src/hardware/gwinstek-psp/protocol.c \
+	src/hardware/gwinstek-psp/api.c
 endif
 if HW_HAMEG_HMO
 src_libdrivers_la_SOURCES += \
@@ -521,6 +537,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/lecroy-xstream/protocol.h \
 	src/hardware/lecroy-xstream/protocol.c \
 	src/hardware/lecroy-xstream/api.c
+endif
+if HW_LINK_MSO19
+src_libdrivers_la_SOURCES += \
+	src/hardware/link-mso19/protocol.h \
+	src/hardware/link-mso19/protocol.c \
+	src/hardware/link-mso19/api.c
 endif
 if HW_MANSON_HCS_3XXX
 src_libdrivers_la_SOURCES += \
@@ -666,6 +688,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/serial-lcr/protocol.h \
 	src/hardware/serial-lcr/protocol.c \
 	src/hardware/serial-lcr/api.c
+endif
+if HW_SIGLENT_SDL10X0
+src_libdrivers_la_SOURCES += \
+	src/hardware/siglent-sdl10x0/protocol.h \
+	src/hardware/siglent-sdl10x0/protocol.c \
+	src/hardware/siglent-sdl10x0/api.c
 endif
 if HW_SIGLENT_SDS
 src_libdrivers_la_SOURCES += \
