@@ -464,6 +464,13 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 
 %include "../../../swig/classes.i"
 
+%pythoncode
+{
+    def _Error___str__(self):
+        return 'Sigrok error #{}: {}'.format(self.result, self.what())
+    Error.__str__ = _Error___str__
+}
+
 /* Support Driver.scan() with keyword arguments. */
 %extend sigrok::Driver
 {
