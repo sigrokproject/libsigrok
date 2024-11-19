@@ -729,6 +729,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/testo/protocol.c \
 	src/hardware/testo/api.c
 endif
+if HW_TINY_LOGIC_FRIEND_LA
+src_libdrivers_la_SOURCES += \
+	src/hardware/tiny-logic-friend-la/protocol.h \
+	src/hardware/tiny-logic-friend-la/protocol.c \
+	src/hardware/tiny-logic-friend-la/api.c
+endif
 if HW_TONDAJ_SL_814
 src_libdrivers_la_SOURCES += \
 	src/hardware/tondaj-sl-814/protocol.h \
