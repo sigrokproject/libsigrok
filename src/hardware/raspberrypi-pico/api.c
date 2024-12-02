@@ -487,24 +487,27 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		ch = l->data;
 		sr_dbg("c %d enabled %d name %s\n", ch->index, ch->enabled, ch->name);
 
-		if (ch->name[0] == 'A') {
+		if (ch->type == SR_CHANNEL_ANALOG) {
 			devc->a_chan_mask &= ~(1 << ch->index);
 			if (ch->enabled) {
 				devc->a_chan_mask |= (ch->enabled << ch->index);
 				a_enabled++;
 			}
-		}
-		if (ch->name[0] == 'D') {
+			sprintf(tmpstr, "A%d%d\n", ch->enabled, ch->index);
+		} else if (ch->type == SR_CHANNEL_LOGIC) {
 			devc->d_chan_mask &= ~(1 << ch->index);
 			if (ch->enabled) {
 				devc->d_chan_mask |= (ch->enabled << ch->index);
 				d_enabled++;
 			}
-		}
+			sprintf(tmpstr, "D%d%d\n", ch->enabled, ch->index);
+		} else {
+			sr_err("ERROR: Channel enable encountered unknown type %d", ch->type);
+                        return SR_ERR;
+                }
 
 		sr_info("Channel enable masks D 0x%X A 0x%X",
 			devc->d_chan_mask, devc->a_chan_mask);
-		sprintf(tmpstr, "%c%d%d\n", ch->name[0], ch->enabled, ch->index);
 		if (send_serial_w_ack(serial, tmpstr) != SR_OK) {
 			sr_err("ERROR: Channel enable fail");
 			return SR_ERR;
