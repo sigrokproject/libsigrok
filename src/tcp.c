@@ -84,7 +84,7 @@ SR_PRIV gboolean sr_fd_is_readable(int fd)
 	memset(fds, 0, sizeof(fds));
 	fds[0].fd = fd;
 	fds[0].events = POLLIN;
-	ret = poll(fds, ARRAY_SIZE(fds), -1);
+	ret = poll(fds, ARRAY_SIZE(fds), 0);
 	if (ret < 0)
 		return FALSE;
 	if (!ret)
