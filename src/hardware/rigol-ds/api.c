@@ -308,6 +308,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DHO800), "DHO804", {5, 1000000000}, CH_INFO(4, false), std_cmd},
 	{SERIES(DHO800), "DHO812", {5, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DHO800), "DHO814", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO800), "DHO824", {2, 1000000000}, CH_INFO(4, false), std_cmd},
 	{SERIES(DHO900), "DHO914", {2, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DHO900), "DHO914S", {2, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DHO900), "DHO924", {2, 1000000000}, CH_INFO(4, true), std_cmd},
