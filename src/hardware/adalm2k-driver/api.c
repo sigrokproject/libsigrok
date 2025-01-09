@@ -21,6 +21,7 @@
 #include "protocol.h"
 #include <config.h>
 #include <iio/iio.h>
+#include <libusb.h>
 
 #define M2K_VID 0x0456
 #define M2K_PID 0xb672
@@ -83,16 +84,24 @@ static const char *trigger_slopes[] = {
 
 static struct sr_dev_driver adalm2k_driver_driver_info;
 
+static void scan_device(struct libusb_device *dev, GSList **device) {
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options) {
+
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-    struct sr_channel_group *cg;
-    struct sr_channel *ch;
-    char channel_name[16];
-	/* struct sr_usb_dev_inst *usb; */
+	struct sr_channel_group *cg;
+	struct sr_channel *ch;
+	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
 
+    libusb_device **devlist;
+	char channel_name[16];
+
+    char *conn;
+    GSList *l, *conn_devices;
 	GSList *devices;
 
 	(void)options;
@@ -100,12 +109,36 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options) {
 	devices = NULL;
 	drvc = di->context;
 	drvc->instances = NULL;
+    int i;
+
+    // TODO: Remove libiio deps
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		if (src->key == SR_CONF_CONN) {
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+
+    // Get devices
+    libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+		for (l = conn_devices; l; l = l->next) {
+            usb = l->data;
+            if(usb->bus == libusb_get_bus_number(devlist[i])
+               && usb->address == libusb_get_device_address(devlist[i])) {
+                scan_device(devlist[i], &devices);
+            }
+		}
+	}
+    libusb_free_device_list(devlist, 1);
 
 	/* TODO: Clean this, very basic concept */
-    struct iio_scan *scan = iio_scan(NULL, "usb=0456:b672");
-    if(iio_scan_get_results_count(scan) > 0) {
+	struct iio_scan *scan = iio_scan(NULL, "usb=0456:b672");
+	if (iio_scan_get_results_count(scan) > 0) {
 		sr_dbg("Found M2K.");
-        char *uri = g_strdup((char *)iio_scan_get_uri(scan, 0));
+		char *uri = g_strdup((char *)iio_scan_get_uri(scan, 0));
 		sdi = g_malloc(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;
 		sdi->vendor = g_strdup("Analog Devices");
@@ -131,7 +164,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options) {
 
 		devc = g_malloc(sizeof(struct dev_context));
 		devc->m2k = NULL;
-        devc->mask = iio_create_channels_mask(18);
+		devc->mask = iio_create_channels_mask(18);
 		devc->logic_unitsize = 2;
 		devc->buffersize = 1 << 16;
 		devc->meaning.mq = SR_MQ_VOLTAGE;
@@ -139,21 +172,21 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options) {
 		devc->meaning.mqflags = 0;
 
 		sdi->priv = devc;
-        sdi->inst_type = SR_INST_USB;
+		sdi->inst_type = SR_INST_USB;
 		devices = g_slist_append(devices, sdi);
 	}
-    iio_scan_destroy(scan);
+	iio_scan_destroy(scan);
 
 	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi) {
-    int err;
+	int err;
 	(void)sdi;
 	struct dev_context *devc;
 	devc = sdi->priv;
 	devc->m2k = iio_create_context(NULL, sdi->connection_id);
-    err = iio_err(devc->m2k);
+	err = iio_err(devc->m2k);
 	if (err) {
 		sr_err("Failed to open device");
 		return SR_ERR;
@@ -166,15 +199,16 @@ static int dev_close(struct sr_dev_inst *sdi) {
 	(void)sdi;
 	struct dev_context *devc;
 	devc = sdi->priv;
-    if (devc->m2k) {
-        iio_context_destroy(devc->m2k);
-    }
-    /* NOTE: No valid way of checking if the device has been destroyed properly */ 
+	if (devc->m2k) {
+		iio_context_destroy(devc->m2k);
+	}
+	/* NOTE: No valid way of checking if the device has been destroyed properly
+	 */
 	/* if (devc->m2k) { */
 	/* 	sr_err("Failed to close device"); */
 	/* 	return SR_ERR; */
 	/* } */
-    sr_dbg("Successfully closed device");
+	sr_dbg("Successfully closed device");
 
 	return SR_OK;
 }
@@ -201,39 +235,39 @@ static int config_get(uint32_t key, GVariant **data,
 	ret = SR_OK;
 
 	devc = sdi->priv;
-    sr_dbg("Getting configs");
+	sr_dbg("Getting configs");
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-        sr_dbg("SAMPLERATE");
+		sr_dbg("SAMPLERATE");
 		digital_en =
 			adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0;
 		if (digital_en) {
 		}
-        /* samplerate = 99999999; */
+		/* samplerate = 99999999; */
 		*data = g_variant_new_uint64(devc->samplerate);
 		/* TODO: samplerate = m2k_get_samplerate(sdi); */
 		/* TODO: add support for analog */
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-        sr_dbg("LIMIT SAMPLES");
+		sr_dbg("LIMIT SAMPLES");
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_LIMIT_MSEC:
-        sr_dbg("LIMIT MSEC");
+		sr_dbg("LIMIT MSEC");
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
 	case SR_CONF_AVERAGING:
-        sr_dbg("AVERAGING");
+		sr_dbg("AVERAGING");
 		*data = g_variant_new_boolean(devc->avg);
 		break;
 	case SR_CONF_AVG_SAMPLES:
-        sr_dbg("AVG SAMPLES");
+		sr_dbg("AVG SAMPLES");
 		*data = g_variant_new_uint64(devc->avg_samples);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-        *data = g_variant_new_uint64(0);
-        sr_dbg("CAP RATIO");
+		*data = g_variant_new_uint64(0);
+		sr_dbg("CAP RATIO");
 		break;
 	/* TODO */
 	default:
@@ -258,44 +292,44 @@ static int config_set(uint32_t key, GVariant *data,
 	devc = sdi->priv;
 
 	ret = SR_OK;
-    sr_dbg("Setting configs");
+	sr_dbg("Setting configs");
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-        sr_dbg("SAMPLERATE");
-        devc->samplerate = g_variant_get_uint64(data);
-        /* Set samplerate when starting acquisition */
-        /* if(adalm2k_driver_set_samplerate(sdi) < 0) { */
-        /*     sr_err("Failed to set samplerate"); */
-			/* ret = SR_ERR_NA; */
-			/* break; */
+		sr_dbg("SAMPLERATE");
+		devc->samplerate = g_variant_get_uint64(data);
+		/* Set samplerate when starting acquisition */
+		/* if(adalm2k_driver_set_samplerate(sdi) < 0) { */
+		/*     sr_err("Failed to set samplerate"); */
+		/* ret = SR_ERR_NA; */
+		/* break; */
 		/* } */
-        /* sr_dbg("Successfully changed samplerate"); */
+		/* sr_dbg("Successfully changed samplerate"); */
 		/* TODO: implement analog */
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-        sr_dbg("LIMIT SAMPLES");
+		sr_dbg("LIMIT SAMPLES");
 		devc->limit_samples = g_variant_get_uint64(data);
 		devc->limit_msec = 0;
 		break;
 	case SR_CONF_LIMIT_MSEC:
-        sr_dbg("LIMIT MSEC");
+		sr_dbg("LIMIT MSEC");
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-        sr_dbg("CAP RATIO");
+		sr_dbg("CAP RATIO");
 		break;
 	case SR_CONF_AVERAGING:
-        sr_dbg("AVERAGING");
+		sr_dbg("AVERAGING");
 		devc->avg = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_AVG_SAMPLES:
-        sr_dbg("AVG SAMPLES");
+		sr_dbg("AVG SAMPLES");
 		devc->avg_samples = g_variant_get_uint64(data);
 		break;
 	/* TODO */
 	default:
-        sr_dbg("ERR");
+		sr_dbg("ERR");
 		ret = SR_ERR_NA;
 	}
 
@@ -312,13 +346,13 @@ static int config_list(uint32_t key, GVariant **data,
 	(void)cg;
 
 	ret = SR_OK;
-    sr_dbg("Listing configs");
+	sr_dbg("Listing configs");
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
-        break;
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 		break;
@@ -335,33 +369,39 @@ static int config_list(uint32_t key, GVariant **data,
 static int dev_acquisition_start(const struct sr_dev_inst *sdi) {
 	/* TODO: configure hardware, reset acquisition state, set up
 	 * callbacks and send header packet. */
-    struct dev_context *devc;
-    gboolean analog_en, digital_en;
-    struct sr_channel *ch;
-    GSList *l;
+	struct dev_context *devc;
+	gboolean analog_en, digital_en;
+	struct sr_channel *ch;
+	GSList *l;
 
 	(void)sdi;
 
-    devc = sdi->priv;
+	devc = sdi->priv;
 
-    devc->sent_samples = 0;
-    analog_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) ? TRUE : FALSE;
-    digital_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) ? TRUE : FALSE;
-    adalm2k_driver_set_samplerate(sdi);
+	devc->sent_samples = 0;
+	analog_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG)
+					? TRUE
+					: FALSE;
+	digital_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC)
+					 ? TRUE
+					 : FALSE;
+	adalm2k_driver_set_samplerate(sdi);
 
-    for(l = sdi->channels; l; l = l->next) {
-        ch = l->data;
-        if(ch->type == SR_CHANNEL_LOGIC) {
-            sr_dbg("Enabling channels");
-            adalm2k_driver_enable_channel(sdi, ch->index);
-        }
-    }
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == SR_CHANNEL_LOGIC) {
+			sr_dbg("Enabling channels");
+			adalm2k_driver_enable_channel(sdi, ch->index);
+		}
+	}
 
-    std_session_send_df_header(sdi);
-    sr_session_source_add(sdi->session, -1, G_IO_IN, 0, adalm2k_driver_receive_data, (struct sr_dev_inst *)sdi);
+	std_session_send_df_header(sdi);
+	sr_session_source_add(sdi->session, -1, G_IO_IN, 0,
+						  adalm2k_driver_receive_data,
+						  (struct sr_dev_inst *)sdi);
 
-    devc->start_time = g_get_monotonic_time();
-    devc->spent_us = 0;
+	devc->start_time = g_get_monotonic_time();
+	devc->spent_us = 0;
 
 	return SR_OK;
 }
@@ -371,8 +411,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi) {
 
 	(void)sdi;
 
-    sr_session_source_remove(sdi->session, -1);
-    std_session_send_df_end(sdi);
+	sr_session_source_remove(sdi->session, -1);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
