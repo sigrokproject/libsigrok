@@ -236,6 +236,12 @@ src_libdrivers_tail_la_SOURCES = src/driver_list_stop.c
 
 src_libdrivers_la_SOURCES = src/drivers.c
 
+if HW_ADALM2K_DRIVER
+src_libdrivers_la_SOURCES += \
+	src/hardware/adalm2k-driver/protocol.h \
+	src/hardware/adalm2k-driver/protocol.c \
+	src/hardware/adalm2k-driver/api.c
+endif
 if HW_AGILENT_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/agilent-dmm/protocol.h \
