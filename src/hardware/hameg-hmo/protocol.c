@@ -39,7 +39,7 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
-					        ":FORM REAL,32;:CHAN%d:DATA?",
+					        ":FORM REAL,32;:CHAN%d:DATA:POIN MAX;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
 	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":POD%d:STAT?",
@@ -81,7 +81,7 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
-					        ":FORM REAL,32;:CHAN%d:DATA?",
+					        ":FORM REAL,32;:CHAN%d:DATA:POIN MAX;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
 	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":LOG%d:STAT?",
@@ -612,6 +612,9 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT,
 	},
 	{
 		.name = {"RTB2004", NULL},
@@ -652,6 +655,9 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT,
 	},
 	{
 		.name = {"RTM3002", NULL},
@@ -692,6 +698,9 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT,
 	},
 	{
 		.name = {"RTM3004", NULL},
@@ -732,6 +741,9 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT,
 	},
 	{
 		.name = {"RTA4004", NULL},
@@ -772,6 +784,9 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT,
 	},
 	{
 		.name = {"RTH1002", NULL},
@@ -812,6 +827,10 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT
+			| INTERN_NO_POD_STATE_SET_SUPPORT,
 	},
 	{
 		.name = {"RTH1004", NULL},
@@ -852,6 +871,10 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+
+		.internal_flags = INTERN_NO_LOGIC_STATE_GET_SUPPORT
+			| INTERN_NO_LOGIC_STATE_SET_SUPPORT
+			| INTERN_NO_POD_STATE_SET_SUPPORT,
 	},
 };
 
@@ -871,8 +894,19 @@ static void scope_state_dump(const struct scope_config *config,
 	}
 
 	for (i = 0; i < config->digital_channels; i++) {
-		sr_info("State of digital channel %d -> %s", i,
-			state->digital_channels[i] ? "On" : "Off");
+		if (!(config->internal_flags & INTERN_NO_LOGIC_STATE_GET_SUPPORT))
+		{
+			sr_info("State of digital channel %d -> %s", i,
+				state->digital_channels[i] ? "On" : "Off");
+		}
+		else if (!(config->internal_flags & INTERN_NO_POD_STATE_GET_SUPPORT))
+		{
+			sr_info("State of digital channel %d -> %s", i,
+				state->digital_pods[i / DIGITAL_CHANNELS_PER_POD].state ? "On" : "Off");
+		}
+		else {
+			sr_info("State of digital channel %d -> On", i);
+		}
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
@@ -1058,13 +1092,27 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
 	for (i = 0; i < config->digital_channels; i++) {
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
-			   i);
+		if (!(config->internal_flags & INTERN_NO_LOGIC_STATE_GET_SUPPORT)) {
+			g_snprintf(command, sizeof(command),
+				(*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
+				i);
 
-		if (sr_scpi_get_bool(scpi, command,
-				     &state->digital_channels[i]) != SR_OK)
-			return SR_ERR;
+			if (sr_scpi_get_bool(scpi, command,
+						&state->digital_channels[i]) != SR_OK)
+				return SR_ERR;
+		}
+		else if (!(config->internal_flags & INTERN_NO_POD_STATE_GET_SUPPORT)) {
+			g_snprintf(command, sizeof(command),
+				(*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
+				i / DIGITAL_CHANNELS_PER_POD);
+
+			if (sr_scpi_get_bool(scpi, command,
+						&state->digital_channels[i]) != SR_OK)
+				return SR_ERR;
+		}
+		else {
+			state->digital_channels[i] = TRUE;
+		}
 
 		ch = get_channel_by_index_and_type(sdi->channels, i, SR_CHANNEL_LOGIC);
 		if (ch)
@@ -1518,13 +1566,13 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 		packet.type = SR_DF_ANALOG;
 
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 		analog.data = data->data;
 		analog.num_samples = data->len / sizeof(float);
 		/* Truncate acquisition if a smaller number of samples has been requested. */
 		if (devc->samples_limit > 0 && analog.num_samples > devc->samples_limit)
 			analog.num_samples = devc->samples_limit;
 		/* TODO: Use proper 'digits' value for this device (and its modes). */
-		sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 		encoding.is_signed = TRUE;
 		if (state->analog_channels[ch->index].probe_unit == 'V') {
 			meaning.mq = SR_MQ_VOLTAGE;
@@ -1536,7 +1584,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		meaning.channels = g_slist_append(NULL, ch);
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
-		devc->num_samples = data->len / sizeof(float);
+		devc->num_samples += analog.num_samples;
 		g_slist_free(meaning.channels);
 		g_byte_array_free(data, TRUE);
 		data = NULL;
@@ -1613,7 +1661,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 * number of frames or after the specified number of samples, or
 	 * continue reception by starting over at the first enabled channel.
 	 */
-	if (++devc->num_frames >= devc->frame_limit || devc->num_samples >= devc->samples_limit) {
+	if ((devc->frame_limit && ++devc->num_frames >= devc->frame_limit) || devc->num_samples >= devc->samples_limit) {
 		sr_dev_acquisition_stop(sdi);
 		hmo_cleanup_logic_data(devc);
 	} else {
