@@ -26,10 +26,7 @@ static const struct cypress_fx2g3_profile supported_fx2g3_dev[] = {
 	/*
 	 * Cypress FX2G3
 	 */
-	{ 0x04b4, 0xF007, "Cypress", "FX2G3", NULL,
-		"cypress-fx2g3-la.fw",
-		DEV_CAPS_8BIT, NULL, NULL},
-	{ 0x04b4, 0xF00F, "Cypress", "FX2G3", NULL,
+	{ 0x04b4, 0x4907, "Cypress", "FX2G3", NULL,
 		"cypress-fx2g3-la.fw",
 		DEV_CAPS_16BIT, NULL, NULL},
 
