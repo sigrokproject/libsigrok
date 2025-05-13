@@ -109,8 +109,9 @@ START_TEST(test_analog_to_float)
 		fout = 19;
 		f = v[i];
 		ret = sr_analog_to_float(&analog, &fout);
-		fail_unless(ret == SR_OK, "sr_analog_to_float() failed: %d.", ret);
-		fail_unless(fabs(f - fout) <= 0.001, "%f != %f", f, fout);
+		ck_assert_msg(ret == SR_OK,
+			      "sr_analog_to_float() failed: %d.", ret);
+		ck_assert_msg(fabs(f - fout) <= 0.001, "%f != %f", f, fout);
 	}
 }
 END_TEST
@@ -130,25 +131,25 @@ START_TEST(test_analog_to_float_null)
 	analog.data = &f;
 
 	ret = sr_analog_to_float(NULL, &fout);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	ret = sr_analog_to_float(&analog, NULL);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	ret = sr_analog_to_float(NULL, NULL);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 
 	analog.data = NULL;
 	ret = sr_analog_to_float(&analog, &fout);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	analog.data = &f;
 
 	analog.meaning = NULL;
 	ret = sr_analog_to_float(&analog, &fout);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	analog.meaning = &meaning;
 
 	analog.encoding = NULL;
 	ret = sr_analog_to_float(&analog, &fout);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	analog.encoding = &encoding;
 }
 END_TEST
@@ -465,15 +466,15 @@ START_TEST(test_analog_si_prefix)
 		int digits = v[i].input_digits;
 		const char *si_prefix = sr_analog_si_prefix(&value, &digits);
 
-		fail_unless(fabs(value - v[i].output_value) <= 0.00001,
-			"sr_analog_si_prefix() unexpected output value %f (i=%d).",
-			value , i);
-		fail_unless(digits == v[i].output_digits,
-			"sr_analog_si_prefix() unexpected output digits %d (i=%d).",
-			digits, i);
-		fail_unless(!strcmp(si_prefix, v[i].output_si_prefix),
-			"sr_analog_si_prefix() unexpected output prefix \"%s\" (i=%d).",
-			si_prefix, i);
+		ck_assert_msg(fabs(value - v[i].output_value) <= 0.00001,
+			      "sr_analog_si_prefix() unexpected output value %f (i=%d).",
+			      value, i);
+		ck_assert_msg(digits == v[i].output_digits,
+			      "sr_analog_si_prefix() unexpected output digits %d (i=%d).",
+			      digits, i);
+		ck_assert_msg(!strcmp(si_prefix, v[i].output_si_prefix),
+			      "sr_analog_si_prefix() unexpected output prefix \"%s\" (i=%d).",
+			      si_prefix, i);
 	}
 }
 END_TEST
@@ -485,11 +486,11 @@ START_TEST(test_analog_si_prefix_null)
 	const char *si_prefix;
 
 	si_prefix = sr_analog_si_prefix(NULL, &digits);
-	fail_unless(!strcmp(si_prefix, ""));
+	ck_assert(!strcmp(si_prefix, ""));
 	si_prefix = sr_analog_si_prefix(&value, NULL);
-	fail_unless(!strcmp(si_prefix, ""));
+	ck_assert(!strcmp(si_prefix, ""));
 	si_prefix = sr_analog_si_prefix(NULL, NULL);
-	fail_unless(!strcmp(si_prefix, ""));
+	ck_assert(!strcmp(si_prefix, ""));
 }
 END_TEST
 
@@ -512,9 +513,9 @@ START_TEST(test_analog_unit_to_string)
 		meaning.unit = u[i];
 		meaning.mqflags = f[i];
 		ret = sr_analog_unit_to_string(&analog, &result);
-		fail_unless(ret == SR_OK);
-		fail_unless(result != NULL);
-		fail_unless(!strcmp(result, r[i]), "%s != %s", result, r[i]);
+		ck_assert(ret == SR_OK);
+		ck_assert(result != NULL);
+		ck_assert_msg(!strcmp(result, r[i]), "%s != %s", result, r[i]);
 		g_free(result);
 	}
 }
@@ -535,15 +536,15 @@ START_TEST(test_analog_unit_to_string_null)
 	meaning.mqflags = SR_MQFLAG_RMS;
 
 	ret = sr_analog_unit_to_string(NULL, &result);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	ret = sr_analog_unit_to_string(&analog, NULL);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 	ret = sr_analog_unit_to_string(NULL, NULL);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 
 	analog.meaning = NULL;
 	ret = sr_analog_unit_to_string(&analog, &result);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 }
 END_TEST
 
@@ -556,7 +557,7 @@ START_TEST(test_set_rational)
 
 	for (i = 0; i < ARRAY_SIZE(p); i++) {
 		sr_rational_set(&r, p[i], q[i]);
-		fail_unless(r.p == p[i] && r.q == q[i]);
+		ck_assert(r.p == p[i] && r.q == q[i]);
 	}
 }
 END_TEST
@@ -579,20 +580,20 @@ START_TEST(test_cmp_rational)
 		{ INT64_MIN, UINT64_MAX },
 	};
 
-	fail_unless(sr_rational_eq(&r[0], &r[0]) == 1);
-	fail_unless(sr_rational_eq(&r[0], &r[1]) == 1);
-	fail_unless(sr_rational_eq(&r[1], &r[2]) == 1);
-	fail_unless(sr_rational_eq(&r[2], &r[3]) == 1);
-	fail_unless(sr_rational_eq(&r[3], &r[3]) == 1);
+	ck_assert(sr_rational_eq(&r[0], &r[0]) == 1);
+	ck_assert(sr_rational_eq(&r[0], &r[1]) == 1);
+	ck_assert(sr_rational_eq(&r[1], &r[2]) == 1);
+	ck_assert(sr_rational_eq(&r[2], &r[3]) == 1);
+	ck_assert(sr_rational_eq(&r[3], &r[3]) == 1);
 
-	fail_unless(sr_rational_eq(&r[4], &r[4]) == 1);
-	fail_unless(sr_rational_eq(&r[4], &r[5]) == 1);
-	fail_unless(sr_rational_eq(&r[5], &r[5]) == 1);
+	ck_assert(sr_rational_eq(&r[4], &r[4]) == 1);
+	ck_assert(sr_rational_eq(&r[4], &r[5]) == 1);
+	ck_assert(sr_rational_eq(&r[5], &r[5]) == 1);
 
-	fail_unless(sr_rational_eq(&r[6], &r[6]) == 1);
-	fail_unless(sr_rational_eq(&r[7], &r[7]) == 1);
+	ck_assert(sr_rational_eq(&r[6], &r[6]) == 1);
+	ck_assert(sr_rational_eq(&r[7], &r[7]) == 1);
 
-	fail_unless(sr_rational_eq(&r[1], &r[4]) == 0);
+	ck_assert(sr_rational_eq(&r[1], &r[4]) == 0);
 }
 END_TEST
 
@@ -631,10 +632,10 @@ START_TEST(test_mult_rational)
 
 	for (i = 0; i < ARRAY_SIZE(r); i++) {
 		rc = sr_rational_mult(&res, &r[i][0], &r[i][1]);
-		fail_unless(rc == SR_OK);
-		fail_unless(sr_rational_eq(&res, &r[i][2]) == 1,
-			"sr_rational_mult() failed: [%zu] %" PRIi64 "/%" PRIu64 " != %" PRIi64 "/%" PRIu64 ".",
-			i, res.p, res.q, r[i][2].p, r[i][2].q);
+		ck_assert(rc == SR_OK);
+		ck_assert_msg(sr_rational_eq(&res, &r[i][2]) == 1,
+			      "sr_rational_mult() failed: [%zu] %" PRIi64 "/%" PRIu64 " != %" PRIi64 "/%" PRIu64 ".",
+			      i, res.p, res.q, r[i][2].p, r[i][2].q);
 	}
 }
 END_TEST
@@ -670,16 +671,16 @@ START_TEST(test_div_rational)
 
 	for (i = 0; i < ARRAY_SIZE(r); i++) {
 		rc = sr_rational_div(&res, &r[i][0], &r[i][1]);
-		fail_unless(rc == SR_OK);
-		fail_unless(sr_rational_eq(&res, &r[i][2]) == 1,
-			"sr_rational_mult() failed: [%zu] %" PRIi64 "/%" PRIu64 " != %" PRIi64 "/%" PRIu64 ".",
-			i, res.p, res.q, r[i][2].p, r[i][2].q);
+		ck_assert(rc == SR_OK);
+		ck_assert_msg(sr_rational_eq(&res, &r[i][2]) == 1,
+			      "sr_rational_mult() failed: [%zu] %" PRIi64 "/%" PRIu64 " != %" PRIi64 "/%" PRIu64 ".",
+			      i, res.p, res.q, r[i][2].p, r[i][2].q);
 	}
 
 	{
 		rc = sr_rational_div(&res, &r[0][0], &((struct sr_rational){ 0, 5 }));
 
-		fail_unless(rc == SR_ERR_ARG);
+		ck_assert(rc == SR_ERR_ARG);
 	}
 }
 END_TEST

@@ -59,10 +59,10 @@ static void test_sr_vsnprintf_ascii(const char *expected, char *format, ...)
 	len = sr_vsnprintf_ascii(s, len, format, args);
 	va_end(args);
 
-	fail_unless(s != NULL,
-			"Invalid result for '%s': len = %i.", expected, len);
-	fail_unless(!strcmp(s, expected),
-			"Invalid result for '%s': %s.", expected, s);
+	ck_assert_msg(s != NULL, "Invalid result for '%s': len = %i.",
+		      expected, len);
+	ck_assert_msg(!strcmp(s, expected), "Invalid result for '%s': %s.",
+		      expected, s);
 	g_free(s);
 }
 
@@ -83,10 +83,10 @@ static void test_sr_vsprintf_ascii(const char *expected, char *format, ...)
 	len = sr_vsprintf_ascii(s, format, args_copy);
 	va_end(args_copy);
 
-	fail_unless(s != NULL,
-			"Invalid result for '%s': len = %i.", expected, len);
-	fail_unless(!strcmp(s, expected),
-			"Invalid result for '%s': %s.", expected, s);
+	ck_assert_msg(s != NULL, "Invalid result for '%s': len = %i.",
+		      expected, len);
+	ck_assert_msg(!strcmp(s, expected), "Invalid result for '%s': %s.",
+		      expected, s);
 	g_free(s);
 }
 
@@ -95,9 +95,9 @@ static void test_samplerate(uint64_t samplerate, const char *expected)
 	char *s;
 
 	s = sr_samplerate_string(samplerate);
-	fail_unless(s != NULL);
-	fail_unless(!strcmp(s, expected),
-		    "Invalid result for '%s': %s.", expected, s);
+	ck_assert(s != NULL);
+	ck_assert_msg(!strcmp(s, expected), "Invalid result for '%s': %s.",
+		      expected, s);
 	g_free(s);
 }
 
@@ -106,9 +106,9 @@ static void test_period(uint64_t v_p, uint64_t v_q, const char *expected)
 	char *s;
 
 	s = sr_period_string(v_p, v_q);
-	fail_unless(s != NULL);
-	fail_unless(!strcmp(s, expected),
-		    "Invalid result for '%s': %s.", expected, s);
+	ck_assert(s != NULL);
+	ck_assert_msg(!strcmp(s, expected), "Invalid result for '%s': %s.",
+		      expected, s);
 	g_free(s);
 }
 
@@ -118,11 +118,11 @@ static void test_rational(const char *input, struct sr_rational expected)
 	struct sr_rational rational;
 
 	ret = sr_parse_rational(input, &rational);
-	fail_unless(ret == SR_OK, "Unexpected rc for '%s': %d, errno %d.",
-		input, ret, errno);
-	fail_unless((expected.p == rational.p) && (expected.q == rational.q),
-		    "Invalid result for '%s': %" PRIi64 "/%" PRIu64 "'.",
-		    input, rational.p, rational.q);
+	ck_assert_msg(ret == SR_OK, "Unexpected rc for '%s': %d, errno %d.",
+		      input, ret, errno);
+	ck_assert_msg((expected.p == rational.p) && (expected.q == rational.q),
+		      "Invalid result for '%s': %" PRIi64 "/%" PRIu64 "'.",
+		      input, rational.p, rational.q);
 }
 
 static void test_rational_fail(const char *input)
@@ -131,7 +131,7 @@ static void test_rational_fail(const char *input)
 	struct sr_rational rational;
 
 	ret = sr_parse_rational(input, &rational);
-	fail_unless(ret != SR_OK, "Unexpected success for '%s'.", input);
+	ck_assert_msg(ret != SR_OK, "Unexpected success for '%s'.", input);
 }
 
 static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
@@ -139,9 +139,9 @@ static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
 	char *s;
 
 	s = sr_voltage_string(v_p, v_q);
-	fail_unless(s != NULL);
-	fail_unless(!strcmp(s, expected),
-		    "Invalid result for '%s': %s.", expected, s);
+	ck_assert(s != NULL);
+	ck_assert_msg(!strcmp(s, expected), "Invalid result for '%s': %s.",
+		      expected, s);
 	g_free(s);
 }
 
@@ -463,57 +463,59 @@ START_TEST(test_text_line)
 	/* Cover first line in tests. */
 	taken = 0;
 	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
-	fail_unless(line, "Text line not found");
-	fail_unless(strcmp(line, TEXT_CORE_1) == 0, "Unexpected line content");
-	fail_unless(next_pos, "No next line found");
-	fail_unless(strncmp(next_pos, TEXT_LINE_2, strlen(TEXT_LINE_2)) == 0,
-		"Unexpected next line content");
-	fail_unless(taken == strlen(TEXT_LINE_1),
-		"Unexpected consumed count");
+	ck_assert_msg(line, "Text line not found");
+	ck_assert_msg(strcmp(line, TEXT_CORE_1) == 0,
+		      "Unexpected line content");
+	ck_assert_msg(next_pos, "No next line found");
+	ck_assert_msg(strncmp(next_pos, TEXT_LINE_2, strlen(TEXT_LINE_2)) == 0,
+		      "Unexpected next line content");
+	ck_assert_msg(taken == strlen(TEXT_LINE_1),
+		      "Unexpected consumed count");
 	read_pos = next_pos;
 	input_len -= taken;
 	taken = 0;
 
 	/* Cover second line in tests. DO NOT void 'taken' yet. */
 	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
-	fail_unless(line, "Text line not found");
-	fail_unless(strcmp(line, TEXT_CORE_2) == 0,
-		"Unexpected text line content");
-	fail_unless(next_pos, "No next line found");
-	fail_unless(strncmp(next_pos, TEXT_LINE_3, strlen(TEXT_LINE_3)) == 0,
-		"Unexpected next line content");
-	fail_unless(taken == strlen(TEXT_LINE_2),
-		"Unexpected consumed count");
+	ck_assert_msg(line, "Text line not found");
+	ck_assert_msg(strcmp(line, TEXT_CORE_2) == 0,
+		      "Unexpected text line content");
+	ck_assert_msg(next_pos, "No next line found");
+	ck_assert_msg(strncmp(next_pos, TEXT_LINE_3, strlen(TEXT_LINE_3)) == 0,
+		      "Unexpected next line content");
+	ck_assert_msg(taken == strlen(TEXT_LINE_2),
+		      "Unexpected consumed count");
 	input_len -= next_pos - read_pos;
 	read_pos = next_pos;
 
 	/* Cover third line in tests. Accumulates 'taken'. */
 	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
-	fail_unless(line, "Text line not found");
-	fail_unless(strcmp(line, TEXT_CORE_3) == 0, "Unexpected line content");
-	fail_unless(next_pos, "No next line found");
-	fail_unless(strncmp(next_pos, TEXT_LINE_4, strlen(TEXT_LINE_4)) == 0,
-		"Unexpected next line content");
-	fail_unless(taken == strlen(TEXT_LINE_2) + strlen(TEXT_LINE_3),
-		"Unexpected consumed count (totalled)");
+	ck_assert_msg(line, "Text line not found");
+	ck_assert_msg(strcmp(line, TEXT_CORE_3) == 0,
+		      "Unexpected line content");
+	ck_assert_msg(next_pos, "No next line found");
+	ck_assert_msg(strncmp(next_pos, TEXT_LINE_4, strlen(TEXT_LINE_4)) == 0,
+		      "Unexpected next line content");
+	ck_assert_msg(taken == strlen(TEXT_LINE_2) + strlen(TEXT_LINE_3),
+		      "Unexpected consumed count (totalled)");
 	input_len -= next_pos - read_pos;
 	read_pos = next_pos;
 	taken = 0;
 
 	/* Cover last line in tests. */
 	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
-	fail_unless(line, "Text line not found");
-	fail_unless(strcmp(line, TEXT_CORE_4) == 0,
-		"Unexpected text line content");
-	fail_unless(!next_pos, "Next line found, unexpected");
-	fail_unless(taken == strlen(TEXT_LINE_4),
-		"Unexpected consumed count");
+	ck_assert_msg(line, "Text line not found");
+	ck_assert_msg(strcmp(line, TEXT_CORE_4) == 0,
+		      "Unexpected text line content");
+	ck_assert_msg(!next_pos, "Next line found, unexpected");
+	ck_assert_msg(taken == strlen(TEXT_LINE_4),
+		      "Unexpected consumed count");
 	input_len -= taken;
 	read_pos = next_pos;
 
 	/* All input must have been consumed. */
-	fail_unless(!read_pos);
-	fail_unless(!input_len);
+	ck_assert(!read_pos);
+	ck_assert(!input_len);
 
 	g_free(input_text);
 }
@@ -556,17 +558,18 @@ START_TEST(test_text_word)
 			want = words[word_idx];
 			have = sr_text_next_word(read_pos, &next_pos);
 			if (!want) {
-				fail_unless(!have, "word found, unexpected");
-				fail_unless(!next_pos, "next found after end");
+				ck_assert_msg(!have, "word found, unexpected");
+				ck_assert_msg(!next_pos,
+					      "next found after end");
 				break;
 			}
 			word_idx++;
 			read_pos = next_pos;
-			fail_unless(have, "word not found");
-			fail_unless(strcmp(have, want) == 0,
-				"unexpected word found");
+			ck_assert_msg(have, "word not found");
+			ck_assert_msg(strcmp(have, want) == 0,
+				      "unexpected word found");
 		}
-		fail_unless(!words[word_idx], "missed expected words");
+		ck_assert_msg(!words[word_idx], "missed expected words");
 
 		g_free(line);
 	}
@@ -601,9 +604,9 @@ START_TEST(test_calc_power_of_two)
 	for (case_idx = 0; case_idx < ARRAY_SIZE(power_cases); case_idx++) {
 		tcase = &power_cases[case_idx];
 		ret = sr_next_power_of_two(tcase->value, &bits, &power);
-		fail_unless(ret == SR_OK, "bits count not found");
-		fail_unless(bits == tcase->want_bits, "bits count differs");
-		fail_unless(power == tcase->want_power, "power differs");
+		ck_assert_msg(ret == SR_OK, "bits count not found");
+		ck_assert_msg(bits == tcase->want_bits, "bits count differs");
+		ck_assert_msg(power == tcase->want_power, "power differs");
 	}
 }
 END_TEST

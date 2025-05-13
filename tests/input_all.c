@@ -29,7 +29,7 @@ START_TEST(test_input_available)
 	const struct sr_input_module **inputs;
 
 	inputs = sr_input_list();
-	fail_unless(inputs != NULL, "No input modules found.");
+	ck_assert_msg(inputs != NULL, "No input modules found.");
 }
 END_TEST
 

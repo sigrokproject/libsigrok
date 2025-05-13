@@ -29,11 +29,11 @@ START_TEST(test_user_new)
 
 	sdi = sr_dev_inst_user_new("Vendor", "Model", "Version");
 
-	fail_unless(sdi != NULL, "sr_dev_inst_user_new() failed.");
+	ck_assert_msg(sdi != NULL, "sr_dev_inst_user_new() failed.");
 
-	fail_unless(!strcmp("Vendor", sr_dev_inst_vendor_get(sdi)));
-	fail_unless(!strcmp("Model", sr_dev_inst_model_get(sdi)));
-	fail_unless(!strcmp("Version", sr_dev_inst_version_get(sdi)));
+	ck_assert(!strcmp("Vendor", sr_dev_inst_vendor_get(sdi)));
+	ck_assert(!strcmp("Model", sr_dev_inst_model_get(sdi)));
+	ck_assert(!strcmp("Version", sr_dev_inst_version_get(sdi)));
 }
 END_TEST
 
@@ -44,20 +44,20 @@ START_TEST(test_channel_add)
 	GSList *channels;
 
 	sdi = sr_dev_inst_user_new("Vendor", "Model", "Version");
-	fail_unless(sdi != NULL, "sr_dev_inst_user_new() failed.");
+	ck_assert_msg(sdi != NULL, "sr_dev_inst_user_new() failed.");
 
 	channels = sr_dev_inst_channels_get(sdi);
-	fail_unless(g_slist_length(channels) == 0, "More than 0 channels.");
+	ck_assert_msg(g_slist_length(channels) == 0, "More than 0 channels.");
 
 	ret = sr_dev_inst_channel_add(sdi, 0, SR_CHANNEL_LOGIC, "D1");
 	channels = sr_dev_inst_channels_get(sdi);
-	fail_unless(ret == SR_OK);
-	fail_unless(g_slist_length(channels) == 1);
+	ck_assert(ret == SR_OK);
+	ck_assert(g_slist_length(channels) == 1);
 
 	ret = sr_dev_inst_channel_add(sdi, 1, SR_CHANNEL_ANALOG, "A1");
 	channels = sr_dev_inst_channels_get(sdi);
-	fail_unless(ret == SR_OK);
-	fail_unless(g_slist_length(channels) == 2);
+	ck_assert(ret == SR_OK);
+	ck_assert(g_slist_length(channels) == 2);
 }
 END_TEST
 
