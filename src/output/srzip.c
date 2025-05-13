@@ -102,7 +102,7 @@ static int zip_create(const struct sr_output *o)
 
 	/* "version" */
 	versrc = zip_source_buffer(zipfile, "2", 1, FALSE);
-	if (zip_add(zipfile, "version", versrc) < 0) {
+	if (zip_file_add(zipfile, "version", versrc, 0) < 0) {
 		sr_err("Error saving version into zipfile: %s",
 			zip_strerror(zipfile));
 		zip_source_free(versrc);
@@ -231,7 +231,7 @@ static int zip_create(const struct sr_output *o)
 	g_key_file_free(meta);
 
 	metasrc = zip_source_buffer(zipfile, metabuf, metalen, FALSE);
-	if (zip_add(zipfile, "metadata", metasrc) < 0) {
+	if (zip_file_add(zipfile, "metadata", metasrc, 0) < 0) {
 		sr_err("Error saving metadata into zipfile: %s",
 			zip_strerror(zipfile));
 		zip_source_free(metasrc);
@@ -317,7 +317,7 @@ static int zip_append(const struct sr_output *o,
 		metabuf = g_key_file_to_data(kf, &metalen, NULL);
 		metasrc = zip_source_buffer(archive, metabuf, metalen, FALSE);
 
-		if (zip_replace(archive, zs.index, metasrc) < 0) {
+		if (zip_file_replace(archive, zs.index, metasrc, 0) < 0) {
 			sr_err("Failed to replace metadata: %s",
 				zip_strerror(archive));
 			g_key_file_free(kf);
@@ -341,7 +341,7 @@ static int zip_append(const struct sr_output *o,
 			 * "logic-1". Rename it to "logic-1-1" and continue
 			 * with chunk 2.
 			 */
-			if (zip_rename(archive, i, "logic-1-1") < 0) {
+			if (zip_file_rename(archive, i, "logic-1-1", 0) < 0) {
 				sr_err("Failed to rename 'logic-1' to 'logic-1-1': %s",
 					zip_strerror(archive));
 				zip_discard(archive);
@@ -363,7 +363,7 @@ static int zip_append(const struct sr_output *o,
 	}
 	logicsrc = zip_source_buffer(archive, buf, length, FALSE);
 	chunkname = g_strdup_printf("logic-1-%u", next_chunk_num);
-	i = zip_add(archive, chunkname, logicsrc);
+	i = zip_file_add(archive, chunkname, logicsrc, 0);
 	g_free(chunkname);
 	if (i < 0) {
 		sr_err("Failed to add chunk 'logic-1-%u': %s",
@@ -554,7 +554,7 @@ static int zip_append_analog(const struct sr_output *o,
 	size = sizeof(values[0]) * count;
 	analogsrc = zip_source_buffer(archive, values, size, FALSE);
 	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
-	i = zip_add(archive, chunkname, analogsrc);
+	i = zip_file_add(archive, chunkname, analogsrc, 0);
 	if (i < 0) {
 		sr_err("Failed to add chunk '%s': %s", chunkname, zip_strerror(archive));
 		g_free(chunkname);
