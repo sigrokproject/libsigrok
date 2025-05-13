@@ -283,7 +283,7 @@ files should already be installed in /usr/lib/udev/rules.d/, i.e.
 61-libsigrok-uaccess.rules is encouraged on systemd distributions.
 
 The access policy can be locally overridden by placing appropriate rules in
-/etc/udev/rules.d/, disabling or ammending the default policy. See the
+/etc/udev/rules.d/, disabling or amending the default policy. See the
 udev documentation, e.g. man 7 udev, for details.
 
 If you're building from source, you need to copy the file to the place
