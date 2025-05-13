@@ -301,7 +301,7 @@ m4_define([_SR_DRIVER], [
 	])], [sr_hw_info='no (disabled)'])
 	sr_driver_summary_append "$2" "$sr_hw_info"
 
-	AM_CONDITIONAL([$3], [test "x[$]$3" = xyes || test "x[$]$3" == xcheck])
+	AM_CONDITIONAL([$3], [test "x[$]$3" = xyes || test "x[$]$3" = xcheck])
 	AM_COND_IF([$3], [AC_DEFINE([HAVE_$3], [1], [Whether to support $1 device.]) AC_DEFINE([HAVE_DRIVERS], [1], [Whether at least one driver is enabled.])])
 ])
 
