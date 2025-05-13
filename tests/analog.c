@@ -393,7 +393,7 @@ START_TEST(test_analog_to_float_conv)
 		/* Convert to an array of single precision float values. */
 		ret = sr_analog_to_float(&analog, &f_out[0]);
 		if (!item->want) {
-			fail_if(ret == SR_OK,
+			ck_assert_msg(ret != SR_OK,
 				"%s: sr_analog_to_float() passed", item_text);
 			if (with_diag) {
 				fprintf(stderr, " -- expected fail, OK\n");
@@ -401,7 +401,7 @@ START_TEST(test_analog_to_float_conv)
 			}
 			continue;
 		}
-		fail_unless(ret == SR_OK,
+		ck_assert_msg(ret == SR_OK,
 			"%s: sr_analog_to_float() failed: %d", item_text, ret);
 		if (with_diag) {
 			fprintf(stderr, " -- float:");
@@ -421,7 +421,7 @@ START_TEST(test_analog_to_float_conv)
 		for (value_idx = 0; value_idx < item->nums; value_idx++) {
 			want = item->want[value_idx];
 			have = f_out[value_idx];
-			fail_unless(want == have,
+			ck_assert_msg(want == have,
 				"%s: input %f != output %f",
 				item_text, want, have);
 		}

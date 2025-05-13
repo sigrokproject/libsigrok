@@ -109,7 +109,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 	switch (packet->type) {
 	case SR_DF_HEADER:
 		// g_debug("Received SR_DF_HEADER.");
-		// fail_unless(p != NULL, "SR_DF_HEADER payload was NULL.");
+		// ck_assert_msg(p != NULL, "SR_DF_HEADER payload was NULL.");
 
 		logic_channellist = srtest_get_enabled_logic_channels(sdi);
 		ck_assert(logic_channellist != NULL);
@@ -169,7 +169,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	case SR_DF_END:
 		// g_debug("Received SR_DF_END.");
-		// fail_unless(p != NULL, "SR_DF_END payload was NULL.");
+		// ck_assert_msg(p != NULL, "SR_DF_END payload was NULL.");
 		have_seen_df_end = TRUE;
 		if (sample_counter != expected_samples) {
 			ck_abort_msg("Expected %" PRIu64 " samples, got %" PRIu64 "",
