@@ -38,9 +38,9 @@ static void test_vsnprintf(const char *expected, char *format, ...)
 	len = vsnprintf(s, len, format, args);
 	va_end(args);
 
-	fail_unless(s != NULL,
+	ck_assert_msg(s != NULL,
 			"Invalid result for '%s': len = %i.", expected, len);
-	fail_unless(!strcmp(s, expected),
+	ck_assert_msg(!strcmp(s, expected),
 			"Invalid result for '%s': %s.", expected, s);
 	g_free(s);
 }
