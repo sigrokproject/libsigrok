@@ -29,7 +29,7 @@ START_TEST(test_transform_available)
 	const struct sr_transform_module **transforms;
 
 	transforms = sr_transform_list();
-	fail_unless(transforms != NULL, "No transform modules found.");
+	ck_assert_msg(transforms != NULL, "No transform modules found.");
 }
 END_TEST
 
@@ -42,7 +42,7 @@ START_TEST(test_transform_id)
 	transforms = sr_transform_list();
 
 	id = sr_transform_id_get(transforms[0]);
-	fail_unless(id != NULL, "No ID found in transform module.");
+	ck_assert_msg(id != NULL, "No ID found in transform module.");
 }
 END_TEST
 
@@ -55,7 +55,7 @@ START_TEST(test_transform_name)
 	transforms = sr_transform_list();
 
 	name = sr_transform_name_get(transforms[0]);
-	fail_unless(name != NULL, "No name found in transform module.");
+	ck_assert_msg(name != NULL, "No name found in transform module.");
 }
 END_TEST
 
@@ -68,7 +68,8 @@ START_TEST(test_transform_desc)
 	transforms = sr_transform_list();
 
 	desc = sr_transform_description_get(transforms[0]);
-	fail_unless(desc != NULL, "No description found in transform module.");
+	ck_assert_msg(desc != NULL,
+		      "No description found in transform module.");
 }
 END_TEST
 
@@ -79,10 +80,11 @@ START_TEST(test_transform_find)
 	const char *id;
 
 	tmod = sr_transform_find("nop");
-	fail_unless(tmod != NULL, "Couldn't find the 'nop' transform module.");
+	ck_assert_msg(tmod != NULL,
+		      "Couldn't find the 'nop' transform module.");
 	id = sr_transform_id_get(tmod);
-	fail_unless(id != NULL, "No ID found in transform module.");
-	fail_unless(!strcmp(id, "nop"), "That is not the 'nop' module!");
+	ck_assert_msg(id != NULL, "No ID found in transform module.");
+	ck_assert_msg(!strcmp(id, "nop"), "That is not the 'nop' module!");
 }
 END_TEST
 
@@ -92,7 +94,8 @@ START_TEST(test_transform_options)
 	const struct sr_option **opt;
 
 	opt = sr_transform_options_get(sr_transform_find("nop"));
-	fail_unless(opt == NULL, "Transform module 'nop' doesn't have options.");
+	ck_assert_msg(opt == NULL,
+		      "Transform module 'nop' doesn't have options.");
 }
 END_TEST
 

@@ -45,8 +45,9 @@ static void check_all_low(const struct sr_datafeed_logic *logic)
 
 	for (i = 0; i < logic->length; i++) {
 		data = logic->data;
-		if (data[i * logic->unitsize] != 0)
-			fail("Logic data was not all-0x00.");
+		if (data[i * logic->unitsize] != 0) {
+			ck_abort_msg("Logic data was not all-0x00.");
+		}
 	}
 }
 
@@ -57,8 +58,9 @@ static void check_all_high(const struct sr_datafeed_logic *logic)
 
 	for (i = 0; i < logic->length; i++) {
 		data = logic->data;
-		if (data[i * logic->unitsize] != 0xff)
-			fail("Logic data was not all-0xff.");
+		if (data[i * logic->unitsize] != 0xff) {
+			ck_abort_msg("Logic data was not all-0xff.");
+		}
 	}
 }
 
@@ -71,8 +73,9 @@ static void check_hello_world(const struct sr_datafeed_logic *logic)
 	for (i = 0; i < logic->length; i++) {
 		data = logic->data;
 		b = data[sample_counter + i];
-		if (b != h[sample_counter + i])
-			fail("Logic data was not 'Hello world'.");
+		if (b != h[sample_counter + i]) {
+			ck_abort_msg("Logic data was not 'Hello world'.");
+		}
 	}
 }
 
@@ -88,16 +91,18 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 
 	(void)cb_data;
 
-	fail_unless(sdi != NULL);
-	fail_unless(packet != NULL);
+	ck_assert(sdi != NULL);
+	ck_assert(packet != NULL);
 
-	if (df_packet_counter++ == 0)
-		fail_unless(packet->type == SR_DF_HEADER,
-			    "The first packet must be an SR_DF_HEADER.");
+	if (df_packet_counter++ == 0) {
+		ck_assert_msg(packet->type == SR_DF_HEADER,
+			      "The first packet must be an SR_DF_HEADER.");
+	}
 
-	if (have_seen_df_end)
-		fail("There must be no packets after an SR_DF_END, but we "
-		     "received a packet of type %d.", packet->type);
+	if (have_seen_df_end) {
+		ck_abort_msg("There must be no packets after an SR_DF_END, but we "
+			     "received a packet of type %d.", packet->type);
+	}
 
 	p = packet->payload;
 
@@ -107,15 +112,15 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		// fail_unless(p != NULL, "SR_DF_HEADER payload was NULL.");
 
 		logic_channellist = srtest_get_enabled_logic_channels(sdi);
-		fail_unless(logic_channellist != NULL);
-		fail_unless(logic_channellist->len != 0);
+		ck_assert(logic_channellist != NULL);
+		ck_assert(logic_channellist->len != 0);
 		// g_debug("Enabled channels: %d.", logic_channellist->len);
 		break;
 	case SR_DF_META:
 		// g_debug("Received SR_DF_META.");
 
 		meta = packet->payload;
-		fail_unless(p != NULL, "SR_DF_META payload was NULL.");
+		ck_assert_msg(p != NULL, "SR_DF_META payload was NULL.");
 
 		for (l = meta->config; l; l = l->next) {
 			src = l->data;
@@ -125,10 +130,10 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 				samplerate = g_variant_get_uint64(src->data);
 				if (!expected_samplerate)
 					break;
-				fail_unless(samplerate == *expected_samplerate,
-					    "Expected samplerate=%" PRIu64 ", "
-					    "got %" PRIu64 "", samplerate,
-					    *expected_samplerate);
+				ck_assert_msg(samplerate == *expected_samplerate,
+					      "Expected samplerate=%" PRIu64 ", "
+					      "got %" PRIu64 "", samplerate,
+					      *expected_samplerate);
 				// g_debug("samplerate = %" PRIu64 " Hz.",
 				// 	samplerate);
 				break;
@@ -147,7 +152,7 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		fail_unless(p != NULL, "SR_DF_LOGIC payload was NULL.");
+		ck_assert_msg(p != NULL, "SR_DF_LOGIC payload was NULL.");
 
 		// g_debug("Received SR_DF_LOGIC (%" PRIu64 " bytes, "
 		// 	"unitsize %d).", logic->length, logic->unitsize);
@@ -166,16 +171,17 @@ static void datafeed_in(const struct sr_dev_inst *sdi,
 		// g_debug("Received SR_DF_END.");
 		// fail_unless(p != NULL, "SR_DF_END payload was NULL.");
 		have_seen_df_end = TRUE;
-		if (sample_counter != expected_samples)
-			fail("Expected %" PRIu64 " samples, got %" PRIu64 "",
-			     expected_samples, sample_counter);
+		if (sample_counter != expected_samples) {
+			ck_abort_msg("Expected %" PRIu64 " samples, got %" PRIu64 "",
+				     expected_samples, sample_counter);
+		}
 		break;
 	default:
 		/*
 		 * Note: The binary input format doesn't support SR_DF_TRIGGER
 		 * and some other types, those should yield an error.
 		 */
-		fail("Invalid packet type: %d.", packet->type);
+		ck_abort_msg("Invalid packet type: %d.", packet->type);
 		break;
 	}
 }
@@ -201,10 +207,10 @@ static void check_buf(GHashTable *options, const uint8_t *buf, int check,
 	gbuf = g_string_new_len((gchar *)buf, (gssize)samples);
 
 	imod = sr_input_find("binary");
-	fail_unless(imod != NULL, "Failed to find input module.");
+	ck_assert_msg(imod != NULL, "Failed to find input module.");
 
 	in = sr_input_new(imod, options);
-	fail_unless(in != NULL, "Failed to create input instance.");
+	ck_assert_msg(in != NULL, "Failed to create input instance.");
 
 	sdi = sr_input_dev_inst_get(in);
 
@@ -213,7 +219,7 @@ static void check_buf(GHashTable *options, const uint8_t *buf, int check,
 	sr_session_dev_add(session, sdi);
 
 	ret = sr_input_send(in, gbuf);
-	fail_unless(ret == SR_OK, "sr_input_send() error: %d", ret);
+	ck_assert_msg(ret == SR_OK, "sr_input_send() error: %d", ret);
 	sr_input_free(in);
 
 	sr_session_destroy(session);
