@@ -20,6 +20,8 @@
 #ifndef LIBSIGROK_HARDWARE_RASPBERRYPI_PICO_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_RASPBERRYPI_PICO_PROTOCOL_H
 
+/* Firmware: https://github.com/pico-coder/sigrok-pico */
+
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
