@@ -21,6 +21,7 @@
 #ifndef LIBSIGROK_HARDWARE_KORAD_KAXXXXP_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_KORAD_KAXXXXP_PROTOCOL_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
@@ -38,7 +39,8 @@ enum korad_quirks_flag {
 	KORAD_QUIRK_ID_TRAILING = 1UL << 2,
 	KORAD_QUIRK_ID_OPT_VERSION = 1UL << 3,
 	KORAD_QUIRK_SLOW_PROCESSING = 1UL << 4,
-	KORAD_QUIRK_ALL = (1UL << 5) - 1,
+	KORAD_QUIRK_NEWLINE = 1UL << 5,
+	KORAD_QUIRK_ALL = (1UL << 6) - 1,
 };
 
 /* Information on single model */
@@ -103,9 +105,9 @@ struct dev_context {
 };
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-		const char *cmd);
+		const char *cmd, bool add_newline);
 SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
-		size_t count, char *buf);
+		size_t count, char *buf, bool strip_newline);
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		int target, struct dev_context *devc);
 SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
