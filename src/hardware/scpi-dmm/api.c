@@ -185,6 +185,20 @@ static const struct mqopt_item mqopts_gwinstek_gdm906x[] = {
 	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, FLAGS_NONE, },
 };
 
+static const struct mqopt_item mqopts_owon_xdm1041[] = {
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT AC", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR AC", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_RESISTANCE, 0, "RES", "RES", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, FLAG_NO_RANGE, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "DIOD", -4, FLAG_NO_RANGE, },
+	{ SR_MQ_TEMPERATURE, 0, "TEMP", "TEMP", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_FREQUENCY, 0, "FREQ", "FREQ", NO_DFLT_PREC, FLAG_NO_RANGE, },
+	{ SR_MQ_TIME, 0, "PER", "PER", NO_DFLT_PREC, FLAG_NO_RANGE, },
+	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, FLAGS_NONE, },
+};
+
 static const struct mqopt_item mqopts_owon_xdm2041[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT AC", NO_DFLT_PREC, FLAGS_NONE, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT", NO_DFLT_PREC, FLAGS_NONE, },
@@ -289,7 +303,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 	},
 	{
 		"OWON", "XDM1041",
-		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm2041),
+		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm1041),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 0, 0, 1e9, TRUE,
