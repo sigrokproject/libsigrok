@@ -314,6 +314,14 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_owon_get_range_text, scpi_dmm_owon_set_range_from_text, scpi_dmm_owon_get_range_text_list,
 	},
 	{
+		"OWON", "XDM1241",
+		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm1041),
+		scpi_dmm_get_meas_gwinstek,
+		ARRAY_AND_SIZE(devopts_generic_range),
+		0, 0, 0, 1e9, TRUE,
+		scpi_dmm_owon_get_range_text, scpi_dmm_owon_set_range_from_text, scpi_dmm_owon_get_range_text_list,
+	},
+	{
 		"OWON", "XDM2041",
 		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm2041),
 		scpi_dmm_get_meas_gwinstek,
