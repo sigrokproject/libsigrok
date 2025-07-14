@@ -319,6 +319,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc = fx2lafw_dev_new();
 		devc->profile = prof;
+		
+		/* Set device instance ID for multi-device support */
+		fx2lafw_set_device_instance_id(devc, des.idVendor, des.idProduct, 
+			serial_num[0] ? serial_num : NULL, 
+			libusb_get_bus_number(devlist[i]), 
+			libusb_get_device_address(devlist[i]));
+		
 		sdi->priv = devc;
 		devices = g_slist_append(devices, sdi);
 
@@ -405,6 +412,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 static void clear_helper(struct dev_context *devc)
 {
 	g_slist_free(devc->enabled_analog_channels);
+	g_free(devc->device_instance_id);
+	g_free(devc->usb_serial);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

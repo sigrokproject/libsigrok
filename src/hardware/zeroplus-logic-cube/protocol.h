@@ -48,6 +48,22 @@ struct dev_context {
 	const struct zp_model *prof;
 	gboolean use_ext_clock;
 	ext_clock_edge_t ext_clock_edge;
+	
+	/* Device-specific analyzer state (moved from globals) */
+	int trigger_status[8];
+	int trigger_edge;
+	int trigger_count;
+	int filter_status[8];
+	int filter_enable;
+	int ext_clock_state;
+	ext_clock_edge_t ext_clock_edge_state;
+	int freq_value;
+	int freq_scale;
+	int memory_size_state;
+	int ramsize_triggerbar_addr;
+	int triggerbar_addr;
+	int compression;
+	int thresh;
 };
 
 SR_PRIV size_t get_memory_size(int type);

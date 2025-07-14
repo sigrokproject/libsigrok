@@ -75,18 +75,25 @@
 #define COMPRESSION_ENABLE	0x8001
 #define COMPRESSION_DOUBLE	0x8002
 
-SR_PRIV void analyzer_set_ext_clock(int enable, ext_clock_edge_t edge);
-SR_PRIV void analyzer_set_freq(int freq, int scale);
-SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
-SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);
-SR_PRIV unsigned int analyzer_get_ramsize_trigger_address(void );
-SR_PRIV unsigned int analyzer_get_triggerbar_address(void);
-SR_PRIV void analyzer_set_compression(unsigned int type);
-SR_PRIV void analyzer_set_memory_size(unsigned int size);
-SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi);
-SR_PRIV void analyzer_set_trigger_count(int count);
-SR_PRIV void analyzer_add_filter(int channel, int type);
-SR_PRIV void analyzer_set_voltage_threshold(int thresh);
+/* Forward declaration */
+struct dev_context;
+
+SR_PRIV int analyzer_initialize_device(struct dev_context *devc);
+SR_PRIV void analyzer_set_ext_clock(struct dev_context *devc, int enable, ext_clock_edge_t edge);
+SR_PRIV void analyzer_set_ramsize_trigger_address(struct dev_context *devc, unsigned int address);
+SR_PRIV void analyzer_set_triggerbar_address(struct dev_context *devc, unsigned int address);
+SR_PRIV unsigned int analyzer_get_ramsize_trigger_address(struct dev_context *devc);
+SR_PRIV unsigned int analyzer_get_triggerbar_address(struct dev_context *devc);
+SR_PRIV void analyzer_set_compression(struct dev_context *devc, unsigned int type);
+SR_PRIV void analyzer_set_memory_size(struct dev_context *devc, unsigned int size);
+SR_PRIV int analyzer_add_triggers(struct dev_context *devc, const struct sr_dev_inst *sdi);
+SR_PRIV void analyzer_set_trigger_count(struct dev_context *devc, int count);
+SR_PRIV void analyzer_add_filter(struct dev_context *devc, int channel, int type);
+SR_PRIV void analyzer_set_voltage_threshold(struct dev_context *devc, int thresh);
+SR_PRIV int analyzer_set_freq(struct dev_context *devc, int freq, int scale);
+SR_PRIV void analyzer_add_trigger(struct dev_context *devc, int channel, int type);
+
+/* Hardware interface functions (unchanged) */
 
 SR_PRIV unsigned int analyzer_read_status(libusb_device_handle *devh);
 SR_PRIV unsigned int analyzer_read_id(libusb_device_handle *devh);
@@ -104,7 +111,7 @@ SR_PRIV int analyzer_read_data(libusb_device_handle *devh, void *buffer,
 		unsigned int size);
 SR_PRIV void analyzer_read_stop(libusb_device_handle *devh);
 SR_PRIV void analyzer_start(libusb_device_handle *devh);
-SR_PRIV void analyzer_configure(libusb_device_handle *devh);
+SR_PRIV void analyzer_configure(libusb_device_handle *devh, struct dev_context *devc);
 
 SR_PRIV void analyzer_wait_button(libusb_device_handle *devh);
 SR_PRIV void analyzer_wait_data(libusb_device_handle *devh);

@@ -108,22 +108,36 @@ enum {
 	READ_RAM_STATUS			= 0xa0,
 };
 
-static int g_trigger_status[8] = { 0 };
-static int g_trigger_edge = 0;
-static int g_trigger_count = 1;
-static int g_filter_status[8] = { 0 };
-static int g_filter_enable = 0;
-
-static int g_ext_clock = 0;
-static ext_clock_edge_t g_ext_clock_edge = LAPC_CLOCK_EDGE_RISING;
-
-static int g_freq_value = 1;
-static int g_freq_scale = FREQ_SCALE_MHZ;
-static int g_memory_size = MEMORY_SIZE_8K;
-static int g_ramsize_triggerbar_addr = 2 * 1024;
-static int g_triggerbar_addr = 0;
-static int g_compression = COMPRESSION_NONE;
-static int g_thresh = 0x31; /* 1.5V */
+/* Initialize device context with default values */
+SR_PRIV int analyzer_initialize_device(struct dev_context *devc)
+{
+	int i;
+	
+	if (!devc)
+		return SR_ERR_ARG;
+	
+	/* Initialize trigger status array */
+	for (i = 0; i < 8; i++) {
+		devc->trigger_status[i] = 0;
+		devc->filter_status[i] = 0;
+	}
+	
+	/* Set default values */
+	devc->trigger_edge = 0;
+	devc->trigger_count = 1;
+	devc->filter_enable = 0;
+	devc->ext_clock_state = 0;
+	devc->ext_clock_edge_state = LAPC_CLOCK_EDGE_RISING;
+	devc->freq_value = 1;
+	devc->freq_scale = FREQ_SCALE_MHZ;
+	devc->memory_size_state = MEMORY_SIZE_8K;
+	devc->ramsize_triggerbar_addr = 2 * 1024;
+	devc->triggerbar_addr = 0;
+	devc->compression = COMPRESSION_NONE;
+	devc->thresh = 0x31; /* 1.5V */
+	
+	return SR_OK;
+}
 
 /* Maybe unk specifies an "endpoint" or "register" of sorts. */
 static int analyzer_write_status(libusb_device_handle *devh, unsigned char unk,
@@ -383,12 +397,12 @@ static void analyzer_write_enable_insert_data(libusb_device_handle *devh)
 	gl_reg_write(devh, ENABLE_INSERT_DATA3, 0x78);
 }
 
-static void analyzer_set_filter(libusb_device_handle *devh)
+static void analyzer_set_filter(libusb_device_handle *devh, struct dev_context *devc)
 {
 	int i;
-	gl_reg_write(devh, FILTER_ENABLE, g_filter_enable);
+	gl_reg_write(devh, FILTER_ENABLE, devc->filter_enable);
 	for (i = 0; i < 8; i++)
-		gl_reg_write(devh, FILTER_STATUS + i, g_filter_status[i]);
+		gl_reg_write(devh, FILTER_STATUS + i, devc->filter_status[i]);
 }
 
 SR_PRIV void analyzer_reset(libusb_device_handle *devh)
@@ -443,7 +457,7 @@ SR_PRIV void analyzer_start(libusb_device_handle *devh)
 	analyzer_write_status(devh, 1, STATUS_FLAG_GO);
 }
 
-SR_PRIV void analyzer_configure(libusb_device_handle *devh)
+SR_PRIV void analyzer_configure(libusb_device_handle *devh, struct dev_context *devc)
 {
 	int i;
 
@@ -456,16 +470,16 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	analyzer_write_status(devh, 1, STATUS_FLAG_NONE);
 
 	/* SetData_To_Frequence_Reg */
-	__analyzer_set_freq(devh, g_freq_value, g_freq_scale);
+	__analyzer_set_freq(devh, devc->freq_value, devc->freq_scale);
 
 	/* SetMemory_Length */
-	gl_reg_write(devh, MEMORY_LENGTH, g_memory_size);
+	gl_reg_write(devh, MEMORY_LENGTH, devc->memory_size_state);
 
 	/* Sele_Inside_Outside_Clock */
-	if (!g_ext_clock)
+	if (!devc->ext_clock_state)
 		gl_reg_write(devh, CLOCK_SOURCE, 0x01);
 	else {
-		if (g_ext_clock_edge == LAPC_CLOCK_EDGE_RISING)
+		if (devc->ext_clock_edge_state == LAPC_CLOCK_EDGE_RISING)
 			gl_reg_write(devh, CLOCK_SOURCE, 0x02);
 		else
 			gl_reg_write(devh, CLOCK_SOURCE, 0x0);
@@ -473,50 +487,47 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 
 	/* Set_Trigger_Status */
 	for (i = 0; i < 8; i++)
-		gl_reg_write(devh, TRIGGER_STATUS0 + i, g_trigger_status[i]);
-	gl_reg_write(devh, TRIGGER_EDGE, g_trigger_edge);
+		gl_reg_write(devh, TRIGGER_STATUS0 + i, devc->trigger_status[i]);
+	gl_reg_write(devh, TRIGGER_EDGE, devc->trigger_edge);
 
-	__analyzer_set_trigger_count(devh, g_trigger_count);
+	__analyzer_set_trigger_count(devh, devc->trigger_count);
 
 	/* Set_Trigger_Level */
-	gl_reg_write(devh, TRIGGER_LEVEL0, g_thresh);
-	gl_reg_write(devh, TRIGGER_LEVEL1, g_thresh);
-	gl_reg_write(devh, TRIGGER_LEVEL2, g_thresh);
-	gl_reg_write(devh, TRIGGER_LEVEL3, g_thresh);
+	gl_reg_write(devh, TRIGGER_LEVEL0, devc->cur_threshold);
+	gl_reg_write(devh, TRIGGER_LEVEL1, devc->cur_threshold);
+	gl_reg_write(devh, TRIGGER_LEVEL2, devc->cur_threshold);
+	gl_reg_write(devh, TRIGGER_LEVEL3, devc->cur_threshold);
 
 	/* Size of actual memory >> 2 */
-	__analyzer_set_ramsize_trigger_address(devh, g_ramsize_triggerbar_addr);
-	__analyzer_set_triggerbar_address(devh, g_triggerbar_addr);
+	__analyzer_set_ramsize_trigger_address(devh, devc->ramsize_triggerbar_addr);
+	__analyzer_set_triggerbar_address(devh, devc->triggerbar_addr);
 
 	/* Set_Dont_Care_TriggerBar */
 	gl_reg_write(devh, DONT_CARE_TRIGGERBAR, 0x01);
 
 	/* Enable_Status */
-	analyzer_set_filter(devh);
+	analyzer_set_filter(devh, devc);
 
 	/* Set_Enable_Delay_Time */
 	gl_reg_write(devh, 0x7a, 0x00);
 	gl_reg_write(devh, 0x7b, 0x00);
 	analyzer_write_enable_insert_data(devh);
-	__analyzer_set_compression(devh, g_compression);
+	__analyzer_set_compression(devh, devc->compression);
 }
 
-SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
+SR_PRIV int analyzer_add_triggers(struct dev_context *devc, const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
 	GSList *l, *m;
 	int channel;
 
-	devc = sdi->priv;
-
 	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
-	memset(g_trigger_status, 0, sizeof(g_trigger_status));
-	g_trigger_edge = 0;
+	memset(devc->trigger_status, 0, sizeof(devc->trigger_status));
+	devc->trigger_edge = 0;
 
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
@@ -529,19 +540,19 @@ SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 			channel = match->channel->index;
 			switch (match->match) {
 			case SR_TRIGGER_ZERO:
-				g_trigger_status[channel / 4] |= 2 << (channel % 4 * 2);
+				devc->trigger_status[channel / 4] |= 2 << (channel % 4 * 2);
 				break;
 			case SR_TRIGGER_ONE:
-				g_trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
+				devc->trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
 				break;
 			case SR_TRIGGER_RISING:
-				g_trigger_edge = 0x40 | (channel & 0x1F);
+				devc->trigger_edge = 0x40 | (channel & 0x1F);
 				break;
 			case SR_TRIGGER_FALLING:
-				g_trigger_edge = 0x80 | (channel & 0x1F);
+				devc->trigger_edge = 0x80 | (channel & 0x1F);
 				break;
 			case SR_TRIGGER_EDGE:
-				g_trigger_edge = 0xc0 | (channel & 0x1F);
+				devc->trigger_edge = 0xc0 | (channel & 0x1F);
 				break;
 			default:
 				sr_err("Unsupported match %d", match->match);
@@ -553,7 +564,7 @@ SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV void analyzer_add_filter(int channel, int type)
+SR_PRIV void analyzer_add_filter(struct dev_context *devc, int channel, int type)
 {
 	int i;
 
@@ -578,52 +589,56 @@ SR_PRIV void analyzer_add_filter(int channel, int type)
 		channel -= 4;
 	}
 
-	g_filter_status[i] |=
+	devc->filter_status[i] |=
 		1 << ((2 * channel) + (type == FILTER_LOW ? 1 : 0));
 
-	g_filter_enable = 1;
+	devc->filter_enable = 1;
 }
 
-SR_PRIV void analyzer_set_trigger_count(int count)
+SR_PRIV void analyzer_set_trigger_count(struct dev_context *devc, int count)
 {
-	g_trigger_count = count;
+	if (devc)
+		devc->trigger_count = count;
 }
 
-SR_PRIV void analyzer_set_ext_clock(int enable, ext_clock_edge_t edge)
+SR_PRIV void analyzer_set_ext_clock(struct dev_context *devc, int enable, ext_clock_edge_t edge)
 {
-	g_ext_clock = enable;
-	g_ext_clock_edge = edge;
+	if (devc) {
+		devc->ext_clock_state = enable;
+		devc->ext_clock_edge_state = edge;
+	}
 }
 
-SR_PRIV void analyzer_set_freq(int freq, int scale)
+SR_PRIV int analyzer_set_freq(struct dev_context *devc, int freq, int scale)
 {
-	g_freq_value = freq;
-	g_freq_scale = scale;
+	devc->freq_value = freq;
+	devc->freq_scale = scale;
+	return SR_OK;
 }
 
-SR_PRIV void analyzer_set_memory_size(unsigned int size)
+SR_PRIV void analyzer_set_memory_size(struct dev_context *devc, unsigned int size)
 {
-	g_memory_size = size;
+	devc->memory_size_state = size;
 }
 
-SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address)
+SR_PRIV void analyzer_set_ramsize_trigger_address(struct dev_context *devc, unsigned int address)
 {
-	g_ramsize_triggerbar_addr = address;
+	devc->ramsize_triggerbar_addr = address;
 }
 
-SR_PRIV unsigned int analyzer_get_ramsize_trigger_address(void)
+SR_PRIV unsigned int analyzer_get_ramsize_trigger_address(struct dev_context *devc)
 {
-	return g_ramsize_triggerbar_addr;
+	return devc->ramsize_triggerbar_addr;
 }
 
-SR_PRIV void analyzer_set_triggerbar_address(unsigned int address)
+SR_PRIV void analyzer_set_triggerbar_address(struct dev_context *devc, unsigned int address)
 {
-	g_triggerbar_addr = address;
+	devc->triggerbar_addr = address;
 }
 
-SR_PRIV unsigned int analyzer_get_triggerbar_address(void)
+SR_PRIV unsigned int analyzer_get_triggerbar_address(struct dev_context *devc)
 {
-	return g_triggerbar_addr;
+	return devc->triggerbar_addr;
 }
 
 SR_PRIV unsigned int analyzer_read_status(libusb_device_handle *devh)
@@ -654,14 +669,16 @@ SR_PRIV unsigned int analyzer_get_trigger_address(libusb_device_handle *devh)
 		TRIGGER_ADDRESS1) << 8 | gl_reg_read(devh, TRIGGER_ADDRESS0);
 }
 
-SR_PRIV void analyzer_set_compression(unsigned int type)
+SR_PRIV void analyzer_set_compression(struct dev_context *devc, unsigned int type)
 {
-	g_compression = type;
+	if (devc)
+		devc->compression = type;
 }
 
-SR_PRIV void analyzer_set_voltage_threshold(int thresh)
+SR_PRIV void analyzer_set_voltage_threshold(struct dev_context *devc, int thresh)
 {
-	g_thresh = thresh;
+	if (devc)
+		devc->cur_threshold = thresh;
 }
 
 SR_PRIV void analyzer_wait_button(libusb_device_handle *devh)
@@ -706,4 +723,14 @@ SR_PRIV int analyzer_decompress(void *input, unsigned int input_len,
 	}
 
 	return written;
+}
+
+SR_PRIV void analyzer_add_trigger(struct dev_context *devc, int channel, int type)
+{
+	/* This function can be used to add individual triggers */
+	/* For now, it's a placeholder - the main trigger functionality */
+	/* is handled by analyzer_add_triggers() */
+	(void)devc;
+	(void)channel;
+	(void)type;
 }

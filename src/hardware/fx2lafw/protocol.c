@@ -257,6 +257,15 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->profile = NULL;
 	devc->channel_names = NULL;
 	devc->fw_updated = 0;
+	
+	/* Initialize device instance tracking fields */
+	devc->device_instance_id = NULL;
+	devc->usb_vid = 0;
+	devc->usb_pid = 0;
+	devc->usb_serial = NULL;
+	devc->usb_bus = 0;
+	devc->usb_address = 0;
+	
 	devc->cur_samplerate = 0;
 	devc->limit_frames = 1;
 	devc->limit_samples = 0;
@@ -749,5 +758,32 @@ SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
+	return SR_OK;
+}
+
+SR_PRIV int fx2lafw_set_device_instance_id(struct dev_context *devc, 
+	uint16_t vid, uint16_t pid, const char *serial, uint8_t bus, uint8_t addr)
+{
+	if (!devc)
+		return SR_ERR_ARG;
+	
+	/* Store device identification information */
+	devc->usb_vid = vid;
+	devc->usb_pid = pid;
+	devc->usb_bus = bus;
+	devc->usb_address = addr;
+	
+	/* Create unique device instance ID */
+	g_free(devc->device_instance_id);
+	g_free(devc->usb_serial);
+	if (serial && strlen(serial) > 0) {
+		devc->usb_serial = g_strdup(serial);
+		devc->device_instance_id = g_strdup_printf("%04x:%04x:%s", vid, pid, serial);
+	} else {
+		devc->usb_serial = NULL;
+		devc->device_instance_id = g_strdup_printf("%04x:%04x:%02x:%02x", vid, pid, bus, addr);
+	}
+	
+	sr_dbg("Set device instance ID: %s", devc->device_instance_id);
 	return SR_OK;
 }

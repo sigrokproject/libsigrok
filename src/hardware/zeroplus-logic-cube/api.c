@@ -157,11 +157,11 @@ SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 	sr_info("Setting samplerate to %" PRIu64 "Hz.", samplerate);
 
 	if (samplerate >= SR_MHZ(1))
-		analyzer_set_freq(samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
+		analyzer_set_freq(devc, samplerate / SR_MHZ(1), FREQ_SCALE_MHZ);
 	else if (samplerate >= SR_KHZ(1))
-		analyzer_set_freq(samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
+		analyzer_set_freq(devc, samplerate / SR_KHZ(1), FREQ_SCALE_KHZ);
 	else
-		analyzer_set_freq(samplerate, FREQ_SCALE_HZ);
+		analyzer_set_freq(devc, samplerate, FREQ_SCALE_HZ);
 
 	devc->cur_samplerate = samplerate;
 
@@ -312,29 +312,29 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	/* Set default configuration after power on. */
 	if (analyzer_read_status(usb->devhdl) == 0)
-		analyzer_configure(usb->devhdl);
+		analyzer_configure(usb->devhdl, devc);
 
 	analyzer_reset(usb->devhdl);
 	analyzer_initialize(usb->devhdl);
 
-	//analyzer_set_memory_size(MEMORY_SIZE_512K);
-	// analyzer_set_freq(g_freq, g_freq_scale);
-	analyzer_set_trigger_count(1);
-	// analyzer_set_ramsize_trigger_address((((100 - g_pre_trigger)
+	//analyzer_set_memory_size(devc, MEMORY_SIZE_512K);
+	// analyzer_set_freq(devc, g_freq, g_freq_scale);
+	analyzer_set_trigger_count(devc, 1);
+	// analyzer_set_ramsize_trigger_address(devc, (((100 - g_pre_trigger)
 	// * get_memory_size(g_memory_size)) / 100) >> 2);
 
 #if 0
 	if (g_double_mode == 1)
-		analyzer_set_compression(COMPRESSION_DOUBLE);
+		analyzer_set_compression(devc, COMPRESSION_DOUBLE);
 	else if (g_compression == 1)
-		analyzer_set_compression(COMPRESSION_ENABLE);
+		analyzer_set_compression(devc, COMPRESSION_ENABLE);
 	else
 #endif
-	analyzer_set_compression(COMPRESSION_NONE);
+	analyzer_set_compression(devc, COMPRESSION_NONE);
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set. Default to 1MHz. */
-		analyzer_set_freq(1, FREQ_SCALE_MHZ);
+		analyzer_set_freq(devc, 1, FREQ_SCALE_MHZ);
 		devc->cur_samplerate = SR_MHZ(1);
 	}
 
@@ -424,14 +424,14 @@ static int config_set(uint32_t key, GVariant *data,
 		return set_voltage_threshold(devc, (low + high) / 2.0);
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->use_ext_clock = g_variant_get_boolean(data);
-		analyzer_set_ext_clock(devc->use_ext_clock, (ext_clock_edge_t)devc->ext_clock_edge);
+		analyzer_set_ext_clock(devc, devc->use_ext_clock, (ext_clock_edge_t)devc->ext_clock_edge);
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		idx = std_str_idx(data, ARRAY_AND_SIZE(ext_clock_edges));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->ext_clock_edge = (ext_clock_edge_t)idx;
-		analyzer_set_ext_clock(devc->use_ext_clock, devc->ext_clock_edge);
+		analyzer_set_ext_clock(devc, devc->use_ext_clock, devc->ext_clock_edge);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -507,7 +507,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (analyzer_add_triggers(sdi) != SR_OK) {
+	if (analyzer_add_triggers(devc, sdi) != SR_OK) {
 		sr_err("Failed to configure triggers.");
 		return SR_ERR;
 	}
@@ -517,7 +517,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	set_triggerbar(devc);
 
 	/* Push configured settings to device. */
-	analyzer_configure(usb->devhdl);
+	analyzer_configure(usb->devhdl, devc);
 
 	analyzer_start(usb->devhdl);
 	sr_info("Waiting for data.");
@@ -528,8 +528,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	now_address = analyzer_get_now_address(usb->devhdl);
 	trigger_address = analyzer_get_trigger_address(usb->devhdl);
 
-	triggerbar = analyzer_get_triggerbar_address();
-	ramsize_trigger = analyzer_get_ramsize_trigger_address();
+	triggerbar = analyzer_get_triggerbar_address(devc);
+	ramsize_trigger = analyzer_get_ramsize_trigger_address(devc);
 
 	n = get_memory_size(devc->memory_size);
 	memory_size = n / 4;

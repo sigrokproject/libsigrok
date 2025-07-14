@@ -17,6 +17,14 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * ChronoVu LA8/LA16 driver.
+ *
+ * This driver supports multiple devices when serial numbers are available.
+ * If devices don't have serial numbers, the driver will attempt to use
+ * USB port paths to distinguish between devices, but this is less reliable.
+ */
+
 #include <config.h>
 #include "protocol.h"
 
@@ -107,6 +115,10 @@ static int add_device(int model, struct libusb_device_descriptor *des,
 	sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(usbdev),
 		libusb_get_device_address(usbdev), NULL);
 	sdi->priv = devc;
+	
+	/* Log the device identification for debugging */
+	sr_dbg("Added %s device with serial: %s, connection: %s",
+		devc->prof->modelname, serial_num, connection_id);
 
 	for (i = 0; i < devc->prof->num_channels; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
@@ -195,13 +207,25 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 
 		if (des.iSerialNumber == 0) {
-			serial_num[0] = '\0';
+			/* 
+			 * No serial number available - generate a pseudo-serial based on USB location.
+			 * This ensures every device has a unique identifier for multi-device support.
+			 * Format: AUTO_<bus>_<address> (e.g., AUTO_01_05)
+			 */
+			snprintf(serial_num, sizeof(serial_num), "AUTO_%02d_%02d",
+				libusb_get_bus_number(devlist[i]),
+				libusb_get_device_address(devlist[i]));
+			sr_info("No serial number found, generated pseudo-serial: %s", serial_num);
 		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
 				des.iSerialNumber, (unsigned char *)serial_num,
 				sizeof(serial_num))) < 0) {
 			sr_warn("Failed to get serial number string descriptor: %s.",
 				libusb_error_name(ret));
-			continue;
+			/* Generate pseudo-serial as fallback */
+			snprintf(serial_num, sizeof(serial_num), "AUTO_%02d_%02d",
+				libusb_get_bus_number(devlist[i]),
+				libusb_get_device_address(devlist[i]));
+			sr_info("Using pseudo-serial as fallback: %s", serial_num);
 		}
 
 		libusb_close(hdl);
@@ -244,13 +268,18 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sr_dbg("Opening %s device (%04x:%04x).", devc->prof->modelname,
-	       devc->usb_vid, devc->usb_pid);
+	sr_dbg("Opening %s device (%04x:%04x) with serial: %s", devc->prof->modelname,
+	       devc->usb_vid, devc->usb_pid, sdi->serial_num);
 
+	/* 
+	 * Use the serial number to open the specific device.
+	 * This enables proper multi-device support.
+	 * Every device now has a serial number (real or auto-generated).
+	 */
 	if ((ret = ftdi_usb_open_desc(devc->ftdic, devc->usb_vid,
-			devc->usb_pid, devc->prof->iproduct, NULL)) < 0) {
-		sr_err("Failed to open FTDI device (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
+			devc->usb_pid, devc->prof->iproduct, sdi->serial_num)) < 0) {
+		sr_err("Failed to open FTDI device with serial %s (%d): %s.",
+			sdi->serial_num, ret, ftdi_get_error_string(devc->ftdic));
 		goto err_ftdi_free;
 	}
 

@@ -98,6 +98,14 @@ struct dev_context {
 	 * until a proper delay after the last device was upgraded.
 	 */
 	int64_t fw_updated;
+	
+	/* Device instance identifier for multi-device support */
+	char *device_instance_id;
+	uint16_t usb_vid;
+	uint16_t usb_pid;
+	char *usb_serial;
+	uint8_t usb_bus;
+	uint8_t usb_address;
 
 	const uint64_t *samplerates;
 	int num_samplerates;
@@ -130,5 +138,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *fx2lafw_dev_new(void);
 SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
+SR_PRIV int fx2lafw_set_device_instance_id(struct dev_context *devc, 
+	uint16_t vid, uint16_t pid, const char *serial, uint8_t bus, uint8_t addr);
 
 #endif

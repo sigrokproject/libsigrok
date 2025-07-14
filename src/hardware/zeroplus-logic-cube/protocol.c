@@ -76,7 +76,7 @@ SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 	mem_kb = get_memory_size(devc->memory_size) / 1024;
 	sr_info("Setting memory size to %zuK.", mem_kb);
 
-	analyzer_set_memory_size(devc->memory_size);
+	analyzer_set_memory_size(devc, devc->memory_size);
 
 	return SR_OK;
 }
@@ -90,7 +90,7 @@ SR_PRIV int set_voltage_threshold(struct dev_context *devc, double thresh)
 
 	devc->cur_threshold = thresh;
 
-	analyzer_set_voltage_threshold((int) round(-9.1*thresh + 62.6));
+	analyzer_set_voltage_threshold(devc, (int) round(-9.1*thresh + 62.6));
 
 	sr_info("Setting voltage threshold to %fV.", devc->cur_threshold);
 
@@ -119,8 +119,8 @@ SR_PRIV void set_triggerbar(struct dev_context *devc)
 		triggerbar = 0;
 	}
 
-	analyzer_set_triggerbar_address(triggerbar);
-	analyzer_set_ramsize_trigger_address(ramsize_trigger);
+	analyzer_set_triggerbar_address(devc, triggerbar);
+	analyzer_set_ramsize_trigger_address(devc, ramsize_trigger);
 
 	sr_dbg("triggerbar_address = %d(0x%x)", triggerbar, triggerbar);
 	sr_dbg("ramsize_triggerbar_address = %d(0x%x)",
