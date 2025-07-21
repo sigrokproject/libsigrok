@@ -460,9 +460,6 @@ static int dev_acquisition_start(const struct sr_dev_inst* sdi)
 	res = ftdi_usb_reset(devc->ftdic);
 	if (res != 0)
 		sr_err("ftdi_usb_reset failed! Res = %d", res);
-	res = ftdi_tcioflush(devc->ftdic);
-	if (res != 0)
-		sr_err("ftdi_tcioflush failed! Res = %d", res);
 	res = ftdi_disable_bitbang(devc->ftdic);
 	if (res != 0)
 		sr_err("ftdi_disable_bitbang failed! Res = %d", res);
