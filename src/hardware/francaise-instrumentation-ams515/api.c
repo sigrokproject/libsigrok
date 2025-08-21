@@ -45,6 +45,10 @@ static const uint32_t drvopts[] = {
  *
  * Note lowercase letters are also accepted as commands.
  *
+ * Unimplemented commands:
+ *
+ * M[ABC]	Memorize target
+ *
  * TODO: implement monitoring of manual controls?
  *
  * TODO: support +0/-0 on channel C by caching last value to avoid clicking the relay?
