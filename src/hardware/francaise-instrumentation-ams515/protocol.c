@@ -69,9 +69,8 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 					SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
 					g_variant_new_boolean(FALSE));
 			} else if (answer[0] == '>') {
-				// No need to check which channel at this point.
+				// No need to check which channel at this point. cf. PR #101
 				sr_dbg("Notifying overcurrent.");
-				// XXX: how do we tell on which channel group it happens anyway?
 				sr_session_send_meta(sdi,
 					SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
 					g_variant_new_boolean(TRUE));
