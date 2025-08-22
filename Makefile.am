@@ -370,6 +370,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
 endif
+if HW_FRANCAISE_INSTRUMENTATION_AMS515
+src_libdrivers_la_SOURCES += \
+	src/hardware/francaise-instrumentation-ams515/protocol.h \
+	src/hardware/francaise-instrumentation-ams515/protocol.c \
+	src/hardware/francaise-instrumentation-ams515/api.c
+endif
 if HW_FTDI_LA
 src_libdrivers_la_SOURCES += \
 	src/hardware/ftdi-la/protocol.h \
