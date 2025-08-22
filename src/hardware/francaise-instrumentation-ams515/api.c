@@ -408,37 +408,14 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
-	devc = sdi->priv;
-
-	/*
-	 * No need for timerfd here,
-	 * we just fake a channel on an invalid fd and let the timeout wake us up.
-	 * TODO: check if it works in Windows.
-	 */
-	devc->channel = g_io_channel_unix_new(-1);
-
-	sr_session_source_add_channel(sdi->session, devc->channel,
-		G_IO_IN | G_IO_ERR, 500,
-		francaise_instrumentation_ams515_receive_data, (void *)sdi);
+	serial = sdi->conn;
+	serial_source_add(sdi->session, serial, G_IO_IN | G_IO_ERR, 500,
+			francaise_instrumentation_ams515_receive_data,
+			(void *)sdi);
 
 	std_session_send_df_header(sdi);
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	sr_session_source_remove_channel(sdi->session, devc->channel);
-	g_io_channel_unref(devc->channel);
-	devc->channel = NULL;
-
-	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
@@ -458,7 +435,7 @@ static struct sr_dev_driver francaise_instrumentation_ams515_driver_info = {
 	.dev_open = dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(francaise_instrumentation_ams515_driver_info);

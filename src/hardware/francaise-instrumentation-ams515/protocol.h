@@ -36,7 +36,6 @@ struct dev_context {
 	int selected_channel; // channel currently displayed on the front panel
 	gboolean resync;
 	gboolean overcurrent;
-	GIOChannel *channel;
 	GMutex mutex;
 };
 
