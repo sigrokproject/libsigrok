@@ -49,9 +49,25 @@ static const uint32_t drvopts[] = {
  *
  * M[ABC]	Memorize target
  *
- * TODO: implement monitoring of manual controls?
+ * Current features:
  *
- * TODO: support +0/-0 on channel C by caching last value to avoid clicking the relay?
+ * - setting target voltage for each channel.
+ * - reporting of overcurrent condition.
+ *
+ * Limitations:
+ *
+ * - We cannot control a channel in overcurrent condition,
+ * so it must be physically lifted before we can change the
+ * target.
+ *
+ * - we cannot report the actual output voltage as it's
+ * not measured. We could eventually implement monitoring
+ * of manual controls for when the panel is not locked.
+ *
+ * - The C channel clicks a relay when crossing the zero,
+ * and technically supports both "+0" and "-0", maybe we
+ * could cache the value and chose which to use depending
+ * on the previous target.
  */
 
 static const uint32_t devopts[] = {
@@ -138,7 +154,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	tokens = g_strsplit(buf, " ", 2);
 
-	// XXX: are there other versions around?
+	// 4.1 is the only known version for now.
 	if (tokens[0] && !strcmp("AMS515", tokens[0]) && tokens[1] &&
 	    !strncmp("4.1", tokens[1], 2)) {
 		sdi->status = SR_ST_INACTIVE;
@@ -357,8 +373,8 @@ static int config_set(uint32_t key, GVariant *data,
 			if (dval < channel_specs[channel].voltage[0] ||
 			    dval > channel_specs[channel].voltage[1])
 				return SR_ERR_ARG;
-			// switch the front panel display to the channel we are modifying
-			// TODO: throttle the update maybe?
+			// Switch the front panel display to the channel we are modifying.
+			// Depending on the update frequency it might not be a good idea though.
 			if (channel != devc->selected_channel) {
 				francaise_instrumentation_ams515_send_char(
 					sdi, 'S', 'A' + channel);

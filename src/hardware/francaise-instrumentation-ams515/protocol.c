@@ -91,7 +91,9 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents,
 			    answer[0] <= 'C')
 				devc->selected_channel = answer[0] - 'A';
 			sr_dbg("Selected channel %d.", devc->selected_channel);
-			// TODO: check actual targets
+			// It seems we can't actually measure the output.
+			// The best we could do is to report the actual targets,
+			// in case they are changed on the front panel.
 		}
 	}
 
