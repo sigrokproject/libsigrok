@@ -39,16 +39,32 @@ struct dev_context {
 	GMutex mutex;
 };
 
-SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents,
+							  void *cb_data);
 
-SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *sdi, const char *cmd, char *answer, gboolean echoed);
+SR_PRIV int
+francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *sdi,
+					  const char *cmd, char *answer,
+					  gboolean echoed);
 
-SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst *sdi, char cmd, gboolean param);
-SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi, gboolean param);
+SR_PRIV int
+francaise_instrumentation_ams515_set_state(const struct sr_dev_inst *sdi,
+					   char cmd, gboolean param);
+SR_PRIV int
+francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi,
+					  gboolean param);
 
-SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi, const char cmd, int *result);
-SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi, const char cmd, char *result);
-SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi, const char cmd, int param);
-SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi, const char cmd, char param);
+SR_PRIV int
+francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi,
+					   const char cmd, int *result);
+SR_PRIV int
+francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi,
+					   const char cmd, char *result);
+SR_PRIV int
+francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi,
+					  const char cmd, int param);
+SR_PRIV int
+francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi,
+					   const char cmd, char param);
 
 #endif

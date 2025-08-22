@@ -79,11 +79,9 @@ static const struct channel_spec channel_specs[] = {
 	{ { -15, 15, 0.1L }, { 0.2, 0.2, 0 } },
 };
 
-static const char *channel_modes[] = {
-	"Front Panel Enabled",
-	"Front Panel Locked",
-	"Front Panel Off"
-};
+static const char *channel_modes[] = { "Front Panel Enabled",
+				       "Front Panel Locked",
+				       "Front Panel Off" };
 
 /* We MUST disable hardware flow control it seems */
 #define SERIALCOMM "9600/8n1/flow=0"
@@ -134,14 +132,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->priv = devc;
 	g_mutex_init(&devc->mutex);
 
-	res = francaise_instrumentation_ams515_send_raw(sdi, ident_request, buf, TRUE);
+	res = francaise_instrumentation_ams515_send_raw(sdi, ident_request, buf,
+							TRUE);
 	if (res < SR_OK)
 		return NULL;
 	tokens = g_strsplit(buf, " ", 2);
 
 	// XXX: are there other versions around?
-	if (tokens[0] && !strcmp("AMS515", tokens[0])
-			&& tokens[1] && !strncmp("4.1", tokens[1], 2)) {
+	if (tokens[0] && !strcmp("AMS515", tokens[0]) && tokens[1] &&
+	    !strncmp("4.1", tokens[1], 2)) {
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("Française d'Instrumentation");
 		sdi->model = g_strdup(tokens[0]);
@@ -153,7 +152,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		for (i = 0; i < MAX_CHANNELS; i++) {
 			char name[4];
 			snprintf(name, 2, "%c", 'A' + i);
-			ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, name);
+			ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
+					    name);
 			cg = sr_channel_group_new(sdi, name, NULL);
 			cg->channels = g_slist_append(NULL, ch);
 		}
@@ -222,7 +222,8 @@ static int dev_clear(const struct sr_dev_driver *di)
 }
 
 static int config_get(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi,
+		      const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -238,7 +239,8 @@ static int config_get(uint32_t key, GVariant **data,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
-			*data = g_variant_new_string(channel_modes[devc->panel_mode]);
+			*data = g_variant_new_string(
+				channel_modes[devc->panel_mode]);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			*data = g_variant_new_boolean(TRUE);
@@ -247,10 +249,12 @@ static int config_get(uint32_t key, GVariant **data,
 			bval = devc->overcurrent;
 			// If we already have a situation, report it immediately, else query the device
 			if (!bval) {
-				ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
+				ret = francaise_instrumentation_ams515_query_str(
+					sdi, 'I', answer);
 				if (ret < SR_OK)
 					return ret;
-				if (answer[0] == '>' && (answer[1] >= 'A' && answer[1] <= 'C'))
+				if (answer[0] == '>' &&
+				    (answer[1] >= 'A' && answer[1] <= 'C'))
 					bval = TRUE;
 			}
 			*data = g_variant_new_boolean(bval);
@@ -271,16 +275,19 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
-			ret = francaise_instrumentation_ams515_query_int(sdi, 'A' + channel, &ival);
+			ret = francaise_instrumentation_ams515_query_int(
+				sdi, 'A' + channel, &ival);
 			if (ret < SR_OK)
 				return ret;
-			*data = g_variant_new_double((double)(ival * 150 / 0x96) / 10);
+			*data = g_variant_new_double(
+				(double)(ival * 150 / 0x96) / 10);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-			ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
+			ret = francaise_instrumentation_ams515_query_str(
+				sdi, 'I', answer);
 			if (ret < SR_OK)
 				return ret;
 			if (!strcmp(answer, "Ok"))
@@ -297,7 +304,8 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(bval);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-			*data = g_variant_new_double(channel_specs[channel].current[1]);
+			*data = g_variant_new_double(
+				channel_specs[channel].current[1]);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -308,7 +316,8 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi,
+		      const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -320,13 +329,16 @@ static int config_set(uint32_t key, GVariant *data,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
-			if ((ival = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
+			if ((ival = std_str_idx(
+				     data, ARRAY_AND_SIZE(channel_modes))) < 0)
 				return SR_ERR_ARG;
 			if (ival > 2)
 				return SR_ERR_ARG;
 			devc->panel_mode = ival;
-			ret = francaise_instrumentation_ams515_set_state(sdi, 'V', ival > 0);
-			ret = francaise_instrumentation_ams515_set_state(sdi, 'D', ival > 1);
+			ret = francaise_instrumentation_ams515_set_state(
+				sdi, 'V', ival > 0);
+			ret = francaise_instrumentation_ams515_set_state(
+				sdi, 'D', ival > 1);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -342,16 +354,19 @@ static int config_set(uint32_t key, GVariant *data,
 		switch (key) {
 		case SR_CONF_VOLTAGE_TARGET:
 			dval = g_variant_get_double(data);
-			if (dval < channel_specs[channel].voltage[0] || dval > channel_specs[channel].voltage[1])
+			if (dval < channel_specs[channel].voltage[0] ||
+			    dval > channel_specs[channel].voltage[1])
 				return SR_ERR_ARG;
 			// switch the front panel display to the channel we are modifying
 			// TODO: throttle the update maybe?
 			if (channel != devc->selected_channel) {
-				francaise_instrumentation_ams515_send_char(sdi, 'S', 'A' + channel);
+				francaise_instrumentation_ams515_send_char(
+					sdi, 'S', 'A' + channel);
 				devc->selected_channel = channel;
 			}
 			ival = round(dval * 10) * 0x96 / 150;
-			ret = francaise_instrumentation_ams515_send_int(sdi, 'A' + channel, ival);
+			ret = francaise_instrumentation_ams515_send_int(
+				sdi, 'A' + channel, ival);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -362,7 +377,8 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		       const struct sr_dev_inst *sdi,
+		       const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -374,12 +390,14 @@ static int config_list(uint32_t key, GVariant **data,
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts,
+					       drvopts, devopts);
 		case SR_CONF_CHANNEL_CONFIG:
 			if (!devc)
 				return SR_ERR_ARG;
 			// we only support independent channels
-			*data = g_variant_new_strv(ARRAY_AND_SIZE(channel_modes));
+			*data = g_variant_new_strv(
+				ARRAY_AND_SIZE(channel_modes));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -396,7 +414,8 @@ static int config_list(uint32_t key, GVariant **data,
 		case SR_CONF_VOLTAGE_TARGET:
 			if (!devc)
 				return SR_ERR_ARG;
-			*data = std_gvar_min_max_step_array(channel_specs[channel].voltage);
+			*data = std_gvar_min_max_step_array(
+				channel_specs[channel].voltage);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -412,8 +431,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN | G_IO_ERR, 500,
-			francaise_instrumentation_ams515_receive_data,
-			(void *)sdi);
+			  francaise_instrumentation_ams515_receive_data,
+			  (void *)sdi);
 
 	std_session_send_df_header(sdi);
 

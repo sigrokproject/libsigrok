@@ -20,7 +20,8 @@
 #include <config.h>
 #include "protocol.h"
 
-SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents,
+							  void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
 	struct sr_serial_dev_inst *serial;
@@ -42,7 +43,7 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 		return TRUE;
 
 	// We shouldn't be getting actual events here, just timeouts
-	if (revents == 0/*G_IO_IN*/) {
+	if (revents == 0 /*G_IO_IN*/) {
 		if (devc->resync) {
 			/*
 			 * Something bad happened.
@@ -51,7 +52,8 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 			devc->resync = FALSE;
 			sr_dbg("Resyncing serial.");
 			serial_flush(serial);
-			francaise_instrumentation_ams515_send_raw(sdi, "T\r", answer, TRUE);
+			francaise_instrumentation_ams515_send_raw(sdi, "T\r",
+								  answer, TRUE);
 			serial_flush(serial);
 			// Assume this command failed
 		}
@@ -59,19 +61,22 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 		 * First make sure we aren't over-current,
 		 * else other commands won't work anyway.
 		 */
-		res = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
+		res = francaise_instrumentation_ams515_query_str(sdi, 'I',
+								 answer);
 		sr_dbg("I? -> '%s'", answer);
 		if (res == SR_OK) {
 			if (!strcmp(answer, "Ok") && devc->overcurrent) {
 				sr_dbg("End of overcurrent.");
 				devc->overcurrent = FALSE;
-				sr_session_send_meta(sdi,
+				sr_session_send_meta(
+					sdi,
 					SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
 					g_variant_new_boolean(FALSE));
 			} else if (answer[0] == '>') {
 				// No need to check which channel at this point. cf. PR #101
 				sr_dbg("Notifying overcurrent.");
-				sr_session_send_meta(sdi,
+				sr_session_send_meta(
+					sdi,
 					SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
 					g_variant_new_boolean(TRUE));
 				devc->overcurrent = TRUE;
@@ -80,8 +85,10 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 
 		/* Check the front panel status */
 		if (!devc->overcurrent) {
-			res = francaise_instrumentation_ams515_query_str(sdi, 'S', answer);
-			if (res == SR_OK && answer[0] >= 'A' && answer[0] <= 'C')
+			res = francaise_instrumentation_ams515_query_str(
+				sdi, 'S', answer);
+			if (res == SR_OK && answer[0] >= 'A' &&
+			    answer[0] <= 'C')
 				devc->selected_channel = answer[0] - 'A';
 			sr_dbg("Selected channel %d.", devc->selected_channel);
 			// TODO: check actual targets
@@ -90,7 +97,6 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 
 	return TRUE;
 }
-
 
 /**
  * Send raw command
@@ -103,7 +109,10 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *sdi, const char *cmd, char *answer, gboolean echoed)
+SR_PRIV int
+francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *sdi,
+					  const char *cmd, char *answer,
+					  gboolean echoed)
 {
 	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
@@ -143,7 +152,8 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
 	 */
 	for (i = 0; i < cmdlen; i++) {
 		char c;
-		if (serial_write_blocking(serial, &cmd[i], 1, SERIAL_WRITE_TIMEOUT_MS) < 1) {
+		if (serial_write_blocking(serial, &cmd[i], 1,
+					  SERIAL_WRITE_TIMEOUT_MS) < 1) {
 			sr_err("Write error for cmd[%d].", i);
 			break;
 		}
@@ -152,7 +162,8 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
 		if (!echoed)
 			continue;
 		// we do not know if echo is on, so we try to read
-		if (serial_read_blocking(serial, &c, 1, SERIAL_READ_TIMEOUT_MS) < 1) {
+		if (serial_read_blocking(serial, &c, 1,
+					 SERIAL_READ_TIMEOUT_MS) < 1) {
 			sr_dbg("Unable to read echoed cmd, assuming no echo.");
 			echoed = FALSE;
 			continue;
@@ -164,12 +175,12 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
 		}
 	}
 
-
 	/*
 	 * Read until we get the prompt.
 	 */
-	for (i = 0; i < ANSWER_MAX-1; i++) {
-		if (serial_read_blocking(serial, &answer[i], 1, SERIAL_READ_TIMEOUT_MS) < 1) {
+	for (i = 0; i < ANSWER_MAX - 1; i++) {
+		if (serial_read_blocking(serial, &answer[i], 1,
+					 SERIAL_READ_TIMEOUT_MS) < 1) {
 			sr_err("Unable to read cmd answer.");
 			break;
 		}
@@ -225,7 +236,9 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst *sdi, char cmd, gboolean param)
+SR_PRIV int
+francaise_instrumentation_ams515_set_state(const struct sr_dev_inst *sdi,
+					   char cmd, gboolean param)
 {
 	char command[4];
 	char answer[ANSWER_MAX];
@@ -236,13 +249,16 @@ SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst 
 
 	snprintf(command, 4, "%c?\r", cmd);
 	// Query current state
-	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, TRUE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer,
+							TRUE);
 	if (ret < SR_OK)
 		return ret;
-	if ((param && !strcmp(answer, "00")) || (!param && !strcmp(answer, "FF"))) {
+	if ((param && !strcmp(answer, "00")) ||
+	    (!param && !strcmp(answer, "FF"))) {
 		snprintf(command, 4, "%c\r", cmd);
 		// Toggle state to the one we want
-		ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, TRUE);
+		ret = francaise_instrumentation_ams515_send_raw(sdi, command,
+								answer, TRUE);
 	}
 
 	return ret;
@@ -257,7 +273,9 @@ SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst 
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi, gboolean param)
+SR_PRIV int
+francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi,
+					  gboolean param)
 {
 	struct sr_serial_dev_inst *serial;
 	int ret;
@@ -288,7 +306,9 @@ SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi, const char cmd, int *result)
+SR_PRIV int
+francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi,
+					   const char cmd, int *result)
 {
 	char command[4];
 	char answer[ANSWER_MAX];
@@ -301,7 +321,8 @@ SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst 
 	snprintf(command, 4, "%c?\r", cmd);
 	sr_dbg("query_int(): sending %s", command);
 
-	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer,
+							FALSE);
 	if (ret < SR_OK)
 		return ret;
 	if (answer[0] != '+' && answer[0] != '-')
@@ -321,7 +342,9 @@ SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst 
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi, const char cmd, char *result)
+SR_PRIV int
+francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi,
+					   const char cmd, char *result)
 {
 	char command[4];
 	int ret;
@@ -332,7 +355,8 @@ SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst 
 	snprintf(command, 4, "%c?\r", cmd);
 	sr_dbg("query_str(): sending %s", command);
 
-	ret = francaise_instrumentation_ams515_send_raw(sdi, command, result, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, result,
+							FALSE);
 	if (ret < SR_OK)
 		return ret;
 	return SR_OK;
@@ -348,7 +372,9 @@ SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst 
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi, const char cmd, int param)
+SR_PRIV int
+francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi,
+					  const char cmd, int param)
 {
 	char command[13];
 	char answer[ANSWER_MAX];
@@ -357,10 +383,12 @@ SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	snprintf(command, 12, "%c%c%.02X\r", cmd, param < 0 ? '-' : '+', abs(param));
+	snprintf(command, 12, "%c%c%.02X\r", cmd, param < 0 ? '-' : '+',
+		 abs(param));
 	sr_dbg("send_int(): sending %s", command);
 
-	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer,
+							FALSE);
 	return ret;
 }
 
@@ -374,7 +402,9 @@ SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi, const char cmd, char param)
+SR_PRIV int
+francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi,
+					   const char cmd, char param)
 {
 	char command[10];
 	char answer[ANSWER_MAX];
@@ -386,6 +416,7 @@ SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst 
 	snprintf(command, 9, "%c%c\r", cmd, param);
 	sr_dbg("send_char(): sending %s", command);
 
-	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer,
+							FALSE);
 	return ret;
 }
