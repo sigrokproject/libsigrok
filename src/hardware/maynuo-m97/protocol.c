@@ -20,73 +20,126 @@
 #include <config.h>
 #include "protocol.h"
 
-SR_PRIV int maynuo_m97_get_bit(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_get_bit(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_coil address, int *value)
 {
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
 	uint8_t coil;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
+	g_mutex_lock(&devc->rw_mutex);
 	int ret = sr_modbus_read_coils(modbus, address, 1, &coil);
+	g_mutex_unlock(&devc->rw_mutex);
 	*value = coil & 1;
 	return ret;
 }
 
-SR_PRIV int maynuo_m97_set_bit(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_set_bit(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_coil address, int value)
 {
-	return sr_modbus_write_coil(modbus, address, value);
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
+	g_mutex_lock(&devc->rw_mutex);
+	int ret = sr_modbus_write_coil(modbus, address, value);
+	g_mutex_unlock(&devc->rw_mutex);
+	return ret;
 }
 
-SR_PRIV int maynuo_m97_get_float(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_get_float(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_register address, float *value)
 {
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
 	uint16_t registers[2];
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
+	g_mutex_lock(&devc->rw_mutex);
 	int ret = sr_modbus_read_holding_registers(modbus, address, 2, registers);
+	g_mutex_unlock(&devc->rw_mutex);
 	if (ret == SR_OK)
 		*value = RBFL(registers);
 	return ret;
 }
 
-SR_PRIV int maynuo_m97_set_float(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_set_float(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_register address, float value)
 {
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
 	uint16_t registers[2];
+	int ret;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
 	WBFL(registers, value);
-	return sr_modbus_write_multiple_registers(modbus, address, 2, registers);
+	g_mutex_lock(&devc->rw_mutex);
+	ret = sr_modbus_write_multiple_registers(modbus, address, 2, registers);
+	g_mutex_unlock(&devc->rw_mutex);
+	return ret;
 }
 
 
-static int maynuo_m97_cmd(struct sr_modbus_dev_inst *modbus,
+static int maynuo_m97_cmd(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_mode cmd)
 {
-	uint16_t registers[1];
-	WB16(registers, cmd);
-	return sr_modbus_write_multiple_registers(modbus, CMD, 1, registers);
-}
-
-SR_PRIV int maynuo_m97_get_mode(struct sr_modbus_dev_inst *modbus,
-		enum maynuo_m97_mode *mode)
-{
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
 	uint16_t registers[1];
 	int ret;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
+	WB16(registers, cmd);
+	g_mutex_lock(&devc->rw_mutex);
+	ret = sr_modbus_write_multiple_registers(modbus, CMD, 1, registers);
+	g_mutex_unlock(&devc->rw_mutex);
+	return ret;
+}
+
+SR_PRIV int maynuo_m97_get_mode(const struct sr_dev_inst *sdi,
+		enum maynuo_m97_mode *mode)
+{
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
+	uint16_t registers[1];
+	int ret;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
+	g_mutex_lock(&devc->rw_mutex);
 	ret = sr_modbus_read_holding_registers(modbus, SETMODE, 1, registers);
+	g_mutex_unlock(&devc->rw_mutex);
 	*mode = RB16(registers) & 0xFF;
 	return ret;
 }
 
-SR_PRIV int maynuo_m97_set_mode(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_set_mode(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_mode mode)
 {
-	return maynuo_m97_cmd(modbus, mode);
+	return maynuo_m97_cmd(sdi, mode);
 }
 
-SR_PRIV int maynuo_m97_set_input(struct sr_modbus_dev_inst *modbus, int enable)
+SR_PRIV int maynuo_m97_set_input(const struct sr_dev_inst *sdi, int enable)
 {
 	enum maynuo_m97_mode mode;
 	int ret;
-	if ((ret = maynuo_m97_get_mode(modbus, &mode)) != SR_OK)
+	if ((ret = maynuo_m97_get_mode(sdi, &mode)) != SR_OK)
 		return ret;
-	if ((ret = maynuo_m97_cmd(modbus, enable ? INPUT_ON : INPUT_OFF)) != SR_OK)
+	if ((ret = maynuo_m97_cmd(sdi, enable ? INPUT_ON : INPUT_OFF)) != SR_OK)
 		return ret;
-	return maynuo_m97_set_mode(modbus, mode);
+	return maynuo_m97_set_mode(sdi, mode);
 }
 
 SR_PRIV int maynuo_m97_get_model_version(struct sr_modbus_dev_inst *modbus,
@@ -94,6 +147,12 @@ SR_PRIV int maynuo_m97_get_model_version(struct sr_modbus_dev_inst *modbus,
 {
 	uint16_t registers[2];
 	int ret;
+
+	/*
+	 * No mutex here, because there is no sr_dev_inst when this function
+	 * is called.
+	 */
+
 	ret = sr_modbus_read_holding_registers(modbus, MODEL, 2, registers);
 	*model   = RB16(registers + 0);
 	*version = RB16(registers + 1);
@@ -147,26 +206,13 @@ static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct 
 	g_slist_free(analog.meaning->channels);
 }
 
-SR_PRIV int maynuo_m97_capture_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_modbus_dev_inst *modbus;
-	int ret;
-
-	modbus = sdi->conn;
-	devc = sdi->priv;
-
-	if ((ret = sr_modbus_read_holding_registers(modbus, U, 4, NULL)) == SR_OK)
-		devc->expecting_registers = 4;
-	return ret;
-}
-
 SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 	uint16_t registers[4];
+	int ret;
 
 	(void)fd;
 	(void)revents;
@@ -177,8 +223,11 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 	modbus = sdi->conn;
 	devc = sdi->priv;
 
-	devc->expecting_registers = 0;
-	if (sr_modbus_read_holding_registers(modbus, -1, 4, registers) == SR_OK) {
+	g_mutex_lock(&devc->rw_mutex);
+	ret = sr_modbus_read_holding_registers(modbus, -1, 4, registers);
+	g_mutex_unlock(&devc->rw_mutex);
+
+	if (ret == SR_OK) {
 		std_session_send_df_frame_begin(sdi);
 
 		maynuo_m97_session_send_value(sdi, sdi->channels->data,
@@ -197,6 +246,5 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	maynuo_m97_capture_start(sdi);
 	return TRUE;
 }
