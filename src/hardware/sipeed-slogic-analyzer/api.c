@@ -1030,7 +1030,7 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 		((uint32_t *)(cmd_aux + 4))[0] =
 			(uint32_t)((devc->voltage_threshold[0] +
 				    devc->voltage_threshold[1]) /
-				   2 / 333 * 1024);
+				   2 / 333 / 2 * 1024);
 
 		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
 		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);

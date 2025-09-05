@@ -261,7 +261,7 @@ static int train_bulk_in_transfer(struct dev_context *devc,
 	uint64_t Bps = bps / 8;
 	uint64_t BpMs = Bps / SR_KHZ(1);
 
-	uint64_t cur_transfer_duration = 125 /* ms */;
+	uint64_t cur_transfer_duration = 250 /* ms */;
 	uint64_t try_transfer_nbytes = cur_transfer_duration * BpMs /* bytes */;
 
 	const uint64_t ALIGN_SIZE = 32 * 1024; /* 32kiB */
@@ -309,7 +309,7 @@ static int train_bulk_in_transfer(struct dev_context *devc,
 		}
 
 		try_transfer_nbytes >>=
-			1; // At least 2 transfets can be pending.
+			2; // At least 4 transfets can be pending.
 		break;
 	} while (try_transfer_nbytes >
 		 ALIGN_SIZE); // 32kiB > 125ms * 1MHZ * 2ch
