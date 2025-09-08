@@ -43,13 +43,16 @@ enum {
 };
 
 struct slogic_model {
-	char *name;
-	uint16_t pid;
-	uint8_t ep_in;
-	uint64_t max_samplerate; // limit by hardware
-	uint64_t max_samplechannel; // limit by hardware
-	uint64_t max_bandwidth; // limit by hardware
-	struct {
+	const char *name;
+	const uint16_t pid;
+	const uint8_t ep_in;
+	const uint64_t max_bandwidth; // limit by hardware
+	const uint64_t *samplechannel_table;
+	const uint64_t samplechannel_table_size;
+	const uint64_t *limit_samplerate_table;
+	const uint64_t *samplerate_table;
+	const uint64_t samplerate_table_size;
+	const struct {
 		int (*remote_reset)(const struct sr_dev_inst *sdi);
 		int (*remote_run)(const struct sr_dev_inst *sdi);
 		int (*remote_stop)(const struct sr_dev_inst *sdi);
@@ -59,7 +62,7 @@ struct slogic_model {
 };
 
 struct dev_context {
-	struct slogic_model *model;
+	const struct slogic_model *model;
 
 	struct sr_channel_group *digital_group;
 

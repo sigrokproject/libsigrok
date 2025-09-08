@@ -42,9 +42,12 @@ static const uint32_t devopts[] = {
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint64_t samplerates[] = {
-	/* 160M = 2^5*5M */
-	/* 1600M = 2^6*5^2M */
+static const uint64_t samplerates_slogiccombo8[] = {
+	/** 
+	 * SLogic Combo 8 (USBHS 480Mbps bw: 40MB/s)
+	 *  160M = 2^5*5^1  M
+	*/
+
 	SR_MHZ(1),
 	SR_MHZ(2),
 	SR_MHZ(4),
@@ -54,20 +57,44 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(16),
 	SR_MHZ(20),
 	SR_MHZ(32),
-
-	/* SLogic Combo 8 */
 	/* x 8ch */
 	SR_MHZ(40),
 	/* x 4ch */
+	SR_MHZ(80),
+	/* x 2ch */
+	SR_MHZ(160),
+};
+
+static const uint64_t samplechannels_slogiccombo8[] = { 2, 4, 8 };
+static const uint64_t limit_samplerates_slogiccombo8[] = { SR_MHZ(160), SR_MHZ(80), SR_MHZ(40) };
+
+static const uint64_t samplerates_slogic16u3[] = {
+	/**
+	 * SLogic 16U3 (USBSS 5Gbps bw: 400MB/s)
+	 * 1200M = 2^4*3^1*5^2  M
+	 * 1500M = 2^2*3^1*5^3  M
+	 * --1600M = 2^6    *5^2  M
+	*/
+
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(4),
+	SR_MHZ(5),
+	SR_MHZ(8),
+	SR_MHZ(10),
+	SR_MHZ(15),
+	SR_MHZ(16),
+	SR_MHZ(20),
+	SR_MHZ(24),
+	SR_MHZ(30),
+	SR_MHZ(32),
+	SR_MHZ(40),
+	SR_MHZ(48),
 	SR_MHZ(60),
 	SR_MHZ(80),
 	SR_MHZ(100),
-	/* x 2ch */
 	SR_MHZ(125),
 	SR_MHZ(150),
-	SR_MHZ(160),
-
-	/* SLogic16U3 */
 	/* x 16ch */
 	SR_MHZ(200),
 	/* x 8ch */
@@ -77,15 +104,13 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(500),
 	SR_MHZ(600),
 	SR_MHZ(750),
-	SR_MHZ(800),
 	/* x 2ch */
-	SR_MHZ(1000),
 	SR_MHZ(1200),
 	SR_MHZ(1500),
-	SR_MHZ(1600),
 };
 
-static const uint64_t buffersizes[] = { 2, 4, 8, 16 };
+static const uint64_t samplechannels_slogic16u3[] = { 2, 4, 8, 16 };
+static const uint64_t limit_samplerates_slogic16u3[] = { SR_MHZ(1500), SR_MHZ(750), SR_MHZ(400), SR_MHZ(200) };
 
 static const char *patterns[] = {
 	[PATTERN_MODE_NOMAL] = "PATTERN_MODE_NOMAL",
@@ -209,22 +234,23 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			{
 				devc->model = model;
 
-				devc->limit_samplechannel =
-					devc->model->max_samplechannel;
-				devc->limit_samplerate =
-					devc->model->max_bandwidth /
-					devc->model->max_samplechannel;
+				devc->limit_samplechannel = devc->model->samplechannel_table[
+					devc->model->samplechannel_table_size - 1];
+				devc->limit_samplerate = devc->model->limit_samplerate_table[
+					std_u64_idx(g_variant_new_uint64(devc->limit_samplechannel),
+						devc->model->samplechannel_table, devc->model->samplechannel_table_size)
+				];
 
 				devc->cur_samplechannel =
 					devc->limit_samplechannel;
 				devc->cur_samplerate = devc->limit_samplerate;
 				devc->cur_pattern_mode_idx = PATTERN_MODE_NOMAL;
 				devc->voltage_threshold[0] =
-					devc->voltage_threshold[1] = 0.8f;
+					devc->voltage_threshold[1] = 1.6f;
 
 				devc->digital_group =
 					sr_channel_group_new(sdi, "LA", NULL);
-				for (i = 0; i < devc->model->max_samplechannel;
+				for (i = 0; i < devc->limit_samplechannel;
 				     i++) {
 					channel_name =
 						g_strdup_printf("D%u", i);
@@ -298,6 +324,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->model->operation.remote_reset)
 		devc->model->operation.remote_reset(sdi);
+
+	devc->voltage_threshold[0] = devc->voltage_threshold[1] = 1.6f;
+	sr_config_set(sdi, NULL, SR_CONF_VOLTAGE_THRESHOLD,
+				g_variant_new("(dd)", &devc->voltage_threshold[0],
+			      &devc->voltage_threshold[1]));
 
 	return std_dummy_dev_open(sdi);
 }
@@ -391,33 +422,34 @@ static int config_set(uint32_t key, GVariant *data,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		if (g_variant_get_uint64(data) > devc->limit_samplerate ||
-		    std_u64_idx(data, ARRAY_AND_SIZE(samplerates)) < 0) {
+		    std_u64_idx(data, devc->model->samplerate_table, devc->model->samplerate_table_size) < 0) {
 			devc->cur_samplerate = devc->limit_samplerate;
 			sr_warn("Reach limit or not supported, wrap to %uMHz.",
 				devc->limit_samplerate / SR_MHZ(1));
 		} else {
 			devc->cur_samplerate = g_variant_get_uint64(data);
+
+			if (devc->cur_samplerate > devc->limit_samplerate)
+				devc->cur_samplerate = devc->limit_samplerate;
 		}
-		devc->limit_samplechannel =
-			devc->model->max_bandwidth / devc->cur_samplerate;
-		if (devc->limit_samplechannel > devc->model->max_samplechannel)
-			devc->limit_samplechannel =
-				devc->model->max_samplechannel;
+
 		break;
 	case SR_CONF_BUFFERSIZE:
-		if (g_variant_get_uint64(data) > devc->limit_samplechannel ||
-		    std_u64_idx(data, ARRAY_AND_SIZE(buffersizes)) < 0) {
+		if (std_u64_idx(data, devc->model->samplechannel_table, devc->model->samplechannel_table_size) < 0) {
 			devc->cur_samplechannel = devc->limit_samplechannel;
 			sr_warn("Reach limit or not supported, wrap to %uch.",
 				devc->limit_samplechannel);
 		} else {
 			devc->cur_samplechannel = g_variant_get_uint64(data);
-		}
-		devc->limit_samplerate =
-			devc->model->max_bandwidth / devc->cur_samplechannel;
-		if (devc->limit_samplerate > devc->model->max_samplerate)
-			devc->limit_samplerate = devc->model->max_samplerate;
 
+			devc->limit_samplerate = devc->model->limit_samplerate_table[
+				std_u64_idx(g_variant_new_uint64(devc->cur_samplechannel),
+					devc->model->samplechannel_table, devc->model->samplechannel_table_size)
+			];
+
+			if (devc->cur_samplerate > devc->limit_samplerate)
+				devc->cur_samplerate = devc->limit_samplerate;
+		}
 		// [en|dis]able channels and dbg
 		{
 			for (GSList *l = devc->digital_group->channels; l;
@@ -495,17 +527,15 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(
-			samplerates,
+			devc->model->samplerate_table,
 			1 + std_u64_idx(g_variant_new_uint64(
 						devc->limit_samplerate),
-					ARRAY_AND_SIZE(samplerates)));
+					devc->model->samplerate_table, devc->model->samplerate_table_size));
+		if (NULL == devc->model)
+			ret = SR_ERR_ARG;
 		break;
 	case SR_CONF_BUFFERSIZE:
-		*data = std_gvar_array_u64(
-			buffersizes,
-			1 + std_u64_idx(g_variant_new_uint64(
-						devc->limit_samplechannel),
-					ARRAY_AND_SIZE(buffersizes)));
+		*data = std_gvar_array_u64(devc->model->samplechannel_table, devc->model->samplechannel_table_size);
 		break;
 	case SR_CONF_PATTERN_MODE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(patterns));
@@ -514,7 +544,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_min_max_step_thresholds(0, 333, 1);
+		*data = std_gvar_min_max_step_thresholds(0, 3.3, 0.1);
 		break;
 	default:
 		ret = SR_ERR_NA;
@@ -808,7 +838,7 @@ static int slogic16U3_remote_test_mode(const struct sr_dev_inst *sdi, uint32_t m
 			slogic_usb_control_read(
 				sdi, SLOGIC16U3_CONTROL_IN_REQ_REG_READ,
 				SLOGIC16U3_R32_AUX, 0x0000, cmd_aux, 4, 500);
-			sr_dbg("[%u]read testmode: %08x.", retry,
+			sr_dbg("[%u]read aux testmode: %08x.", retry,
 			       ((uint32_t *)cmd_aux)[0]);
 			retry += 1;
 			if (retry > 5)
@@ -821,13 +851,11 @@ static int slogic16U3_remote_test_mode(const struct sr_dev_inst *sdi, uint32_t m
 					cmd_aux + 4,
 					(*(uint16_t *)cmd_aux) >> 9, 500);
 
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux rd: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 
 		((uint32_t *)(cmd_aux + 4))[0] = mode;
 
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux wr: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 		slogic_usb_control_write(sdi,
 					 SLOGIC16U3_CONTROL_OUT_REQ_REG_WRITE,
 					 SLOGIC16U3_R32_AUX + 4, 0x0000,
@@ -838,8 +866,7 @@ static int slogic16U3_remote_test_mode(const struct sr_dev_inst *sdi, uint32_t m
 					SLOGIC16U3_R32_AUX + 4, 0x0000,
 					cmd_aux + 4,
 					(*(uint16_t *)cmd_aux) >> 9, 500);
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux rd: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 
 		if (mode != *(uint32_t *)(cmd_aux + 4)) {
 			sr_dbg("Failed to configure test_mode.");
@@ -893,13 +920,11 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 					cmd_aux + 4,
 					(*(uint16_t *)cmd_aux) >> 9, 500);
 
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux rd: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 
 		*(uint32_t *)(cmd_aux + 4) = (1 << devc->cur_samplechannel) - 1;
 
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux wr: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 		slogic_usb_control_write(sdi,
 					 SLOGIC16U3_CONTROL_OUT_REQ_REG_WRITE,
 					 SLOGIC16U3_R32_AUX + 4, 0x0000,
@@ -910,8 +935,7 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 					SLOGIC16U3_R32_AUX + 4, 0x0000,
 					cmd_aux + 4,
 					(*(uint16_t *)cmd_aux) >> 9, 500);
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux rd: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 
 		if ((1 << devc->cur_samplechannel) - 1 !=
 		    *(uint32_t *)(cmd_aux + 4)) {
@@ -947,8 +971,7 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 				SLOGIC16U3_R32_AUX + 4, 0x0000, cmd_aux + 4,
 				(*(uint16_t *)cmd_aux) >> 9, 500);
 
-			sr_dbg("aux: %u %u %u %u %x %u %u.", cmd_aux[0],
-			       cmd_aux[1], cmd_aux[2], cmd_aux[3],
+			sr_dbg("aux rd: %08x %x %u %u.", ((uint32_t *)cmd_aux)[0],
 			       ((uint16_t *)(cmd_aux + 4))[0],
 			       ((uint16_t *)(cmd_aux + 4))[1],
 			       ((uint32_t *)(cmd_aux + 4))[1]);
@@ -969,8 +992,7 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 			uint32_t div = base / devc->cur_samplerate;
 			((uint32_t *)(cmd_aux + 4))[1] = div-1;
 
-			sr_dbg("aux: %u %u %u %u %x %u %u.", cmd_aux[0],
-			       cmd_aux[1], cmd_aux[2], cmd_aux[3],
+			sr_dbg("aux wr: %08x %x %u %u.", ((uint32_t *)cmd_aux)[0],
 			       ((uint16_t *)(cmd_aux + 4))[0],
 			       ((uint16_t *)(cmd_aux + 4))[1],
 			       ((uint32_t *)(cmd_aux + 4))[1]);
@@ -983,8 +1005,7 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 				sdi, SLOGIC16U3_CONTROL_IN_REQ_REG_READ,
 				SLOGIC16U3_R32_AUX + 4, 0x0000, cmd_aux + 4,
 				(*(uint16_t *)cmd_aux) >> 9, 500);
-			sr_dbg("aux: %u %u %u %u %x %u %u.", cmd_aux[0],
-			       cmd_aux[1], cmd_aux[2], cmd_aux[3],
+			sr_dbg("aux rd: %08x %x %u %u.", ((uint32_t *)cmd_aux)[0],
 			       ((uint16_t *)(cmd_aux + 4))[0],
 			       ((uint16_t *)(cmd_aux + 4))[1],
 			       ((uint32_t *)(cmd_aux + 4))[1]);
@@ -1024,16 +1045,14 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 					cmd_aux + 4,
 					(*(uint16_t *)cmd_aux) >> 9, 500);
 
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux rd: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 
 		((uint32_t *)(cmd_aux + 4))[0] =
 			(uint32_t)((devc->voltage_threshold[0] +
 				    devc->voltage_threshold[1]) /
-				   2 / 333 / 2 * 1024);
+				   2 / 3.33 / 2 * 1024);
 
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux wr: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 		slogic_usb_control_write(sdi,
 					 SLOGIC16U3_CONTROL_OUT_REQ_REG_WRITE,
 					 SLOGIC16U3_R32_AUX + 4, 0x0000,
@@ -1044,8 +1063,7 @@ static int slogic16U3_remote_run(const struct sr_dev_inst *sdi)
 					SLOGIC16U3_R32_AUX + 4, 0x0000,
 					cmd_aux + 4,
 					(*(uint16_t *)cmd_aux) >> 9, 500);
-		sr_dbg("aux: %u %u %u %u %08x.", cmd_aux[0], cmd_aux[1],
-		       cmd_aux[2], cmd_aux[3], ((uint32_t *)(cmd_aux + 4))[0]);
+		sr_dbg("aux rd: %08x %08x.", ((uint32_t *)cmd_aux)[0], ((uint32_t *)(cmd_aux + 4))[0]);
 
 		if (1024 != *(uint32_t *)(cmd_aux + 4)) {
 			sr_dbg("Failed to configure vref.");
@@ -1075,9 +1093,12 @@ static const struct slogic_model support_models[] = {
         .name = "Sogic Combo 8",
         .pid = 0x0300,
         .ep_in = 0x01 | LIBUSB_ENDPOINT_IN,
-        .max_samplerate = SR_MHZ(160),
-        .max_samplechannel = 8,
         .max_bandwidth = SR_MHZ(320),
+		.samplerate_table = samplerates_slogiccombo8,
+		.samplerate_table_size = ARRAY_SIZE(samplerates_slogiccombo8),
+		.samplechannel_table = samplechannels_slogiccombo8,
+		.samplechannel_table_size = ARRAY_SIZE(samplechannels_slogiccombo8),
+		.limit_samplerate_table = limit_samplerates_slogiccombo8,
         .operation =
             {
                 .remote_reset = NULL,
@@ -1090,9 +1111,12 @@ static const struct slogic_model support_models[] = {
         .name = "SLogic16U3",
         .pid = 0x3031,
         .ep_in = 0x02 | LIBUSB_ENDPOINT_IN,
-        .max_samplerate = SR_MHZ(1600),
-        .max_samplechannel = 16,
         .max_bandwidth = SR_MHZ(3200),
+		.samplerate_table = samplerates_slogic16u3,
+		.samplerate_table_size = ARRAY_SIZE(samplerates_slogic16u3),
+		.samplechannel_table = samplechannels_slogic16u3,
+		.samplechannel_table_size = ARRAY_SIZE(samplechannels_slogic16u3),
+		.limit_samplerate_table = limit_samplerates_slogic16u3,
         .operation =
             {
                 .remote_reset = slogic16U3_remote_reset,
