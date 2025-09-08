@@ -350,6 +350,18 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
           return Glib::Variant< std::vector<guint64> >::create(v);
         }
     }
+    else if ((type == SR_T_MQ) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
+        PyObject *numObj = PyTuple_GetItem(input, 0);
+        PyObject *denomObj = PyTuple_GetItem(input, 1);
+        if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
+            return Glib::Variant<std::tuple<guint32, guint64>>::create(
+                std::make_tuple(
+                    (guint32)PyInt_AsLong(numObj),
+                    (guint64)PyInt_AsLong(denomObj)
+                )
+            );
+        }
+    }
     throw sigrok::Error(SR_ERR_ARG);
 }
 
