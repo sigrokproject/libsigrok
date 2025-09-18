@@ -250,7 +250,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				devc->cur_samplerate = devc->limit_samplerate;
 				devc->cur_pattern_mode_idx = PATTERN_MODE_NOMAL;
 				devc->voltage_threshold[0] =
-					devc->voltage_threshold[1] = 1.6f;
+					devc->voltage_threshold[1] = 1.7f;
 
 				devc->digital_group =
 					sr_channel_group_new(sdi, "LA", NULL);
