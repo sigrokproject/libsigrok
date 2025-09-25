@@ -72,49 +72,50 @@ static const uint64_t samplerates_slogic16u3[] = {
 	/**
 	 * SLogic 16U3 (USBSS 5Gbps bw: 400MB/s)
 	 *  800M = 2^5*5^2  M
-	 * 1200M = 2^4*3^1*5^2  M
-	 * 1500M = 2^2*3^1*5^3  M
+	 * --1200M = 2^4*3^1*5^2  M
+	 * --1500M = 2^2*3^1*5^3  M
 	 * --1600M = 2^6    *5^2  M
 	*/
 
-	SR_MHZ(1),
-	SR_MHZ(2),
-	SR_MHZ(4),
+	// SR_MHZ(1),
+	// SR_MHZ(2),
+	// SR_MHZ(4),
 	SR_MHZ(5),
 	SR_MHZ(8),
 	SR_MHZ(10),
-	SR_MHZ(15),
+	// SR_MHZ(15),
 	SR_MHZ(16),
 	SR_MHZ(20),
-	SR_MHZ(24),
+	// SR_MHZ(24),
 	SR_MHZ(25),
-	SR_MHZ(30),
+	// SR_MHZ(30),
 	SR_MHZ(32),
 	SR_MHZ(40),
-	SR_MHZ(48),
-	SR_MHZ(60),
+	// SR_MHZ(48),
+	SR_MHZ(50),
+	// SR_MHZ(60),
 	SR_MHZ(80),
 	SR_MHZ(100),
-	SR_MHZ(125),
-	SR_MHZ(150),
+	// SR_MHZ(125),
+	// SR_MHZ(150),
 	SR_MHZ(160),
 	/* x 16ch */
 	SR_MHZ(200),
 	/* x 8ch */
-	SR_MHZ(300),
+	// SR_MHZ(300),
 	SR_MHZ(400),
 	/* x 4ch */
-	SR_MHZ(500),
-	SR_MHZ(600),
-	SR_MHZ(750),
+	// SR_MHZ(500),
+	// SR_MHZ(600),
+	// SR_MHZ(750),
 	SR_MHZ(800),
 	/* x 2ch */
-	SR_MHZ(1200),
-	SR_MHZ(1500),
+	// SR_MHZ(1200),
+	// SR_MHZ(1500),
 };
 
-static const uint64_t samplechannels_slogic16u3[] = { 2, 4, 8, 16 };
-static const uint64_t limit_samplerates_slogic16u3[] = { SR_MHZ(1500), SR_MHZ(800), SR_MHZ(400), SR_MHZ(200) };
+static const uint64_t samplechannels_slogic16u3[] = { /*2, */4, 8, 16 };
+static const uint64_t limit_samplerates_slogic16u3[] = { /*SR_MHZ(1500), */SR_MHZ(800), SR_MHZ(400), SR_MHZ(200) };
 
 static const char *patterns[] = {
 	[PATTERN_MODE_NOMAL] = "PATTERN_MODE_NOMAL",
@@ -548,7 +549,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_min_max_step_thresholds(0, 3.3, 0.1);
+		*data = std_gvar_min_max_step_thresholds(0, 6, 0.1);
 		break;
 	default:
 		ret = SR_ERR_NA;
