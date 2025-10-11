@@ -19,6 +19,12 @@
 
 #include "config.h"
 
+#if defined _WIN32
+#include <winsock2.h>
+#else
+#include <sys/ioctl.h>
+#endif
+
 #include <libsigrok/libsigrok.h>
 #include <string.h>
 
@@ -27,6 +33,15 @@
 #define LOG_PREFIX "serial-tcpraw"
 
 #define SER_TCPRAW_CONN_PREFIX	"tcp-raw"
+
+/* 100ms, high value for high latency IP connection (like WIFI). */
+/* TODO: VERYLOW - make this connection param. */
+static const int DRAIN_TIMEOUT = 100 * 1000;
+
+/* 1ms */
+/* TODO: VERYLOW - make this connection param. */
+static const int FLUSH_TIMEOUT = 1 * 1000;
+
 
 /**
  * @file
@@ -186,7 +201,6 @@ static int ser_tcpraw_open(struct sr_serial_dev_inst *serial, int flags)
 
 static int ser_tcpraw_close(struct sr_serial_dev_inst *serial)
 {
-
 	if (!serial)
 		return SR_ERR_ARG;
 
@@ -197,14 +211,81 @@ static int ser_tcpraw_close(struct sr_serial_dev_inst *serial)
 	return SR_OK;
 }
 
+#ifdef SER_TCPRAW_TRY_AUTO_RECONNECT
+static gboolean sr_tcpraw_reconnect_internal(int ret,
+	struct sr_serial_dev_inst *serial)
+{
+	struct sr_tcp_dev_inst *tcp = serial->tcp_dev;
+
+	if (ret != SR_ERR_IO || (errno != ENOTCONN && errno != EBADF))
+		return FALSE;
+	if (sr_tcp_disconnect(tcp) != SR_OK)
+		return FALSE;
+
+	sr_info("Trying reconnect to %s:%s", tcp->host_addr, tcp->tcp_port);
+	if (sr_tcp_connect(serial->tcp_dev) != SR_OK) {
+		sr_err("Failed reconnected to %s:%s. Error: %d", tcp->host_addr,
+			tcp->tcp_port, errno);
+		return FALSE;
+	}
+	sr_info("Successfully reconnected to %s:%s", tcp->host_addr, tcp->tcp_port);
+	return TRUE;
+}
+#endif
+
 static int ser_tcpraw_setup_source_add(struct sr_session *session,
 	struct sr_serial_dev_inst *serial, int events, int timeout,
 	sr_receive_data_callback cb, void *cb_data)
 {
+#ifndef _WIN32
 	if (!serial || !serial->tcp_dev)
 		return SR_ERR_ARG;
 	return sr_tcp_source_add(session, serial->tcp_dev,
 		events, timeout, cb, cb_data);
+#else
+	struct sr_tcp_dev_inst *tcp;
+	HANDLE wsa_evt;
+	int ret;
+
+	if (!serial || !serial->tcp_dev || serial->tcp_dev->sock_fd < 0)
+	 	return SR_ERR_ARG;
+
+	/* Initializing serial->sp_data */
+	if (serial->sp_data) 
+		sr_warn("sp_data not NULL (%p) in tcpraw source add", serial->sp_data);
+	serial->sp_data = NULL;	
+
+	/* Creating WinSock2 event for G_IO_IN & G_IO_OUT events in glib. */
+	/* TODO: LOW - Move that code to tcp.c (need field for save event handle). */
+	/*
+	 * TODO: VERYLOW - Implement something like "sr_session_source_add_socket" 
+	 * based on g_socket_create_source and can be handled by glib 
+	 * transparently (need testing).
+	 */
+	wsa_evt = WSACreateEvent();
+	if (wsa_evt == WSA_INVALID_EVENT)
+		return SR_ERR_BUG;
+	sr_spew("Created WS2 pollfd event %p", wsa_evt);
+
+	tcp = serial->tcp_dev;
+	if (WSAEventSelect(tcp->sock_fd, wsa_evt, FD_READ) != 0) {
+		sr_err("Cant select WS2 socket %x for poolfd event %p", tcp->sock_fd,
+			wsa_evt);
+		WSACloseEvent(wsa_evt);
+		return SR_ERR_IO;
+	}
+
+	ret = sr_session_fd_source_add(session, GINT_TO_POINTER(tcp->sock_fd),
+		(gintptr)wsa_evt, events, timeout, cb, cb_data);
+	if (ret != SR_OK) {
+		WSACloseEvent(wsa_evt);
+		wsa_evt = NULL;
+	}
+
+	/* Using serial sp_data field for store WS2 event handle. */
+	serial->sp_data = (struct sp_port *)wsa_evt;
+	return ret;
+#endif
 }
 
 static int ser_tcpraw_setup_source_remove(struct sr_session *session,
@@ -212,6 +293,18 @@ static int ser_tcpraw_setup_source_remove(struct sr_session *session,
 {
 	if (!serial || !serial->tcp_dev)
 		return SR_ERR_ARG;
+
+#ifdef _WIN32
+	if (serial->sp_data) {
+		/* Closing WS2 event handle stored in serial sp_data field. */
+		if (WSACloseEvent(serial->sp_data))
+			sr_spew("Closed WS2 poolfd event %p", serial->sp_data);
+		else
+			sr_warn("Cant close WS2 poolfd event %p", serial->sp_data);
+		serial->sp_data = NULL;
+	}
+#endif
+
 	(void)sr_tcp_source_remove(session, serial->tcp_dev);
 	return SR_OK;
 }
@@ -233,6 +326,17 @@ static int ser_tcpraw_write(struct sr_serial_dev_inst *serial,
 	total = 0;
 	while (count) {
 		ret = sr_tcp_write_bytes(serial->tcp_dev, buf, count);
+
+#ifdef SER_TCPRAW_TRY_AUTO_RECONNECT
+		/*
+		 * All device driver send commands for start acquisition.
+		 * So we can do reconnect there with "free" check,
+		 * and socket fd used for source key still be valid.
+		 */
+		if (ret < 0 && !total && sr_tcpraw_reconnect_internal(ret, serial))
+			ret = sr_tcp_write_bytes(serial->tcp_dev, buf, count);
+#endif
+
 		if (ret < 0 && !total) {
 			sr_err("Error sending TCP transmit data.");
 			return total;
@@ -312,11 +416,86 @@ static int ser_tcpraw_read(struct sr_serial_dev_inst *serial,
 	return total;
 }
 
+static int tcpraw_drain_internal(struct sr_tcp_dev_inst *tcp,
+	int timeout, gboolean clear)
+{
+	unsigned char *buf = g_malloc(1024);
+	fd_set rset;
+	int ret, len = 0;
+	struct timeval tv;
+
+	FD_ZERO(&rset);
+	FD_SET(tcp->sock_fd, &rset);
+
+	tv.tv_sec = 0;
+	tv.tv_usec = timeout;
+
+	do {
+		ret = select(tcp->sock_fd+1, &rset, NULL, NULL, &tv);
+		if (ret > 0) {
+			if (clear)
+				len += sr_tcp_read_bytes(tcp, buf, 1024, TRUE);
+			else
+				break;
+		}
+	} while (ret > 0);
+
+	g_free(buf);
+
+	if (clear)
+		sr_spew("Drained %d bytes of data.", len);
+
+	return len;
+}
+
+static int ser_tcpraw_drain(struct sr_serial_dev_inst *serial)
+{
+	if (!serial || !serial->tcp_dev)
+		return SR_ERR_ARG;
+
+	tcpraw_drain_internal(serial->tcp_dev, DRAIN_TIMEOUT, FALSE);
+	return SR_OK;
+}
+
+static size_t ser_tcpraw_get_rx_avail(struct sr_serial_dev_inst *serial)
+{
+	struct sr_tcp_dev_inst *tcp;
+
+	if (!serial || !serial->tcp_dev)
+		return 0;
+	tcp = serial->tcp_dev;
+
+#ifdef _WIN32
+	u_long bytes_available;
+	if (ioctlsocket(tcp->sock_fd, FIONREAD, &bytes_available) != 0) {
+#else
+	int bytes_available;
+	if (ioctl(tcp->sock_fd, FIONREAD, &bytes_available) < 0) {
+#endif
+		sr_err("FIONREAD failed: %s\n", g_strerror(errno));
+		return 0;
+	}
+	return bytes_available;
+}
+
+/* Just clean incoming buffers. */
+static int ser_tcpraw_flush(struct sr_serial_dev_inst *serial)
+{
+	if (!serial || !serial->tcp_dev)
+		return SR_ERR;
+	tcpraw_drain_internal(serial->tcp_dev, FLUSH_TIMEOUT, TRUE);
+	return SR_OK;
+}
+
+
 static struct ser_lib_functions serlib_tcpraw = {
 	.open = ser_tcpraw_open,
 	.close = ser_tcpraw_close,
 	.write = ser_tcpraw_write,
 	.read = ser_tcpraw_read,
+	.drain = ser_tcpraw_drain,
+	.flush = ser_tcpraw_flush,
+	.get_rx_avail = ser_tcpraw_get_rx_avail,
 	.set_params = std_dummy_set_params,
 	.set_handshake = std_dummy_set_handshake,
 	.setup_source_add = ser_tcpraw_setup_source_add,

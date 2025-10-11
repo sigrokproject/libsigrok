@@ -1617,8 +1617,8 @@ struct sr_serial_dev_inst {
 	GString *rcv_buffer;
 	serial_rx_chunk_callback rx_chunk_cb_func;
 	void *rx_chunk_cb_data;
-#ifdef HAVE_LIBSERIALPORT
-	/** libserialport port handle */
+#if defined(HAVE_LIBSERIALPORT) || defined(_WIN32)
+	/** libserialport port handle / WIN32 TCP IO event handle */
 	struct sp_port *sp_data;
 #endif
 #ifdef HAVE_LIBHIDAPI

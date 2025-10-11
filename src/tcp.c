@@ -93,7 +93,7 @@ SR_PRIV gboolean sr_fd_is_readable(int fd)
 		return FALSE;
 
 	return TRUE;
-#elif HAVE_SELECT
+#elif defined(HAVE_SELECT) || defined(_WIN32)
 	fd_set rfds;
 	struct timeval tv;
 	int ret;
@@ -106,7 +106,7 @@ SR_PRIV gboolean sr_fd_is_readable(int fd)
 		return FALSE;
 	if (!ret)
 		return FALSE;
-	if (!FD_ISSET(fd, rfds))
+	if (!FD_ISSET(fd, &rfds))
 		return FALSE;
 	return TRUE;
 #else
