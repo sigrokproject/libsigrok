@@ -70,7 +70,10 @@ static int parse_value(const uint8_t *buf,
 	}
 
 	/* Bytes 3-10: Sign, value (up to 5 digits including decimal point) */
-	sr_atof_ascii((const char *)&valstr, result);
+	if ((ret = sr_atof_ascii((const char *)&valstr, result)) != SR_OK) {
+		sr_dbg("Error parsing value: %d.", ret);
+		return ret;
+	}
 
 	dot_pos = strcspn(valstr, ".");
 	if (dot_pos < cnt)
@@ -131,7 +134,7 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 		info->is_kilo = TRUE;
 	else if (strchr(u, (int)'M'))
 		info->is_mega = TRUE;
-	else if (!g_ascii_strcasecmp(u, ""))
+	else if (!g_ascii_strcasecmp(u, "  "))
 		info->is_unitless = TRUE;
 
 	/* Byte 12: Always '\r' (carriage return, 0x0d, 12) */
@@ -269,6 +272,10 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 
 	memset(info_local, 0x00, sizeof(struct vc96_info));
 
+	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
+		sr_dbg("Error parsing value: %d.", ret);
+		return ret;
+	}
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
 
