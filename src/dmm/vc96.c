@@ -41,7 +41,7 @@
 static int parse_value(const uint8_t *buf,
 			float *result, int *exponent)
 {
-	int i, is_ol, cnt, dot_pos;
+	int i, is_ol, cnt, dot_pos, ret;
 	char valstr[6 + 1];
 
 	/* Strip all spaces from bytes 3-8. */
