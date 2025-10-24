@@ -71,7 +71,7 @@ static int parse_value(const uint8_t *buf,
 
 	/* Bytes 3-10: Sign, value (up to 5 digits including decimal point) */
 	if ((ret = sr_atof_ascii((const char *)&valstr, result)) != SR_OK) {
-		sr_dbg("Error parsing value: %d.", ret);
+		sr_dbg("Error sr_atof_ascii: %d.", ret);
 		return ret;
 	}
 
