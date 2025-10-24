@@ -129,7 +129,7 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 		info->is_milli = info->is_volt = TRUE;
 	else if (!g_ascii_strcasecmp(u, "V"))
 		info->is_volt = TRUE;
-	/* ignore case, VC96 sends wrong upper case "K" */
+	/* ignore case, VC96 sends wrong upper case "K" (maybe there are devices doing this correct) */
 	else if (!g_ascii_strncasecmp(u, "K", 1))
 		info->is_kilo = TRUE;
 	else if (strchr(u, (int)'M'))
