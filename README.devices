@@ -75,6 +75,11 @@ The following drivers/devices require a firmware upload upon connection:
 
      http://sigrok.org/wiki/LeCroy_LogicStudio#Firmware
 
+ - raspberrypi-pico: In order to use a Raspberry Pi Pico as a logic analyzer,
+   it must be flashed with special open-source firmware:
+
+     https://github.com/pico-coder/sigrok-pico
+
  - saleae-logic16: The Saleae Logic16 needs a firmware file for the
    Cypress FX2 chip in the device, as well as two FPGA bitstream files.
    These can be extracted from the vendor's Linux application using a tool
