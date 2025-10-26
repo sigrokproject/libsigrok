@@ -42,14 +42,17 @@ static int parse_value(const uint8_t *buf,
 			float *result, int *exponent)
 {
 	int i, is_ol, cnt, dot_pos, ret;
+	ret = SR_ERR;		// to be overwritten with SR_OK
 	char valstr[6 + 1];
 
+	sr_spew("parse_value buf still with spaces \"%.12s\".", buf);
 	/* Strip all spaces from bytes 3-8. */
 	memset(&valstr, 0, 6 + 1);
 	for (i = 0, cnt = 0; i < 6; i++) {
 		if (buf[3 + i] != ' ')
 			valstr[cnt++] = buf[3 + i];
 	}
+	sr_spew("parse_value valstr without spaces \"%.7s\".", valstr);
 
 	/* Bytes 5-7: Over limit (various forms) */
 	is_ol = 0;
@@ -63,27 +66,22 @@ static int parse_value(const uint8_t *buf,
 	is_ol += (!g_ascii_strcasecmp((const char *)&valstr, "-OL")) ? 1 : 0;
 	if (is_ol != 0) {
 		*result = INFINITY;
-		
-		sr_spew("Over limit.");
-		
-		return SR_OK;
-	}
+		sr_spew("parse_value Over limit.");
+		ret = SR_OK;
+	}else{
+		/* Bytes 3-10: Sign, value (up to 5 digits including decimal point) */
+		if ((ret = sr_atof_ascii((const char *)&valstr, result)) != SR_OK)
+			sr_dbg("parse_value Error sr_atof_ascii: %d.", ret);
+		sr_spew("parse_value value %f.", *result);
 
-	/* Bytes 3-10: Sign, value (up to 5 digits including decimal point) */
-	if ((ret = sr_atof_ascii((const char *)&valstr, result)) != SR_OK) {
-		sr_dbg("Error sr_atof_ascii: %d.", ret);
-		return ret;
-	}
-
-	dot_pos = strcspn(valstr, ".");
-	if (dot_pos < cnt)
-		*exponent = -(cnt - dot_pos - 1);
-	else
-		*exponent = 0;
-
-	sr_spew("The display value is %f.", *result);
-	
-	return SR_OK;
+		dot_pos = strcspn(valstr, ".");
+		if (dot_pos < cnt)
+			*exponent = -(cnt - dot_pos - 1);
+		else
+			*exponent = 0;
+		sr_spew("parse_value Exponent %i", *exponent);
+	};
+	return ret;
 }
 
 
@@ -108,13 +106,14 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 
 	/* Bytes 3-8: See parse_value(). */
 
+	sr_spew("parse_flags buf still with spaces \"%.12s\".", buf);
 	/* Strip all spaces from bytes 9-10. */
 	memset(&unit, 0, 2 + 1);
 	for (i = 0, cnt = 0; i < 2; i++) {
 		if (buf[9 + i] != ' ')
 			unit[cnt++] = buf[9 + i];
 	}
-	sr_spew("Bytes 9..10 without spaces \"%.4s\".", unit);
+	sr_spew("parse_flags Bytes 9..10 (unit) without spaces \"%.4s\".", unit);
 	
 	/* Bytes 9-10: Unit */
 	u = (const char *)&unit;
@@ -129,7 +128,7 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 		info->is_milli = info->is_volt = TRUE;
 	else if (!g_ascii_strcasecmp(u, "V"))
 		info->is_volt = TRUE;
-	/* ignore case, VC96 sends wrong upper case "K" (maybe there are devices doing this correct) */
+	/* VC96 sends wrong upper case "K", ignore case, for devices maybe doing this correct */
 	else if (!g_ascii_strncasecmp(u, "K", 1))
 		info->is_kilo = TRUE;
 	else if (strchr(u, (int)'M'))
@@ -279,6 +278,7 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
 
+	sr_spew("sr_vc96_parse Exponent %i", exponent);
 	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
 
