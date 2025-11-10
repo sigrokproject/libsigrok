@@ -116,9 +116,13 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 SR_PRIV int scpi_dmm_set_mq(const struct sr_dev_inst *sdi,
 	enum sr_mq mq, enum sr_mqflag flag);
 SR_PRIV const char *scpi_dmm_get_range_text(const struct sr_dev_inst *sdi);
+SR_PRIV const char *scpi_dmm_owon_get_range_text(const struct sr_dev_inst *sdi);
 SR_PRIV int scpi_dmm_set_range_from_text(const struct sr_dev_inst *sdi,
 	const char *range);
+SR_PRIV int scpi_dmm_owon_set_range_from_text(const struct sr_dev_inst *sdi,
+	const char *range);
 SR_PRIV GVariant *scpi_dmm_get_range_text_list(const struct sr_dev_inst *sdi);
+SR_PRIV GVariant *scpi_dmm_owon_get_range_text_list(const struct sr_dev_inst *sdi);
 SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch);
 SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch);
 SR_PRIV int scpi_dmm_receive_data(int fd, int revents, void *cb_data);
