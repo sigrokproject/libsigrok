@@ -69,6 +69,7 @@ static const uint64_t timebases[][2] = {
 	{ 20, 1000000000 },
 	{ 50, 1000000000 },
 	{ 100, 1000000000 },
+	{ 200, 1000000000 },
 	{ 500, 1000000000 },
 	/* microseconds */
 	{ 1, 1000000 },
@@ -301,6 +302,7 @@ static void clear_helper(struct dev_context *devc)
 {
 	unsigned int i;
 
+	g_free(devc->data_logic);
 	g_free(devc->data);
 	g_free(devc->buffer);
 	for (i = 0; i < ARRAY_SIZE(devc->coupling); i++)
@@ -429,6 +431,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	devc->buffer = g_malloc(ACQ_BUFFER_SIZE);
 	devc->data = g_malloc(ACQ_BUFFER_SIZE * sizeof(float));
+	devc->data_logic = (devc->model->series->protocol == PROTOCOL_V5)  ?
+			g_malloc(ACQ_BUFFER_SIZE * (MAX_DIGITAL_CHANNELS / 8)) : NULL;
 
 	devc->data_source = DATA_SOURCE_LIVE;
 
@@ -778,6 +782,8 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_err("Unknown data source: '%s'.", tmp_str);
 			return SR_ERR;
 		}
+		if (devc->model->series->protocol == PROTOCOL_V5) /* TODO: Check for other versions */
+			devc->sample_rate = 0.0; /* sample rate changes with data source */
 		break;
 	default:
 		return SR_ERR_NA;
@@ -886,7 +892,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->num_frames = 0;
 	devc->num_frames_segmented = 0;
 
+	devc->block_start_offset_current_iteration = 0;
+	devc->frame_needs_another_iteration = FALSE;
+
 	some_digital = FALSE;
+	devc->first_enabled_digital_channel = NULL;
+	devc->last_enabled_digital_channel = NULL;
+	devc->last_enabled_digital_channel_index = -1;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		sr_dbg("handling channel %s", ch->name);
@@ -911,6 +923,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 						devc->enabled_channels, ch);
 			if (ch->enabled) {
 				some_digital = TRUE;
+				if (devc->first_enabled_digital_channel == NULL)
+					devc->first_enabled_digital_channel =
+							g_slist_last(devc->enabled_channels);
+				devc->last_enabled_digital_channel =
+						g_slist_last(devc->enabled_channels);
+				if (ch->index > devc->last_enabled_digital_channel_index)
+					devc->last_enabled_digital_channel_index = ch->index;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
 					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V3 ?
@@ -940,11 +959,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Turn off LA module if on and no digital channels selected. */
-	if (devc->la_enabled && !some_digital)
+	if (devc->la_enabled && !some_digital) {
 		if (rigol_ds_config_set(sdi,
 				devc->model->series->protocol >= PROTOCOL_V3 ?
 					":LA:STAT OFF" : ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
+		devc->la_enabled = false;
+	}
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
@@ -1006,7 +1027,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	if (devc->data_source == DATA_SOURCE_LIVE)
-		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
 			return SR_ERR;
 
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
@@ -1017,7 +1038,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->channel_entry = devc->enabled_channels;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
-		devc->sample_rate = analog_frame_size(sdi) /
+		/* sample rate is the same for analog and logic channels */
+		devc->sample_rate = devc->model->series->live_samples /
 			(devc->timebase * devc->model->series->num_horizontal_divs);
 	} else {
 		float xinc;
@@ -1025,16 +1047,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			sr_err("Cannot get samplerate (below V3).");
 			return SR_ERR;
 		}
-		ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
-		if (ret != SR_OK) {
-			sr_err("Cannot get samplerate (WAV:XINC? failed).");
-			return SR_ERR;
+		if (protocol >= PROTOCOL_V3 && protocol <= PROTOCOL_V4) {
+			ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
+			if (ret != SR_OK) {
+				sr_err("Cannot get samplerate (WAV:XINC? failed).");
+				return SR_ERR;
+			}
+			if (!xinc) {
+				sr_err("Cannot get samplerate (zero XINC value).");
+				return SR_ERR;
+			}
+			devc->sample_rate = 1. / xinc;
+		} else {
+			/* MSO5000 (PROTOCOL_V5):
+			 * You only know the exact sample rate, after capturing data */
+			devc->sample_rate = 0.0;
 		}
-		if (!xinc) {
-			sr_err("Cannot get samplerate (zero XINC value).");
-			return SR_ERR;
-		}
-		devc->sample_rate = 1. / xinc;
 	}
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
@@ -1059,6 +1087,14 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	devc->enabled_channels = NULL;
 	scpi = sdi->conn;
 	sr_scpi_source_remove(sdi->session, scpi);
+
+	if (devc->model->series->protocol == PROTOCOL_V5) {
+		/* For MSO5000 the sample rate may change between sessions,
+		   when changing data source, en-/disabling of analog channels or
+		   switching from mixed mode to digital only */
+		/* TODO: Check, if this is also valid for V3, V4 */
+		devc->sample_rate = 0.0;
+	}
 
 	return SR_OK;
 }
