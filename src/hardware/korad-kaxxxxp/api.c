@@ -57,6 +57,8 @@ static const double amps_5[] = { 0, 5.1, 0.001, };
 
 static const struct korad_kaxxxxp_model models[] = {
 	/* Vendor, model name, ID reply, channels, voltage, current, quirks. */
+	{"Korad", "KA3005PS", "", 1, volts_30, amps_5,
+		KORAD_QUIRK_NEWLINE},
 	{"Korad", "KA3005P", "", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_TRAILING},
 	{"Korad", "KD3005P", "", 1, volts_30, amps_5, 0},
@@ -278,11 +280,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		len = sizeof(reply) - 1;
 	sr_dbg("Want max %zu bytes.", len);
 
-	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?");
+	// TODO: check if adding the newline breaks some other devices - I cannot do so
+	// This is required for the KA3005PS
+	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?", true);
 	if (ret < 0)
 		return NULL;
 
-	ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	// Newline stripping enabled by default - doesn't matter for devices that don't add one
+	ret = korad_kaxxxxp_read_chars(serial, len, reply, true);
 	if (ret < 0)
 		return NULL;
 	sr_dbg("Received: %d, %s", ret, reply);
