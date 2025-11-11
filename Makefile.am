@@ -598,6 +598,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/openbench-logic-sniffer/protocol.c \
 	src/hardware/openbench-logic-sniffer/api.c
 endif
+if HW_OPEN_LOGIC_BIT
+src_libdrivers_la_SOURCES += \
+	src/hardware/open-logic-bit/protocol.h \
+	src/hardware/open-logic-bit/protocol.c \
+	src/hardware/open-logic-bit/api.c
+endif
 if HW_PCE_322A
 src_libdrivers_la_SOURCES += \
 	src/hardware/pce-322a/protocol.h \
