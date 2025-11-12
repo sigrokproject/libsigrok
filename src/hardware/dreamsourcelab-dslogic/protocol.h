@@ -41,7 +41,8 @@
 #define NUM_CHANNELS		16
 #define NUM_TRIGGER_STAGES	16
 
-#define DSLOGIC_REQUIRED_VERSION_MAJOR	1
+#define DSLOGIC_REQUIRED_VERSION_MAJOR_V1	1
+#define DSLOGIC_REQUIRED_VERSION_MAJOR_V2	2
 
 /* 6 delay states of up to 256 clock ticks */
 #define MAX_SAMPLE_DELAY	(6 * 256)
@@ -52,6 +53,10 @@
 #define DSLOGIC_PRO_FPGA_FIRMWARE "dreamsourcelab-dslogic-pro-fpga.fw"
 #define DSLOGIC_PLUS_FPGA_FIRMWARE "dreamsourcelab-dslogic-plus-fpga.fw"
 #define DSLOGIC_BASIC_FPGA_FIRMWARE "dreamsourcelab-dslogic-basic-fpga.fw"
+#define DSLOGIC_U3PRO16_FPGA_FIRMWARE "dreamsourcelab-dslogic-u3pro16-fpga.fw"
+
+#define DSLOGIC_CAPS_ADF4360 (1 << 8)
+#define DSLOGIC_CAPS_USB30   (1 << 7)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,
@@ -60,9 +65,21 @@ enum dslogic_operation_modes {
 	DS_OP_LOOPBACK_TEST,
 };
 
+enum dslogic_data_processing_states {
+	DS_DATA_PROC_RUNNING,
+	DS_DATA_PROC_ABORT_REQ,
+	DS_DATA_PROC_MAX_SAMPLES_REACHED,
+};
+
 enum dslogic_edge_modes {
 	DS_EDGE_RISING,
 	DS_EDGE_FALLING,
+};
+
+enum dslogic_api_version {
+	DS_API_V1 = 1,
+	DS_API_V2 = 2,
+	DS_API_V_UNKNOWN = 0xff
 };
 
 struct dslogic_version {
@@ -83,7 +100,6 @@ struct dslogic_trigger_pos {
 	uint32_t remain_cnt_l;
 	uint32_t remain_cnt_h;
 	uint32_t status;
-	uint8_t first_block[488];
 };
 
 struct dslogic_profile {
@@ -103,10 +119,17 @@ struct dslogic_profile {
 
 	/* Memory depth in bits. */
 	uint64_t mem_depth;
+	uint32_t usb_buffer_duration_ms;
+	uint32_t block_size;
+	uint64_t max_samplerate;
+	uint64_t half_samplerate;
+    uint64_t quarter_samplerate;
+	uint8_t max_predivider;
 };
 
 struct dev_context {
 	const struct dslogic_profile *profile;
+	enum dslogic_api_version api_version;
 	/*
 	 * Since we can't keep track of a DSLogic device after upgrading
 	 * the firmware (it renumerates into a different device address
@@ -124,7 +147,7 @@ struct dev_context {
 
 	gboolean acq_aborted;
 
-	unsigned int sent_samples;
+	uint64_t sent_samples;
 	int submitted_transfers;
 	int empty_transfer_count;
 
@@ -140,10 +163,17 @@ struct dev_context {
 	gboolean continuous_mode;
 	int clock_edge;
 	double cur_threshold;
+	GThread *thread_handle;
+	GQueue *finished_transfers;
+	GMutex data_proc_mutex;
+	GCond data_proc_state_cond;
+	enum dslogic_data_processing_states data_proc_state;
+	uint64_t samples_captured;
 };
 
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_set_voltage_threshold(const struct sr_dev_inst *sdi, double threshold);
+SR_PRIV enum dslogic_api_version dslogic_detect_api_version(libusb_device *usbdev);
 SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *dslogic_dev_new(void);
 SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi);
