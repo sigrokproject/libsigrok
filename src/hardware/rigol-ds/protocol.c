@@ -324,9 +324,12 @@ SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *forma
 		return SR_ERR;
 
 	if (devc->model->series->protocol == PROTOCOL_V2) {
-		/* The DS1000 series needs this stupid delay, *OPC? doesn't work. */
+		/* The DS1000 series needs this stupid delay, *OPC? doesn't work.*/
 		sr_spew("delay %dms", 100);
 		g_usleep(100 * 1000);
+		return SR_OK;
+	} else if (devc->model->series->protocol == PROTOCOL_V6) {
+		/* Same goes for DHO series but they can handle faster response...*/
 		return SR_OK;
 	} else {
 		return sr_scpi_get_opc(sdi->conn);
@@ -385,6 +388,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	case PROTOCOL_V3:
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
+	case PROTOCOL_V6:
 		if (first_frame && rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
 			return SR_ERR;
 		if (devc->data_source == DATA_SOURCE_LIVE) {
@@ -417,13 +421,23 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 				buffer_samples = devc->model->series->buffer_samples;
 				if (first_frame && buffer_samples == 0)
 				{
-					/* The DS4000 series does not have a fixed memory depth, it
+					/* The DS4000 and DHO series does not have a fixed memory depth, it
 					 * can be chosen from the menu and also varies with number
 					 * of active channels. Retrieve the actual number with the
 					 * ACQ:MDEP command. */
 					sr_scpi_get_int(sdi->conn, "ACQ:MDEP?", &buffer_samples);
+					/* TODO : what about digital channels ? */
 					devc->analog_frame_size = devc->digital_frame_size =
 							buffer_samples;
+
+					/* For some reason, as for DHO firmware version v00.01.02.00.02 of 2023/12/28, 
+					 * segmented acquisition does not work over multiple data blocks : DATA? command on a frame
+					 * portion results in a header, declaring an empty content, of the form '#9000000000'. */
+					if(devc->data_source == DATA_SOURCE_SEGMENTED && devc->analog_frame_size > ACQ_BLOCK_SIZE) {
+						sr_err("Data source 'Segmented' not supported for memory depth > %d points.",ACQ_BLOCK_SIZE);
+						return SR_ERR_NA;
+					}
+
 				}
 				else if (first_frame)
 				{
@@ -499,6 +513,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
+	case PROTOCOL_V6:
 		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
 					ch->index + 1) != SR_OK)
@@ -514,7 +529,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 						":WAV:MODE NORM" :":WAV:MODE RAW") != SR_OK)
 			return SR_ERR;
 
-		if (devc->data_source != DATA_SOURCE_LIVE) {
+		if ((devc->data_source != DATA_SOURCE_LIVE) && (devc->model->series->protocol != PROTOCOL_V6)) {
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
 				return SR_ERR;
 		}
@@ -669,17 +684,17 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	if (devc->num_block_bytes == 0) {
 		if (devc->model->series->protocol >= PROTOCOL_V4) {
-			if (first_frame && rigol_ds_config_set(sdi, ":WAV:START %d",
+			if ((first_frame || (devc->model->series->protocol == PROTOCOL_V6)) && rigol_ds_config_set(sdi, ":WAV:START %d",
 					devc->num_channel_bytes + 1) != SR_OK)
 				return TRUE;
-			if (first_frame && rigol_ds_config_set(sdi, ":WAV:STOP %d",
+			if ((first_frame || (devc->model->series->protocol == PROTOCOL_V6)) && rigol_ds_config_set(sdi, ":WAV:STOP %d",
 					MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
 						devc->analog_frame_size)) != SR_OK)
 				return TRUE;
 		}
 
 		if (devc->model->series->protocol >= PROTOCOL_V3) {
-			if (rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
+			if ((devc->model->series->protocol != PROTOCOL_V6) && rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
 				return TRUE;
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 				return TRUE;
@@ -846,6 +861,13 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			/* Get the next frame, starting with the first channel. */
 			devc->channel_entry = devc->enabled_channels;
 
+			if (devc->data_source == DATA_SOURCE_SEGMENTED &&
+					devc->model->series->protocol == PROTOCOL_V6) {
+				/* Move to next frame in segmented mode*/
+				if (rigol_ds_config_set(sdi, ":REC:CURR %d", devc->num_frames + 1) != SR_OK)
+					return SR_ERR;
+			}
+
 			rigol_ds_capture_start(sdi);
 
 			/* Start of next frame. */
@@ -882,20 +904,43 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	/* Digital channel state. */
 	if (devc->model->has_digital) {
-		if (sr_scpi_get_bool(sdi->conn,
-				devc->model->series->protocol >= PROTOCOL_V3 ?
-					":LA:STAT?" : ":LA:DISP?",
-				&devc->la_enabled) != SR_OK)
+		switch (devc->model->series->protocol) {
+			case PROTOCOL_V1:
+			case PROTOCOL_V2:
+				cmd = ":LA:DISP?";
+				break;
+			case PROTOCOL_V3:
+			case PROTOCOL_V4:
+			case PROTOCOL_V5:
+				cmd = ":LA:STAT?";
+				break;
+			case PROTOCOL_V6:
+			default:
+				cmd = ":LA:ENAB?";
+				break;
+		}
+		if (sr_scpi_get_bool(sdi->conn, cmd, &devc->la_enabled) != SR_OK)
 			return SR_ERR;
 		sr_dbg("Logic analyzer %s, current digital channel state:",
 				devc->la_enabled ? "enabled" : "disabled");
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
-			if (devc->model->series->protocol >= PROTOCOL_V5)
-				cmd = g_strdup_printf(":LA:DISP? D%d", i);
-			else if (devc->model->series->protocol >= PROTOCOL_V3)
-				cmd = g_strdup_printf(":LA:DIG%d:DISP?", i);
-			else
-				cmd = g_strdup_printf(":DIG%d:TURN?", i);
+			switch (devc->model->series->protocol) {
+				case PROTOCOL_V1:
+				case PROTOCOL_V2:
+					cmd = g_strdup_printf(":DIG%d:TURN?", i);
+					break;
+				case PROTOCOL_V3:
+				case PROTOCOL_V4:
+					cmd = g_strdup_printf(":LA:DIG%d:DISP?", i);
+					break;
+				case PROTOCOL_V5:
+					cmd = g_strdup_printf(":LA:DISP? D%d", i);
+					break;
+				case PROTOCOL_V6:
+				default:
+					cmd = g_strdup_printf(":LA:DIG:ENAB? D%d", i);
+					break;
+			}
 			res = sr_scpi_get_bool(sdi->conn, cmd, &devc->digital_channels[i]);
 			g_free(cmd);
 			if (res != SR_OK)
