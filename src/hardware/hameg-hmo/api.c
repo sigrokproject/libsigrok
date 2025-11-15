@@ -641,6 +641,7 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 #else
 			   "LSBF",
 #endif
+			   ch->index + 1,
 			   ch->index + 1);
 		break;
 	case SR_CHANNEL_LOGIC:
@@ -711,6 +712,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
 	unsigned int i;
+	unsigned int k;
 	gboolean *pod_enabled, setup_changed;
 	char command[MAX_COMMAND_SIZE];
 	struct scope_state *state;
@@ -755,16 +757,20 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 
 			if (ch->enabled == state->digital_channels[ch->index])
 				break;
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
-				   ch->index, ch->enabled);
+			
+			if (!(model->internal_flags & INTERN_NO_LOGIC_STATE_SET_SUPPORT)) {
+				g_snprintf(command, sizeof(command),
+					(*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
+					ch->index, ch->enabled);
 
-			if (sr_scpi_send(scpi, command) != SR_OK) {
-				g_free(pod_enabled);
-				return SR_ERR;
+				if (sr_scpi_send(scpi, command) != SR_OK) {
+					g_free(pod_enabled);
+					return SR_ERR;
+				}
+
+				state->digital_channels[ch->index] = ch->enabled;
 			}
 
-			state->digital_channels[ch->index] = ch->enabled;
 			setup_changed = TRUE;
 			break;
 		default:
@@ -777,12 +783,31 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 	for (i = 0; i < model->digital_pods; i++) {
 		if (state->digital_pods[i].state == pod_enabled[i])
 			continue;
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
-			   i + 1, pod_enabled[i]);
-		if (sr_scpi_send(scpi, command) != SR_OK) {
-			ret = SR_ERR;
-			break;
+		
+		if (!(model->internal_flags & INTERN_NO_LOGIC_STATE_SET_SUPPORT)) {
+			/*
+			 * Override digital channel state for all channels of a POD if
+			 * individual channel states can't be set.
+			 */
+			for (k = 0; k < DIGITAL_CHANNELS_PER_POD; k++) {
+				state->digital_channels[k + i * DIGITAL_CHANNELS_PER_POD] = pod_enabled[i];
+			}
+		}
+
+		if (!(model->internal_flags & INTERN_NO_POD_STATE_SET_SUPPORT)) {
+			g_snprintf(command, sizeof(command),
+				(*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
+				i + 1, pod_enabled[i]);
+			if (sr_scpi_send(scpi, command) != SR_OK) {
+				ret = SR_ERR;
+				break;
+			}
+		}
+		else {
+			pod_enabled[i] = TRUE;
+			for (k = 0; k < DIGITAL_CHANNELS_PER_POD; k++) {
+				state->digital_channels[k + i * DIGITAL_CHANNELS_PER_POD] = TRUE;
+			}
 		}
 		state->digital_pods[i].state = pod_enabled[i];
 		setup_changed = TRUE;
