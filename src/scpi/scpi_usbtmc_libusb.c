@@ -629,7 +629,7 @@ static int scpi_usbtmc_libusb_read_data(void *priv, char *buf, int maxlen)
 	if (uscpi->response_bytes_read >= uscpi->response_length) {
 		if (uscpi->remaining_length > 0) {
 			if (scpi_usbtmc_bulkin_continue(uscpi, uscpi->buffer,
-			                                sizeof(uscpi->buffer)) <= 0)
+			                                sizeof(uscpi->buffer)) < 0)
 				return SR_ERR;
 		} else {
 			if (uscpi->bulkin_attributes & EOM)
