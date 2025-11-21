@@ -382,6 +382,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/fx2lafw/protocol.c \
 	src/hardware/fx2lafw/api.c
 endif
+if HW_CYPRESS_FX2G3
+src_libdrivers_la_SOURCES += \
+	src/hardware/cypress-fx2g3/protocol.h \
+	src/hardware/cypress-fx2g3/protocol.c \
+	src/hardware/cypress-fx2g3/api.c
+endif
 if HW_GMC_MH_1X_2X
 src_libdrivers_la_SOURCES += \
 	src/hardware/gmc-mh-1x-2x/protocol.h \
