@@ -385,6 +385,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	case PROTOCOL_V3:
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
+	case PROTOCOL_V6:
 		if (first_frame && rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
 			return SR_ERR;
 		if (devc->data_source == DATA_SOURCE_LIVE) {
@@ -499,6 +500,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
+	case PROTOCOL_V6:
 		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
 					ch->index + 1) != SR_OK)
@@ -828,7 +830,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		 * next frame and read it back instead.
 		 */
 		if (devc->data_source == DATA_SOURCE_SEGMENTED &&
-				devc->model->series->protocol == PROTOCOL_V5) {
+				devc->model->series->protocol >= PROTOCOL_V5) {
 			int frames = 0;
 			if (rigol_ds_config_set(sdi, "REC:CURR %d", devc->num_frames + 1) != SR_OK)
 				return SR_ERR;
@@ -882,20 +884,41 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	/* Digital channel state. */
 	if (devc->model->has_digital) {
-		if (sr_scpi_get_bool(sdi->conn,
-				devc->model->series->protocol >= PROTOCOL_V3 ?
-					":LA:STAT?" : ":LA:DISP?",
-				&devc->la_enabled) != SR_OK)
+		switch (devc->model->series->protocol) {
+		case PROTOCOL_V1:
+		case PROTOCOL_V2:
+			cmd = ":LA:DISP?";
+			break;
+		case PROTOCOL_V3:
+		case PROTOCOL_V4:
+		case PROTOCOL_V5:
+			cmd = ":LA:STAT?";
+			break;
+		case PROTOCOL_V6:
+			cmd = ":LA:ENAB?";
+			break;
+		}
+		if (sr_scpi_get_bool(sdi->conn, cmd, &devc->la_enabled) != SR_OK)
 			return SR_ERR;
 		sr_dbg("Logic analyzer %s, current digital channel state:",
 				devc->la_enabled ? "enabled" : "disabled");
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
-			if (devc->model->series->protocol >= PROTOCOL_V5)
-				cmd = g_strdup_printf(":LA:DISP? D%d", i);
-			else if (devc->model->series->protocol >= PROTOCOL_V3)
-				cmd = g_strdup_printf(":LA:DIG%d:DISP?", i);
-			else
+			switch (devc->model->series->protocol) {
+			case PROTOCOL_V1:
+			case PROTOCOL_V2:
 				cmd = g_strdup_printf(":DIG%d:TURN?", i);
+				break;
+			case PROTOCOL_V3:
+			case PROTOCOL_V4:
+				cmd = g_strdup_printf(":LA:DIG%d:DISP?", i);
+				break;
+			case PROTOCOL_V5:
+				cmd = g_strdup_printf(":LA:DISP? D%d", i);
+				break;
+			case PROTOCOL_V6:
+				cmd = g_strdup_printf(":LA:DIG:ENAB? D%d", i);
+				break;
+			}
 			res = sr_scpi_get_bool(sdi->conn, cmd, &devc->digital_channels[i]);
 			g_free(cmd);
 			if (res != SR_OK)
