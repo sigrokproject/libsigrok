@@ -20,7 +20,7 @@
 #include <config.h>
 #include "protocol.h"
 
-#define SERIALCOMM "115200/8n1"
+#define SERIALCOMM "115200/8n1/dtr=1/rts=0/flow=0"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -48,6 +48,8 @@ static const uint32_t devopts[] = {
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING, 
+	SR_TRIGGER_FALLING,
 };
 
 static const char *external_clock_edges[] = {
