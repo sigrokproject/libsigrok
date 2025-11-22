@@ -24,6 +24,35 @@
 
 #define WITH_CMD_DELAY 0	/* TODO See which devices need delays. */
 
+/* OWON XDM range definitions */
+static const char *owon_dcv_ranges[] = {
+	"auto", "50 mV", "500 mV", "5 V", "50 V", "500 V", "1000 V", NULL
+};
+
+static const char *owon_acv_ranges[] = {
+	"auto", "500 mV", "5 V", "50 V", "500 V", "750 V", NULL
+};
+
+static const char *owon_dci_ranges[] = {
+	"auto", "500 uA", "5 mA", "50 mA", "500 mA", "5 A", "10 A", NULL
+};
+
+static const char *owon_aci_ranges[] = {
+	"auto", "500 uA", "5 mA", "50 mA", "500 mA", "5 A", "10 A", NULL
+};
+
+static const char *owon_res_ranges[] = {
+	"auto", "500 Ohm", "5 kOhm", "50 kOhm", "500 kOhm", "5 MOhm", "50 MOhm", NULL
+};
+
+static const char *owon_cap_ranges[] = {
+	"auto", "50 nF", "500 nF", "5 uF", "50 uF", "500 uF", "5 mF", "50 mF", NULL
+};
+
+static const char *owon_temp_ranges[] = {
+	"KITS90", "Pt100", NULL /* no auto here */
+};
+
 SR_PRIV void scpi_dmm_cmd_delay(struct sr_scpi_dev_inst *scpi)
 {
 	if (WITH_CMD_DELAY)
@@ -216,6 +245,99 @@ SR_PRIV const char *scpi_dmm_get_range_text(const struct sr_dev_inst *sdi)
 	return devc->range_text;
 }
 
+/*
+ * We use human-readable range texts, including the unit. They are mostly the same
+ * as displayed on the device, but with some differences:
+ * - The unit is always separated from the number by a space.
+ * - The Unicode Omega symbol (0xCE 0xA9) is replaced with "Ohm".
+ *
+ * Here is all the possible range answers, that I got from XDM1041 over SCPI:
+ * DCV: 1000 V␍␊ 500 V␍␊ 50 V␍␊ 5 V␍␊ 500 mV␍␊ 50 mV␍␊
+ * ACV 750 V␍␊500 V␍␊ 50 V␍␊5 V␍␊500 mV␍␊
+ * DCI: 10 A␍␊5 A␍␊ 500 mA␍␊50 mA␍␊5 mA␍␊500 uA␍␊
+ * ACI: 10 A␍␊5 A␍␊500 mA␍␊50 mA␍␊5 mA␍␊500 uA␍␊
+ * RES: 50 M<0xce><0xa9>␍␊5 M<0xce><0xa9>␍␊500 K<0xce><0xa9>␍␊50 K<0xce><0xa9>␍␊5 K<0xce><0xa9>␍␊500 <0xce><0xa9>␍␊500 <0xce><0xa9>␍␊500 <0xce><0xa9>␍␊
+ * CAP: 50 mF␍␊5 mF␍␊500uF␍␊50uF␍␊5uF␍␊500 nF␍␊50 nF␍␊
+ * Freq: Hz␍␊
+ * Period: s␍␊
+ * Temp: KITS90␍␊Pt100␍␊
+ */
+SR_PRIV const char *scpi_dmm_owon_get_range_text(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+	const struct mqopt_item *mqitem;
+	gboolean is_auto;
+	char *response, *pos;
+
+	devc = sdi->priv;
+
+	ret = scpi_dmm_get_mq(sdi, NULL, NULL, NULL, &mqitem);
+	if (ret != SR_OK)
+		return NULL;
+	if (!mqitem || !mqitem->scpi_func_setup)
+		return NULL;
+	if (mqitem->drv_flags & FLAG_NO_RANGE)
+		return NULL;
+
+	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL,
+		DMM_CMD_QUERY_RANGE_AUTO, mqitem->scpi_func_setup);
+	if (ret != SR_OK)
+		return NULL;
+	ret = sr_scpi_get_bool(sdi->conn, NULL, &is_auto);
+	if (ret != SR_OK)
+		return NULL;
+	if (is_auto)
+		return "auto";
+
+	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL,
+		DMM_CMD_QUERY_RANGE, mqitem->scpi_func_setup);
+	if (ret != SR_OK)
+		return NULL;
+	response = NULL;
+	ret = sr_scpi_get_string(sdi->conn, NULL, &response);
+	if (ret != SR_OK) {
+		g_free(response);
+		return NULL;
+	}
+	/* Replace Unicode Omega symbol (0xCE 0xA9) with "Ohm". */
+	GString *response_str = g_string_new(response);
+	g_string_replace(response_str, "\xCE\xA9", "Ohm", 0);
+	g_free(response);
+	response = g_string_free(response_str, FALSE);
+
+	/* Check if space is needed between number and units. */
+	pos = response;
+
+	/* Skip leading whitespace. */
+	while (*pos && g_ascii_isspace(*pos))
+		pos++;
+
+	/* Find where the number ends. */
+	char *number_end = pos;
+	while (*number_end && (g_ascii_isdigit(*number_end) || *number_end == '.' ||
+		*number_end == '+' || *number_end == '-' || *number_end == 'e' ||
+		*number_end == 'E'))
+		number_end++;
+
+	/* Check if we found a number and there's a unit character immediately after (no space). */
+	if (number_end > pos && *number_end && !g_ascii_isspace(*number_end)) {
+		/* Need to insert space between number and units. */
+		size_t number_len = number_end - pos;
+		snprintf(devc->range_text, sizeof(devc->range_text), "%.*s %s", 
+			(int)number_len, pos, number_end);
+		g_free(response);
+		return devc->range_text;
+	} else {
+		/* Response is fine as is, just copy it. */
+		snprintf(devc->range_text, sizeof(devc->range_text), "%s", response);
+		g_free(response);
+		return devc->range_text;
+	}
+}
+
 SR_PRIV int scpi_dmm_set_range_from_text(const struct sr_dev_inst *sdi,
 	const char *range)
 {
@@ -249,6 +371,107 @@ SR_PRIV int scpi_dmm_set_range_from_text(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/* OWON XDM DMMs have two different methods to set range:
+ * "CONF:VOLT 0.05" will set the range to 50 mV (note the absence of units)
+ * "RANGE 5" will set the range to fifth option in a list of possible ranges for current measurement mode
+ * Although the second one would be easier to implement, the first one should not be affected by future changes in firmware
+ */
+SR_PRIV int scpi_dmm_owon_set_range_from_text(const struct sr_dev_inst *sdi,
+										 const char *range)
+{
+	struct dev_context *devc;
+	int ret;
+	const struct mqopt_item *item;
+	gboolean is_auto;
+	char processed_range[64];
+
+	devc = sdi->priv;
+
+	if (!range || !*range)
+		return SR_ERR_ARG;
+
+	ret = scpi_dmm_get_mq(sdi, NULL, NULL, NULL, &item);
+	if (ret != SR_OK)
+		return ret;
+	if (!item || !item->scpi_func_setup)
+		return SR_ERR_ARG;
+	if (item->drv_flags & FLAG_NO_RANGE)
+		return SR_ERR_NA;
+
+	is_auto = g_ascii_strcasecmp(range, "auto") == 0;
+
+	/* Preprocess range text to handle SI prefixes */
+	const char *space_pos = strchr(range, ' ');
+	if (space_pos && *(space_pos + 1)) {
+		/* Extract the numeric part */
+		size_t num_len = space_pos - range;
+		char num_str[32];
+		strncpy(num_str, range, num_len);
+		num_str[num_len] = '\0';
+
+		/* Parse the numeric value */
+		double value;
+		ret = sr_atod_ascii(num_str, &value);
+		if (ret == SR_OK) {
+			/* Check for SI prefix after the space */
+			char prefix = *(space_pos + 1);
+			double multiplier = 1.0;
+
+			switch (prefix) {
+			case 'k':
+			case 'K':
+				multiplier = 1e3;
+				break;
+			case 'm':
+				multiplier = 1e-3;
+				break;
+			case 'u':
+				multiplier = 1e-6;
+				break;
+			case 'n':
+				multiplier = 1e-9;
+				break;
+			case 'p':
+				multiplier = 1e-12;
+				break;
+			case 'M':
+				multiplier = 1e6;
+				break;
+			case 'G':
+				multiplier = 1e9;
+				break;
+			default:
+				/* No recognized SI prefix, use original range */
+				snprintf(processed_range, sizeof(processed_range), "%s", range);
+				multiplier = 0.0; /* Flag to use original range */
+				break;
+			}
+
+			if (multiplier != 0.0) {
+				/* Apply the multiplier and format the result with locale-independent formatting */
+				value *= multiplier;
+				g_ascii_dtostr(processed_range, sizeof(processed_range), value);
+			}
+		} else {
+			/* Failed to parse number, use original range */
+			snprintf(processed_range, sizeof(processed_range), "%s", range);
+		}
+	} else {
+		/* No space found, use original range */
+		snprintf(processed_range, sizeof(processed_range), "%s", range);
+	}
+
+	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL, DMM_CMD_SETUP_RANGE,
+					  item->scpi_func_setup, is_auto ? "AUTO" : processed_range);
+	if (ret != SR_OK)
+		return ret;
+	if (item->drv_flags & FLAG_CONF_DELAY)
+		g_usleep(devc->model->conf_delay_us);
+
+	return SR_OK;
+}
+
 SR_PRIV GVariant *scpi_dmm_get_range_text_list(const struct sr_dev_inst *sdi)
 {
 	GVariantBuilder gvb;
@@ -266,6 +489,75 @@ SR_PRIV GVariant *scpi_dmm_get_range_text_list(const struct sr_dev_inst *sdi)
 	 */
 	list = g_variant_builder_end(&gvb);
 
+	return list;
+}
+
+SR_PRIV GVariant *scpi_dmm_owon_get_range_text_list(const struct sr_dev_inst *sdi)
+{
+	GVariantBuilder gvb;
+	GVariant *list;
+	int ret;
+	enum sr_mq mq;
+	enum sr_mqflag mqflag;
+	const char **ranges = NULL;
+	const struct mqopt_item *mqitem;
+	int i;
+
+	/* Explicitly use string array type, otherwise empty array won't be typed */
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_STRING_ARRAY); 
+	
+	/* Get current measurement quantity to return appropriate ranges */
+	ret = scpi_dmm_get_mq(sdi, &mq, &mqflag, NULL, &mqitem);
+	if (ret != SR_OK) {
+		/* Return empty list if we can't determine current mode */
+		list = g_variant_builder_end(&gvb);
+		return list;
+	}
+
+	/* Check if current mode has no range support */
+	if (mqitem && (mqitem->drv_flags & FLAG_NO_RANGE)) {
+		/* Return empty list for modes that don't support ranges */
+		list = g_variant_builder_end(&gvb);
+		return list;
+	}
+	/* Select appropriate range array based on current measurement type */
+	switch (mq) {
+	case SR_MQ_VOLTAGE:
+		if (mqflag & SR_MQFLAG_DC) {
+			ranges = owon_dcv_ranges;
+		} else if (mqflag & SR_MQFLAG_AC) {
+			ranges = owon_acv_ranges;
+		}
+		break;
+	case SR_MQ_CURRENT:
+		if (mqflag & SR_MQFLAG_DC) {
+			ranges = owon_dci_ranges;
+		} else if (mqflag & SR_MQFLAG_AC) {
+			ranges = owon_aci_ranges;
+		}
+		break;
+	case SR_MQ_RESISTANCE:
+		ranges = owon_res_ranges;
+		break;
+	case SR_MQ_CAPACITANCE:
+		ranges = owon_cap_ranges;
+		break;
+	case SR_MQ_TEMPERATURE:
+		ranges = owon_temp_ranges;
+		break;
+	default:
+		/* For other modes, just provide auto */
+		break;
+	}
+
+	/* Add all ranges from the selected array */
+	if (ranges) {
+		for (i = 0; ranges[i] != NULL; i++) {
+			g_variant_builder_add(&gvb, "s", ranges[i]);
+		}
+	}
+
+	list = g_variant_builder_end(&gvb);
 	return list;
 }
 
