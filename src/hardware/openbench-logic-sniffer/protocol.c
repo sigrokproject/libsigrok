@@ -73,14 +73,30 @@ static int ols_send_longdata(struct sr_serial_dev_inst *serial, uint8_t command,
 
 SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial)
 {
-	unsigned int i;
+	int i, ret, delay_ms;
+	char dummy[16];
+
+	/* Drain all data so that the remote side is surely listening. */
+	while ((ret = serial_read_nonblocking(serial, &dummy, 16)) > 0)
+		;
+	if (ret != SR_OK)
+		return ret;
 
 	for (i = 0; i < 5; i++) {
-		if (send_shortcommand(serial, CMD_RESET) != SR_OK)
-			return SR_ERR;
+		if ((ret = send_shortcommand(serial, CMD_RESET)) != SR_OK)
+			return ret;
 	}
 
-	return SR_OK;
+	/*
+	 * Remove all stray output that arrived in between.
+	 * This is likely to happen when RLE is being used because
+	 * the device seems to return a bit more data than we request.
+	 */
+	delay_ms = serial_timeout(serial, 16);
+	while ((ret = serial_read_blocking(serial, &dummy, 16, delay_ms)) > 0)
+		;
+
+	return ret;
 }
 
 /* Configures the channel mask based on which channels are enabled. */
@@ -344,14 +360,20 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct sr_serial_dev_inst *serial;
+	struct sr_serial_dev_inst *serial = sdi->conn;
 
-	serial = sdi->conn;
 	ols_send_reset(serial);
 
 	serial_source_remove(sdi->session, serial);
-
 	std_session_send_df_end(sdi);
+}
+
+SR_PRIV void set_rle_trigger_point_if_unset(struct dev_context *devc)
+{
+	if (devc->trigger_at_smpl != OLS_NO_TRIGGER &&
+			devc->trigger_rle_at_smpl_from_end == OLS_NO_TRIGGER &&
+			(unsigned int)devc->trigger_at_smpl == devc->cnt_rx_raw_samples)
+		devc->trigger_rle_at_smpl_from_end = devc->cnt_samples;
 }
 
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
@@ -362,9 +384,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	uint32_t sample;
-	int num_changroups, offset, j;
-	unsigned int i;
-	unsigned char byte;
+	int num_bytes_read, bytes_left_to_read;
+	unsigned int i, j, num_changroups;
+	gboolean received_a_byte;
 
 	(void)fd;
 
@@ -372,19 +394,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 	devc = sdi->priv;
 
-	if (devc->num_transfers == 0 && revents == 0) {
+	if (devc->cnt_rx_bytes == 0 && revents == 0) {
 		/* Ignore timeouts as long as we haven't received anything */
 		return TRUE;
-	}
-
-	if (devc->num_transfers++ == 0) {
-		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
-		if (!devc->raw_sample_buf) {
-			sr_err("Sample buffer malloc failed.");
-			return FALSE;
-		}
-		/* fill with 1010... for debugging */
-		memset(devc->raw_sample_buf, 0x82, devc->limit_samples * 4);
 	}
 
 	num_changroups = 0;
@@ -394,54 +406,61 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (revents == G_IO_IN && devc->num_samples < devc->limit_samples) {
-		if (serial_read_nonblocking(serial, &byte, 1) != 1)
-			return FALSE;
-		devc->cnt_bytes++;
+	received_a_byte = FALSE;
+	bytes_left_to_read = 64 * 1024; /* in this function call; give event loop a chance to run, too */
+	while (revents == G_IO_IN && bytes_left_to_read >= 0 &&
+	       (num_bytes_read = serial_read_nonblocking(
+			serial, devc->raw_sample + devc->raw_sample_size,
+			num_changroups - devc->raw_sample_size)) > 0) {
+		received_a_byte = TRUE;
+		devc->cnt_rx_bytes += num_bytes_read;
+		devc->raw_sample_size += num_bytes_read;
+		bytes_left_to_read -= num_bytes_read;
 
-		/* Ignore it if we've read enough. */
-		if (devc->num_samples >= devc->limit_samples)
-			return TRUE;
+		sr_spew("Received data. Current sample: %.2x%.2x%.2x%.2x (%u bytes)",
+			devc->raw_sample[0], devc->raw_sample[1],
+			devc->raw_sample[2], devc->raw_sample[3],
+			devc->raw_sample_size);
 
-		devc->sample[devc->num_bytes++] = byte;
-		sr_spew("Received byte 0x%.2x.", byte);
-		if (devc->num_bytes == num_changroups) {
-			devc->cnt_samples++;
-			devc->cnt_samples_rle++;
+		if (devc->raw_sample_size == num_changroups) {
+			unsigned int samples_to_write, new_sample_buf_size;
+
+			devc->cnt_rx_raw_samples++;
 			/*
 			 * Got a full sample. Convert from the OLS's little-endian
 			 * sample to the local format.
 			 */
-			sample = devc->sample[0] | (devc->sample[1] << 8) |
-				 (devc->sample[2] << 16) |
-				 (devc->sample[3] << 24);
-			sr_dbg("Received sample 0x%.*x.", devc->num_bytes * 2,
-			       sample);
+			sample = devc->raw_sample[0] |
+				 (devc->raw_sample[1] << 8) |
+				 (devc->raw_sample[2] << 16) |
+				 (devc->raw_sample[3] << 24);
+			sr_dbg("Received sample 0x%.*x.",
+			       devc->raw_sample_size * 2, sample);
 			if (devc->capture_flags & CAPTURE_FLAG_RLE) {
 				/*
 				 * In RLE mode the high bit of the sample is the
 				 * "count" flag, meaning this sample is the number
 				 * of times the previous sample occurred.
 				 */
-				if (devc->sample[devc->num_bytes - 1] & 0x80) {
+				if (devc->raw_sample[devc->raw_sample_size - 1] &
+				    0x80) {
 					/* Clear the high bit. */
-					sample &= ~(0x80 << (devc->num_bytes -
-							     1) * 8);
+					sample &= ~(0x80
+						    << (devc->raw_sample_size -
+							1) * 8);
 					devc->rle_count = sample;
-					devc->cnt_samples_rle +=
-						devc->rle_count;
 					sr_dbg("RLE count: %u.",
 					       devc->rle_count);
-					devc->num_bytes = 0;
-					return TRUE;
+					devc->raw_sample_size = 0;
+
+					set_rle_trigger_point_if_unset(devc);
+
+					/*
+					 * Even on the rare occasion that the sampling ends with an RLE message,
+					 * the acquisition should end immediately, without any timeout.
+					 */
+					goto process_and_forward;
 				}
-			}
-			devc->num_samples += devc->rle_count + 1;
-			if (devc->num_samples > devc->limit_samples) {
-				/* Save us from overrunning the buffer. */
-				devc->rle_count -=
-					devc->num_samples - devc->limit_samples;
-				devc->num_samples = devc->limit_samples;
 			}
 
 			if (num_changroups < 4) {
@@ -467,54 +486,114 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 						 * sample.
 						 */
 						tmp_sample[i] =
-							devc->sample[j++];
+							devc->raw_sample[j++];
 					}
 				}
-				memcpy(devc->sample, tmp_sample, 4);
+				memcpy(devc->raw_sample, tmp_sample, 4);
 				sr_spew("Expanded sample: 0x%.2hhx%.2hhx%.2hhx%.2hhx ",
-					devc->sample[3], devc->sample[2],
-					devc->sample[1], devc->sample[0]);
+					devc->raw_sample[3],
+					devc->raw_sample[2],
+					devc->raw_sample[1],
+					devc->raw_sample[0]);
 			}
 
-			/*
-			 * the OLS sends its sample buffer backwards.
-			 * store it in reverse order here, so we can dump
-			 * this on the session bus later.
-			 * Here cropping to devc->unitsize happens
-			 */
-			offset = (devc->limit_samples - devc->num_samples) * devc->unitsize;
-			for (i = 0; i <= devc->rle_count; i++) {
-				memcpy(devc->raw_sample_buf + offset + (i * devc->unitsize),
-				       devc->sample, devc->unitsize);
+			/* Here cropping to devc->unitsize happens */
+			samples_to_write = devc->rle_count + 1;
+			new_sample_buf_size = devc->unitsize *
+				MAX(devc->limit_samples, devc->cnt_samples + samples_to_write);
+
+			if (devc->sample_buf_size < new_sample_buf_size) {
+				unsigned int old_size = devc->sample_buf_size;
+				new_sample_buf_size *= 2;
+				devc->sample_buf = g_try_realloc(
+					devc->sample_buf, new_sample_buf_size);
+				devc->sample_buf_size = new_sample_buf_size;
+
+				if (!devc->sample_buf) {
+					sr_err("Sample buffer malloc failed.");
+					return FALSE;
+				}
+				/* fill with 1010... for debugging */
+				memset(devc->sample_buf + old_size, 0xAA,
+				       new_sample_buf_size - old_size);
 			}
-			memset(devc->sample, 0, 4);
-			devc->num_bytes = 0;
+
+			if (devc->capture_flags & CAPTURE_FLAG_RLE)
+				set_rle_trigger_point_if_unset(devc);
+
+			for (i = 0; i < samples_to_write; i++)
+				memcpy(devc->sample_buf +
+					       (devc->cnt_samples + i) * devc->unitsize,
+				       devc->raw_sample, devc->unitsize);
+
+			devc->cnt_samples += samples_to_write;
+
+			memset(devc->raw_sample, 0, 4);
+			devc->raw_sample_size = 0;
 			devc->rle_count = 0;
 		}
-	} else {
+	}
+	if (revents == G_IO_IN && !received_a_byte)
+		return FALSE;
+
+process_and_forward:
+	if (revents != G_IO_IN ||
+	    devc->cnt_rx_raw_samples == devc->limit_samples) {
+		unsigned int num_pre_trigger_samples;
+
+		if (devc->cnt_rx_raw_samples != devc->limit_samples)
+			sr_warn("Finished with unexpected sample count. Timeout?");
+
 		/*
 		 * This is the main loop telling us a timeout was reached, or
 		 * we've acquired all the samples we asked for -- we're done.
 		 * Send the (properly-ordered) buffer to the frontend.
 		 */
-		sr_dbg("Received %d bytes, %d samples, %d decompressed samples.",
-		       devc->cnt_bytes, devc->cnt_samples,
-		       devc->cnt_samples_rle);
+		sr_dbg("Received %d bytes, %d raw samples, %d decompressed samples.",
+		       devc->cnt_rx_bytes, devc->cnt_rx_raw_samples,
+		       devc->cnt_samples);
+
+		if (devc->capture_flags & CAPTURE_FLAG_RLE) {
+			if (devc->trigger_rle_at_smpl_from_end !=
+			    OLS_NO_TRIGGER)
+				devc->trigger_at_smpl =
+					devc->cnt_samples -
+					devc->trigger_rle_at_smpl_from_end;
+			else {
+				if (devc->trigger_at_smpl != OLS_NO_TRIGGER)
+					sr_warn("No trigger point found. Short read?");
+				devc->trigger_at_smpl = OLS_NO_TRIGGER;
+			}
+		}
+
+		/*
+		 * The OLS sends its sample buffer backwards.
+		 * Flip it back before sending it on the session bus.
+		 */
+		for (i = 0; i < devc->cnt_samples / 2; i++) {
+			uint8_t temp[devc->unitsize];
+			memcpy(temp, &devc->sample_buf[devc->unitsize * i], devc->unitsize);
+			memmove(&devc->sample_buf[devc->unitsize * i],
+				&devc->sample_buf[devc->unitsize * (devc->cnt_samples - i - 1)],
+				devc->unitsize);
+			memcpy(&devc->sample_buf[devc->unitsize * (devc->cnt_samples - i - 1)],
+			       temp, devc->unitsize);
+		}
+
 		if (devc->trigger_at_smpl != OLS_NO_TRIGGER) {
 			/*
 			 * A trigger was set up, so we need to tell the frontend
 			 * about it.
 			 */
-			if (devc->trigger_at_smpl > 0) {
+			if (devc->trigger_at_smpl > 0 &&
+			    (unsigned int)devc->trigger_at_smpl <=
+				    devc->cnt_samples) {
 				/* There are pre-trigger samples, send those first. */
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
 				logic.length = devc->trigger_at_smpl * devc->unitsize;
 				logic.unitsize = devc->unitsize;
-				logic.data = devc->raw_sample_buf +
-					     (devc->limit_samples -
-					      devc->num_samples) *
-						     devc->unitsize;
+				logic.data = devc->sample_buf;
 				sr_session_send(sdi, &packet);
 			}
 
@@ -523,22 +602,26 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		}
 
 		/* Send post-trigger / all captured samples. */
-		int num_pre_trigger_samples = devc->trigger_at_smpl ==
-							      OLS_NO_TRIGGER ?
-							    0 :
-							    devc->trigger_at_smpl;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		logic.length =
-			(devc->num_samples - num_pre_trigger_samples) * devc->unitsize;
-		logic.unitsize = devc->unitsize;
-		logic.data = devc->raw_sample_buf +
-			     (num_pre_trigger_samples + devc->limit_samples -
-			      devc->num_samples) *
-				     devc->unitsize;
-		sr_session_send(sdi, &packet);
+		num_pre_trigger_samples =
+			devc->trigger_at_smpl == OLS_NO_TRIGGER ?
+				      0 :
+				      MIN((unsigned int)devc->trigger_at_smpl,
+				    devc->cnt_samples);
+		if (devc->cnt_samples > num_pre_trigger_samples) {
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			logic.length =
+				(devc->cnt_samples - num_pre_trigger_samples) *
+				devc->unitsize;
+			logic.unitsize = devc->unitsize;
+			logic.data =
+				devc->sample_buf + num_pre_trigger_samples * devc->unitsize;
+			sr_session_send(sdi, &packet);
+		}
 
-		g_free(devc->raw_sample_buf);
+		g_free(devc->sample_buf);
+		devc->sample_buf = 0;
+		devc->sample_buf_size = 0;
 
 		serial_flush(serial);
 		abort_acquisition(sdi);
@@ -575,7 +658,8 @@ ols_set_basic_trigger_stage(const struct ols_basic_trigger_desc *trigger_desc,
 
 SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 {
-	int ret;
+	int ret, trigger_point;
+	uint32_t readcount, delaycount;
 
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial = sdi->conn;
@@ -591,13 +675,13 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 	}
 
 	/*
-	 * Limit readcount to prevent reading past the end of the hardware
-	 * buffer. Rather read too many samples than too few.
+	 * Limit the number of samples to what the hardware can do.
+	 * The sample count is always a multiple of four.
 	 */
-	uint32_t samplecount =
-		MIN(devc->max_samples / num_changroups, devc->limit_samples);
-	uint32_t readcount = (samplecount + 3) / 4;
-	uint32_t delaycount;
+	uint32_t exact_samplecount = MIN(devc->max_samples / num_changroups, devc->limit_samples);
+	devc->limit_samples = (exact_samplecount + 3) / 4 * 4;
+	readcount = devc->limit_samples / 4;
+	trigger_point = OLS_NO_TRIGGER;
 
 	/* Basic triggers. */
 	struct ols_basic_trigger_desc basic_trigger_desc;
@@ -615,8 +699,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
-		devc->trigger_at_smpl = (readcount - delaycount) * 4 -
-					basic_trigger_desc.num_stages;
+		trigger_point = (readcount - delaycount) * 4 - 1;
 		for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
 			sr_dbg("Setting OLS stage %d trigger.", i);
 			if ((ret = ols_set_basic_trigger_stage(
@@ -632,6 +715,18 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 			return ret;
 		delaycount = readcount;
 	}
+
+	/*
+	 * To determine the proper trigger sample position in RLE mode, a reverse
+	 * lookup is needed while reading the samples. Set up the right trigger
+	 * point in that case or the normal trigger point for non-RLE acquisitions.
+	 */
+	devc->trigger_at_smpl =
+		trigger_point == OLS_NO_TRIGGER ?
+			      OLS_NO_TRIGGER :
+		devc->capture_flags & CAPTURE_FLAG_RLE ?
+			      (int)devc->limit_samples - trigger_point :
+			      trigger_point;
 
 	/* Samplerate. */
 	sr_dbg("Setting samplerate to %" PRIu64 "Hz (divider %u)",
