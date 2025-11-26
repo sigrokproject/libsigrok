@@ -31,7 +31,7 @@
 //#define ACQ_BUFFER_SIZE (6000000)
 #define ACQ_BUFFER_SIZE (18000000)
 
-#define SIGLENT_HEADER_SIZE 363
+#define SIGLENT_HEADER_INITIAL_SIZE (15+60+4)
 #define SIGLENT_DIG_HEADER_SIZE 346
 
 /* Maximum number of samples to retrieve at once. */
@@ -40,10 +40,10 @@
 #define MAX_ANALOG_CHANNELS 4
 #define MAX_DIGITAL_CHANNELS 16
 
-#define DEVICE_STATE_STOPPED 0		/* Scope is in stopped state bit */
-#define DEVICE_STATE_DATA_ACQ 1		/* A new signal has been acquired bit */
-#define DEVICE_STATE_TRIG_RDY 8192	/* Trigger is ready bit */
-#define DEVICE_STATE_DATA_TRIG_RDY 8193	/* Trigger is ready bit */
+#define DEVICE_EVENT_TRIG_RDY (1<<13)	/* Trigger is ready (whatever that means. It is set both,
+											when you start fast capture and when fast capture gets triggered [so it's set twice in single frame],
+											but only when slow capture gets triggered [so once in a frame])*/
+#define DEVICE_EVENT_DATA_ACQ (1<<0)	/* New data ready */
 
 enum protocol_version {
 	SPO_MODEL,
@@ -84,7 +84,6 @@ struct siglent_sds_model {
 enum wait_events {
 	WAIT_NONE,	/* Don't wait */
 	WAIT_TRIGGER,	/* Wait for trigger */
-	WAIT_BLOCK,	/* Wait for block data (only when reading sample mem) */
 	WAIT_STOP,	/* Wait for scope stopping (only single shots) */
 };
 
