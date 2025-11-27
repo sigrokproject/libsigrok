@@ -77,6 +77,8 @@ struct scope_config {
 	const unsigned int num_ydivs;
 
 	const char *(*scpi_dialect)[];
+
+	const uint32_t internal_flags;
 };
 
 struct analog_channel_state {
@@ -131,6 +133,13 @@ struct dev_context {
 
 	size_t pod_count;
 	GByteArray *logic_data;
+};
+
+enum internal_flags {
+	INTERN_NO_LOGIC_STATE_GET_SUPPORT	= (1 << 0),
+	INTERN_NO_LOGIC_STATE_SET_SUPPORT	= (1 << 1),
+	INTERN_NO_POD_STATE_GET_SUPPORT		= (1 << 2),
+	INTERN_NO_POD_STATE_SET_SUPPORT		= (1 << 3),
 };
 
 SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi);
