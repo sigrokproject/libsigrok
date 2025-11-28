@@ -57,6 +57,8 @@ static const double amps_5[] = { 0, 5.1, 0.001, };
 
 static const struct korad_kaxxxxp_model models[] = {
 	/* Vendor, model name, ID reply, channels, voltage, current, quirks. */
+	{"Korad", "KA3005PS", "", 1, volts_30, amps_5,
+		KORAD_QUIRK_NEWLINE},
 	{"Korad", "KA3005P", "", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_TRAILING},
 	{"Korad", "KD3005P", "", 1, volts_30, amps_5, 0},
@@ -278,11 +280,26 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		len = sizeof(reply) - 1;
 	sr_dbg("Want max %zu bytes.", len);
 
-	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?");
+	/*
+	 * For the identification we send two messages due to the newline quirk
+	 * The first works on devices that require no newline to be there
+	 * The second adds support for devices that require the newline to be there
+	 * The timeout makes sure the former devices handle the cmd first
+	 */
+	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?", false);
 	if (ret < 0)
 		return NULL;
 
-	ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	g_usleep(100000);
+	ret = korad_kaxxxxp_send_cmd(serial, "\n", false);
+	if (ret < 0)
+		return NULL;
+
+	/*
+	 * Newline stripping enabled by default - doesn't matter for devices that
+	 * don't add one
+	 */
+	ret = korad_kaxxxxp_read_chars(serial, len, reply, true);
 	if (ret < 0)
 		return NULL;
 	sr_dbg("Received: %d, %s", ret, reply);

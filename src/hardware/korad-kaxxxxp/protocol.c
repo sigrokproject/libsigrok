@@ -25,12 +25,26 @@
 #define EXTRA_PROCESSING_TIME_MS  450
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-	const char *cmd)
+	const char *cmd, bool add_newline)
 {
 	int ret;
 
-	sr_dbg("Sending '%s'.", cmd);
-	if ((ret = serial_write_blocking(serial, cmd, strlen(cmd), 0)) < 0) {
+	char* addition = "";
+	if (add_newline)
+		addition = "\n";
+
+	/* 21 was chosen here because 20 is chosen in korad_kaxxxxp_set_value */
+	char newcmd[21];
+	ret = sr_snprintf_ascii(newcmd, 21, "%s%s", cmd, addition);
+	if (ret < 0 || ret >= 21) {
+		sr_err("Error creating command: %d.", ret);
+		if (ret > 0)
+			ret = -ret; /* make errors always return negative numbers */
+		return ret;
+	}
+
+	sr_dbg("Sending '%s'.", newcmd);
+	if ((ret = serial_write_blocking(serial, newcmd, strlen(newcmd), 0)) < 0) {
 		sr_err("Error sending command: %d.", ret);
 		return ret;
 	}
@@ -71,7 +85,7 @@ SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
  * larger initial timeout period before receive data is seen.
  */
 SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
-	size_t count, char *buf)
+	size_t count, char *buf, bool strip_newline)
 {
 	int timeout_first, timeout_later, timeout;
 	size_t retries_first, retries_later, retries;
@@ -146,6 +160,10 @@ SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
 		timeout = timeout_later;
 		retries = retries_later;
 	}
+
+	if (strip_newline && buf[received-1] == '\n')
+		buf[--received] = 0x00;
+
 	/* TODO Escape non-printables? Seen those with status queries. */
 	sr_dbg("got %zu bytes, received: '%s'.", received, buf);
 
@@ -259,7 +277,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	}
 
 	if (ret == SR_OK && msg[0]) {
-		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		ret = korad_kaxxxxp_send_cmd(serial, msg, devc->model->quirks & KORAD_QUIRK_NEWLINE);
 		devc->next_req_time = next_req_time(devc, TRUE, target);
 	}
 
@@ -272,7 +290,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	int target, struct dev_context *devc)
 {
 	int ret, count;
-	char reply[6];
+	char reply[7];
 	float *value;
 	char status_byte;
 	gboolean needs_ovp_quirk;
@@ -282,27 +300,29 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	give_device_time_to_process(devc);
 
 	value = NULL;
-	count = 5;
+	count = 6;
+
+	bool newline_quirk = devc->model->quirks & KORAD_QUIRK_NEWLINE;
 
 	switch (target) {
 	case KAXXXXP_CURRENT:
 		/* Read current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?", newline_quirk);
 		value = &(devc->current);
 		break;
 	case KAXXXXP_CURRENT_LIMIT:
 		/* Read set current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?", newline_quirk);
 		value = &(devc->current_limit);
 		break;
 	case KAXXXXP_VOLTAGE:
 		/* Read voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?", newline_quirk);
 		value = &(devc->voltage);
 		break;
 	case KAXXXXP_VOLTAGE_TARGET:
 		/* Read set voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?", newline_quirk);
 		value = &(devc->voltage_target);
 		break;
 	case KAXXXXP_STATUS:
@@ -310,8 +330,10 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	case KAXXXXP_OCP:
 	case KAXXXXP_OVP:
 		/* Read status from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?");
+		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?", newline_quirk);
 		count = 1;
+		if (newline_quirk)
+			count = 2;
 		break;
 	default:
 		sr_err("Don't know how to query %d.", target);
@@ -324,7 +346,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 
 	devc->next_req_time = next_req_time(devc, FALSE, target);
 
-	if ((ret = korad_kaxxxxp_read_chars(serial, count, reply)) < 0) {
+	if ((ret = korad_kaxxxxp_read_chars(serial, count, reply, newline_quirk)) < 0) {
 		g_mutex_unlock(&devc->rw_mutex);
 		return ret;
 	}
