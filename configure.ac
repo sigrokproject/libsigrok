@@ -396,6 +396,7 @@ SR_DRIVER([UNI-T UT32x], [uni-t-ut32x], [serial_comm])
 SR_DRIVER([Yokogawa DL/DLM], [yokogawa-dlm])
 SR_DRIVER([ZEROPLUS Logic Cube], [zeroplus-logic-cube], [libusb])
 SR_DRIVER([ZKETECH EBD-USB], [zketech-ebd-usb], [serial_comm])
+SR_DRIVER([LabNation SmartScope], [labnation-smartscope])
 
 ###############################
 ##  Language bindings setup  ##
