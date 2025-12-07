@@ -69,6 +69,7 @@ struct siglent_sds_series {
 	uint64_t min_vdiv[2];
 	int num_horizontal_divs;
 	int num_vertical_divs;
+	int code_per_div;
 	int buffer_samples;
 };
 
@@ -120,7 +121,8 @@ struct dev_context {
 	gboolean analog_channels[MAX_ANALOG_CHANNELS];
 	gboolean digital_channels[MAX_DIGITAL_CHANNELS];
 	gboolean la_enabled;
-	float timebase;
+	gboolean channels_switched;
+	double timebase;
 	float attenuation[MAX_ANALOG_CHANNELS];
 	float vdiv[MAX_ANALOG_CHANNELS];
 	int vert_reference[MAX_ANALOG_CHANNELS];
