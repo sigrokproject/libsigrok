@@ -171,6 +171,8 @@ enum series {
 	SDS1000XP,
 	SDS1000XE,
 	SDS2000X,
+	SDS800X_HD,
+	SDS800X_HD_200M,
 };
 
 /* short name, full name */
@@ -196,6 +198,10 @@ static const struct siglent_sds_series supported_series[] = {
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+	[SDS800X_HD] = {VENDOR(SIGLENT), "SDS800X HD", SPO_MODEL,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 50000363},
+	[SDS800X_HD_200M] = {VENDOR(SIGLENT), "SDS800X HD 200M", SPO_MODEL,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 100000363},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -227,6 +233,15 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS2000X), "SDS2204X", { 2, 1000000000 }, 4, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2302X", { 2, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, FALSE, 0 },
+	/* SDS800x HD series - Official models from Siglent datasheet */
+	/* 70 MHz and 100 MHz models - 50 Mpts max memory (1ch), 25 Mpts (2ch), 10 Mpts (4ch) */
+	{ SERIES(SDS800X_HD), "SDS802X HD", { 5, 1000000000 }, 2, FALSE, 0 },
+	{ SERIES(SDS800X_HD), "SDS804X HD", { 5, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS800X_HD), "SDS812X HD", { 5, 1000000000 }, 2, FALSE, 0 },
+	{ SERIES(SDS800X_HD), "SDS814X HD", { 5, 1000000000 }, 4, TRUE, 16 },
+	/* 200 MHz models - 100 Mpts max memory (1ch), 50 Mpts (2ch), 25 Mpts (4ch) */
+	{ SERIES(SDS800X_HD_200M), "SDS822X HD", { 2, 1000000000 }, 2, FALSE, 0 },
+	{ SERIES(SDS800X_HD_200M), "SDS824X HD", { 2, 1000000000 }, 4, TRUE, 16 },
 };
 
 static struct sr_dev_driver siglent_sds_driver_info;
@@ -916,7 +931,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver siglent_sds_driver_info = {
 	.name = "siglent-sds",
-	.longname = "Siglent SDS1000/SDS2000",
+	.longname = "Siglent SDS1000/SDS2000/SDS800xHD",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,

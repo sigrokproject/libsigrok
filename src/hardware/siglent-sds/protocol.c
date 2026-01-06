@@ -167,19 +167,35 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 				devc->num_frames + 1, devc->limit_frames);
 			if (siglent_sds_config_set(sdi, "ARM") != SR_OK)
 				return SR_ERR;
-			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
-				return SR_ERR;
-			sr_atoi(buf, &out);
-			g_free(buf);
+			/* Poll INR a few times to give the scope time to arm. */
+			for (int attempt = 0; attempt < 5; attempt++) {
+				g_usleep(200000);
+				if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
+					return SR_ERR;
+				sr_atoi(buf, &out);
+				g_free(buf);
+				if (out == DEVICE_STATE_TRIG_RDY) {
+					siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
+					break;
+				} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
+					sr_spew("Device triggered.");
+					siglent_sds_set_wait_event(devc, WAIT_BLOCK);
+					return SR_OK;
+				}
+			}
+			/* Check if device entered ARM mode. */
 			if (out == DEVICE_STATE_TRIG_RDY) {
+				/* Device is armed and ready, normal case. */
 				siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
-			} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
-				sr_spew("Device triggered.");
-				siglent_sds_set_wait_event(devc, WAIT_BLOCK);
-				return SR_OK;
-			} else {
-				sr_spew("Device did not enter ARM mode.");
-				return SR_ERR;
+			} else if (out != DEVICE_STATE_DATA_TRIG_RDY) {
+				/* Device did not enter ARM mode. SDS800X HD series is known to have this issue. */
+				if (g_str_has_prefix(devc->model->series->name, "SDS800X HD")) {
+					sr_dbg("SDS800X HD: Device did not enter ARM mode (INR=%d); continuing anyway.", out);
+					siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
+				} else {
+					sr_spew("Device did not enter ARM mode.");
+					return SR_ERR;
+				}
 			}
 		} else { /* TODO: Implement history retrieval. */
 			unsigned int framecount;
@@ -217,17 +233,28 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 				devc->num_frames + 1, devc->limit_frames);
 			if (siglent_sds_config_set(sdi, "ARM") != SR_OK)
 				return SR_ERR;
-			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
-				return SR_ERR;
-			sr_atoi(buf, &out);
-			g_free(buf);
+			/* Poll INR a few times to give the scope time to arm. */
+			for (int attempt = 0; attempt < 5; attempt++) {
+				g_usleep(200000);
+				if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
+					return SR_ERR;
+				sr_atoi(buf, &out);
+				g_free(buf);
+				if (out == DEVICE_STATE_TRIG_RDY) {
+					siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
+					break;
+				} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
+					sr_spew("Device triggered.");
+					siglent_sds_set_wait_event(devc, WAIT_BLOCK);
+					return SR_OK;
+				}
+			}
+			/* Check if device entered ARM mode. */
 			if (out == DEVICE_STATE_TRIG_RDY) {
+				/* Device is armed and ready, normal case. */
 				siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
-			} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
-				sr_spew("Device triggered.");
-				siglent_sds_set_wait_event(devc, WAIT_BLOCK);
-				return SR_OK;
-			} else {
+			} else if (out != DEVICE_STATE_DATA_TRIG_RDY) {
+				/* Device did not enter ARM mode. */
 				sr_spew("Device did not enter ARM mode.");
 				return SR_ERR;
 			}
@@ -519,9 +546,14 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 			switch (devc->model->series->protocol) {
 			case NON_SPO_MODEL:
 			case SPO_MODEL:
-				/* The older models need more time to prepare the the output buffers due to CPU speed. */
-				wait = (devc->memory_depth_analog * 2.5);
-				sr_dbg("Waiting %.f0 ms for device to prepare the output buffers", wait / 1000);
+				/* SDS800X HD series has faster data transfer, needs less wait time. */
+				if (g_str_has_prefix(devc->model->series->name, "SDS800X HD")) {
+					wait = (devc->memory_depth_analog * 0.5);
+				} else {
+					/* The older models need more time to prepare the the output buffers due to CPU speed. */
+					wait = (devc->memory_depth_analog * 2.5);
+				}
+				sr_dbg("Waiting %.0f ms for device to prepare the output buffers", wait / 1000);
 				g_usleep(wait);
 				if (sr_scpi_read_begin(scpi) != SR_OK)
 					return TRUE;
@@ -531,7 +563,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 				if (sr_scpi_read_begin(scpi) != SR_OK)
 					return TRUE;
 				wait = ((devc->timebase * devc->model->series->num_horizontal_divs) * 100000);
-				sr_dbg("Waiting %.f0 ms for device to prepare the output buffers", wait / 1000);
+				sr_dbg("Waiting %.0f ms for device to prepare the output buffers", wait / 1000);
 				g_usleep(wait);
 				break;
 			}
@@ -915,6 +947,11 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 			}
 			samplerate_scope = fvalue * 10000;
 		} else {
+			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
+				sr_dbg("Invalid float converted from scope response.");
+				g_free(sample_points_string);
+				return SR_ERR;
+			}
 			samplerate_scope = fvalue;
 		}
 		g_free(sample_points_string);
