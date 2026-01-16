@@ -24,6 +24,7 @@
 
 %{
 
+#ifndef SWIGPYTHON
 static int swig_exception_code(int sigrok_exception_code) {
     switch (sigrok_exception_code) {
         case SR_ERR_MALLOC:
@@ -34,9 +35,23 @@ static int swig_exception_code(int sigrok_exception_code) {
             return SWIG_RuntimeError;
     }
 }
+#endif
 
 %}
 
+#ifdef SWIGPYTHON
+%exceptionclass sigrok::Error;
+%exception {
+    try {
+        $action
+    } catch (sigrok::Error &e) {
+	sigrok::Error *ecopy = new sigrok::Error(e.result);
+	PyObject *err = SWIG_NewPointerObj(ecopy, SWIGTYPE_p_sigrok__Error, 1);
+	PyErr_SetObject(SWIG_Python_ExceptionType(SWIGTYPE_p_sigrok__Error), err);
+	SWIG_fail;
+    }
+}
+#else
 %exception {
     try {
         $action
@@ -45,6 +60,7 @@ static int swig_exception_code(int sigrok_exception_code) {
             const_cast<char*>(e.what()));
     }
 }
+#endif
 
 template< class T > class enable_shared_from_this;
 
