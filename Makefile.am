@@ -562,6 +562,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/maynuo-m97/protocol.c \
 	src/hardware/maynuo-m97/api.c
 endif
+if HW_MHINSTEK_MHS_5200A
+src_libdrivers_la_SOURCES += \
+	src/hardware/mhinstek-mhs-5200a/protocol.h \
+	src/hardware/mhinstek-mhs-5200a/protocol.c \
+	src/hardware/mhinstek-mhs-5200a/api.c
+endif
 if HW_MICROCHIP_PICKIT2
 src_libdrivers_la_SOURCES += \
 	src/hardware/microchip-pickit2/protocol.h \
