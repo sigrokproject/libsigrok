@@ -520,6 +520,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_10_temp_c
 	),
 	DMM(
+		"tenma-72-6870", fs9721,
+		"Tenma", "72-6870", "2400/8n1/rts=0/dtr=1",
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_10_temp_c
+	),
+	DMM(
 		"tenma-72-7745-ser", fs9721,
 		"Tenma", "72-7745 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		FS9721_PACKET_SIZE, 0, 0, NULL,
