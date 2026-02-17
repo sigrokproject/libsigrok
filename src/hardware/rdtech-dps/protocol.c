@@ -246,10 +246,10 @@ SR_PRIV int rdtech_dps_update_range(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/*
-	 * Only update range if there are multiple ranges and data
+	 * Only update range if data
 	 * acquisition hasn't started.
 	 */
-	if (devc->model->n_ranges <= 1 || devc->acquisition_started)
+	if (devc->acquisition_started)
 		return SR_OK;
 	if (devc->model->model_type != MODEL_RD)
 		return SR_ERR;
