@@ -289,6 +289,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(MSO5000), "MSO5104", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(MSO5000), "MSO5204", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(MSO5000), "MSO5354", {1, 1000000000}, CH_INFO(4, true), std_cmd},
+    {SERIES(MSO5000), "MSO5504", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	/* TODO: Digital channels are not yet supported on MSO7000A. */
 	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
 };

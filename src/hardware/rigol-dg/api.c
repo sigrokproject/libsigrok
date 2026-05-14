@@ -370,6 +370,14 @@ static const struct device_spec device_models[] = {
 		TRUE,
 	},
 	/* MSO5000 devices*/
+        { "Rigol Technologies", "MSO5504",
+                ARRAY_AND_SIZE(mso5000_devopts),
+                ARRAY_AND_SIZE(mso5000_devopts_cg),
+                ARRAY_AND_SIZE(mso5000_channels),
+                cmdset_mso5000,
+                FALSE,
+        },
+
 	{ "Rigol Technologies", "MSO5354",
 		ARRAY_AND_SIZE(mso5000_devopts),
 		ARRAY_AND_SIZE(mso5000_devopts_cg),
