@@ -760,7 +760,11 @@ static int parse_header_var(struct context *inc, char *contents)
 	if (inc->conv_bits.max_bits < size)
 		inc->conv_bits.max_bits = size;
 	next_size = inc->logic_count + inc->analog_count + size;
-	if (inc->options.maxchannels && next_size > inc->options.maxchannels) {
+	if (inc->options.maxchannels < 1){
+		sr_warn("Number of maximum channels must be at least 1");
+		return SR_ERR_DATA;
+	}
+	if (inc->options.maxchannels > 0 && next_size > inc->options.maxchannels) {
 		sr_warn("Skipping '%s%s', exceeds requested channel count %zu.",
 			ref, idx ? idx : "", inc->options.maxchannels);
 		inc->ignored_signals = g_slist_append(inc->ignored_signals,
@@ -1954,7 +1958,9 @@ static int init(struct sr_input *in, GHashTable *options)
 
 	data = g_hash_table_lookup(options, "numchannels");
 	inc->options.maxchannels = g_variant_get_uint32(data);
-
+	if (inc->options.maxchannels < 1){
+		inc->options.maxchannels = 1;
+	}
 	data = g_hash_table_lookup(options, "samplerate_overwrite");
 	inc->options.samplerate = g_variant_get_uint64(data);
 	if (inc->options.samplerate != 0) {
