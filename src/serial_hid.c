@@ -99,6 +99,14 @@ static char *get_hidapi_path_copy(const char *path)
 	const char *parse, *remain;
 	char *copy;
 
+	/* --- NEW PATCH --- */
+	if (path && strstr(path, "DevSrvsID")) {
+		if (strstr(path, SER_HID_RAW_PREFIX))
+			return g_strdup(path);
+		return g_strdup_printf("%s%s", SER_HID_RAW_PREFIX, path);
+	}
+	/* ----------------- */
+
 	parse = path;
 	has_colon = strchr(parse, ':') != NULL;
 	is_hex_colon = strspn(parse, accept) == strlen(parse);
@@ -160,6 +168,12 @@ static char *extract_hidapi_path(const char *copy)
 	if (!p || !*p)
 		return NULL;
 
+	/* --- NEW PATCH --- */
+	if (strstr(p, "DevSrvsID")) {
+		return g_strdup(strstr(p, "DevSrvsID"));
+	}
+	/* ----------------- */
+
 	if (g_str_has_prefix(p, SER_HID_IOKIT_PREFIX)) {
 		p += strlen(SER_HID_IOKIT_PREFIX);
 		path = g_strdup_printf("%s%s", IOKIT_PATH_PREFIX, p);
@@ -167,6 +181,10 @@ static char *extract_hidapi_path(const char *copy)
 	}
 	if (g_str_has_prefix(p, SER_HID_RAW_PREFIX)) {
 		p += strlen(SER_HID_RAW_PREFIX);
+		/* --- PATCH START --- */
+		if (g_str_has_prefix(p, "DevSrvsID"))
+			return g_strdup(p);
+		/* --- PATCH END --- */
 		path = g_strdup(p);
 		return path;
 	}
