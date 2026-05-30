@@ -29,6 +29,29 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+struct sr_dev_inst;    /* forward */
+
+enum dslogic_protocol_version {
+	DSL_PROTO_V1 = 0,  /* flat opcodes 0xb0-0xb8 (legacy DSLogic firmware) */
+	DSL_PROTO_V2 = 1,  /* envelope CMD_CTL_WR/RD with ctl_header (DSView 1.3.2-era firmware) */
+};
+
+struct dslogic_protocol_ops {
+	int (*fpga_firmware_upload)(const struct sr_dev_inst *sdi);
+	int (*fpga_config)(const struct sr_dev_inst *sdi);
+	int (*acquisition_start)(const struct sr_dev_inst *sdi);
+	int (*acquisition_stop)(const struct sr_dev_inst *sdi);
+	int (*set_samplerate)(const struct sr_dev_inst *sdi, uint64_t rate);
+	int (*set_voltage_threshold)(const struct sr_dev_inst *sdi, double low, double high);
+	int (*set_trigger)(const struct sr_dev_inst *sdi);
+	int (*set_external_clock)(const struct sr_dev_inst *sdi, gboolean ext);
+	int (*set_clock_edge)(const struct sr_dev_inst *sdi, int edge);
+	int (*security_check)(const struct sr_dev_inst *sdi);
+};
+
+extern const struct dslogic_protocol_ops dslogic_v1_ops;
+extern const struct dslogic_protocol_ops dslogic_v2_ops;
+
 #define LOG_PREFIX "dreamsourcelab-dslogic"
 
 #define USB_INTERFACE		0
@@ -103,10 +126,14 @@ struct dslogic_profile {
 
 	/* Memory depth in bits. */
 	uint64_t mem_depth;
+
+	enum dslogic_protocol_version protocol_version;
+	const struct dslogic_protocol_ops *ops;
 };
 
 struct dev_context {
 	const struct dslogic_profile *profile;
+	const struct dslogic_protocol_ops *ops;
 	/*
 	 * Since we can't keep track of a DSLogic device after upgrading
 	 * the firmware (it renumerates into a different device address
@@ -142,11 +169,14 @@ struct dev_context {
 	double cur_threshold;
 };
 
+SR_PRIV int fpga_configure(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_set_voltage_threshold(const struct sr_dev_inst *sdi, double threshold);
 SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *dslogic_dev_new(void);
 SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi);
+SR_PRIV int command_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int command_stop_acquisition(const struct sr_dev_inst *sdi);
 
 #endif

@@ -26,23 +26,33 @@ static const struct dslogic_profile supported_device[] = {
 	/* DreamSourceLab DSLogic */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 	/* DreamSourceLab DSCope */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
 		"dreamsourcelab-dscope-fx2.fw",
-		0, "DreamSourceLab", "DSCope", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSCope", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 	/* DreamSourceLab DSLogic Pro */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
 		"dreamsourcelab-dslogic-pro-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 	/* DreamSourceLab DSLogic Plus */
 	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
 		"dreamsourcelab-dslogic-plus-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
+	/* DreamSourceLab DSLogic Plus (hardware revision, PID 0x0034) */
+	{ 0x2a0e, 0x0034, "DreamSourceLab", "DSLogic Plus", NULL,
+		"dreamsourcelab-dslogic-plus-fx2.fw",
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V2, &dslogic_v2_ops},
 	/* DreamSourceLab DSLogic Basic */
 	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
 		"dreamsourcelab-dslogic-basic-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 
 	ALL_ZERO
 };
@@ -255,7 +265,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc->samplerates = samplerates;
 		devc->num_samplerates = ARRAY_SIZE(samplerates);
-		has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based Instrument");
+		has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based Instrument")
+		            || usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based DSL Instrument v2");
 
 		if (has_firmware) {
 			/* Already has the firmware, so fix the new address. */
@@ -297,6 +308,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	usb = sdi->conn;
+
+	devc->ops = devc->profile->ops;
 
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
@@ -352,8 +365,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 
-	if ((ret = dslogic_fpga_firmware_upload(sdi)) != SR_OK)
+	if ((ret = devc->ops->fpga_firmware_upload(sdi)) != SR_OK)
 		return ret;
+	if ((ret = devc->ops->security_check(sdi)) != SR_OK)
+		return ret;
+	/* DSView writes VTH_ADDR right after dsl_dev_open returns
+	 * (dslogic.c). Without this, the FPGA threshold DAC
+	 * is uninitialised and subsequent arm-sequence status polls may
+	 * stall. Use a sensible default (1.0V on 3.3V logic). */
+	(void)devc->ops->set_voltage_threshold(sdi, 1.0, 1.0);
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
@@ -362,7 +382,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_threshold == 0.0) {
 		devc->cur_threshold = thresholds[1][0];
-		return dslogic_set_voltage_threshold(sdi, devc->cur_threshold);
+		return devc->ops->set_voltage_threshold(sdi, devc->cur_threshold, devc->cur_threshold);
 	}
 
 	return SR_OK;
@@ -484,7 +504,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return dslogic_fpga_firmware_upload(sdi);
 		} else {
 			g_variant_get(data, "(dd)", &low, &high);
-			return dslogic_set_voltage_threshold(sdi, (low + high) / 2.0);
+			return devc->ops->set_voltage_threshold(sdi, low, high);
 		}
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:

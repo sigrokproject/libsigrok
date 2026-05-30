@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
+#include "protocol_v2.h"
 
 #define DS_CMD_GET_FW_VERSION		0xb0
 #define DS_CMD_GET_REVID_VERSION	0xb1
@@ -178,7 +179,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	return SR_OK;
 }
 
-static int command_start_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int command_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -199,7 +200,7 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int command_stop_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int command_stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -425,7 +426,7 @@ static bool set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 	return num_trigger_stages != 0;
 }
 
-static int fpga_configure(const struct sr_dev_inst *sdi)
+SR_PRIV int fpga_configure(const struct sr_dev_inst *sdi)
 {
 	const struct dev_context *const devc = sdi->priv;
 	const struct sr_usb_dev_inst *const usb = sdi->conn;
@@ -601,29 +602,65 @@ SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			}
 		}
 
-		ret = command_get_fw_version(usb->devhdl, &vi);
-		if (ret != SR_OK) {
-			sr_err("Failed to get firmware version.");
-			break;
-		}
-
-		ret = command_get_revid_version(sdi, &revid);
-		if (ret != SR_OK) {
-			sr_err("Failed to get REVID.");
-			break;
-		}
-
 		/*
-		 * Changes in major version mean incompatible/API changes, so
-		 * bail out if we encounter an incompatible version.
-		 * Different minor versions are OK, they should be compatible.
+		 * The V1 firmware-version probe uses bRequest 0xb0, which
+		 * collides with the V2 envelope opcode CMD_CTL_WR. Only run
+		 * the V1 probe + version check for V1 devices.
 		 */
-		if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
-			sr_err("Expected firmware version %d.x, "
-			       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
-			       vi.major, vi.minor);
-			ret = SR_ERR;
-			break;
+		if (devc->profile->protocol_version == DSL_PROTO_V1) {
+			ret = command_get_fw_version(usb->devhdl, &vi);
+			if (ret != SR_OK) {
+				sr_err("Failed to get firmware version.");
+				break;
+			}
+
+			ret = command_get_revid_version(sdi, &revid);
+			if (ret != SR_OK) {
+				sr_err("Failed to get REVID.");
+				break;
+			}
+
+			/*
+			 * Changes in major version mean incompatible/API changes,
+			 * so bail out if we encounter an incompatible version.
+			 * Different minor versions are OK, they should be compatible.
+			 */
+			if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
+				sr_err("Expected firmware version %d.x, "
+				       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
+				       vi.major, vi.minor);
+				ret = SR_ERR;
+				break;
+			}
+		} else {
+			/*
+			 * V2 hello reads - DSView's hw_dev_open starts with
+			 * DSL_CTL_FW_VERSION read (dsl.c) and dsl_dev_open
+			 * follows with a DSL_CTL_HW_STATUS read (dsl.c).
+			 * These appear to prime the firmware's state machine; without
+			 * them, later HW_STATUS reads in the arm path stall. We
+			 * don't validate the values - just perform the reads.
+			 */
+			{
+				uint8_t v2_fw_ver[2] = {0, 0};
+				uint8_t v2_hw_status = 0;
+				struct ctl_rd_cmd v2_rd;
+
+				v2_rd.header.dest = DSL_CTL_FW_VERSION;
+				v2_rd.header.offset = 0;
+				v2_rd.header.size = 2;
+				v2_rd.data = v2_fw_ver;
+				if (command_ctl_rd_v2(usb->devhdl, v2_rd) == SR_OK)
+					sr_info("V2 firmware version: %u.%u",
+						v2_fw_ver[0], v2_fw_ver[1]);
+
+				v2_rd.header.dest = DSL_CTL_HW_STATUS;
+				v2_rd.header.offset = 0;
+				v2_rd.header.size = 1;
+				v2_rd.data = &v2_hw_status;
+				if (command_ctl_rd_v2(usb->devhdl, v2_rd) == SR_OK)
+					sr_dbg("V2 HW_STATUS: 0x%02x", v2_hw_status);
+			}
 		}
 
 		sr_info("Opened device on %d.%d (logical) / %s (physical), "
@@ -1050,13 +1087,15 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
-	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
+	/* Stop any prior acquisition, then arm and start. Matches DSView's order
+	 * at dslogic.c (STOP -> arm -> START). */
+	if ((ret = devc->ops->acquisition_stop(sdi)) != SR_OK)
 		return ret;
 
-	if ((ret = fpga_configure(sdi)) != SR_OK)
+	if ((ret = devc->ops->fpga_config(sdi)) != SR_OK)
 		return ret;
 
-	if ((ret = command_start_acquisition(sdi)) != SR_OK)
+	if ((ret = devc->ops->acquisition_start(sdi)) != SR_OK)
 		return ret;
 
 	sr_dbg("Getting trigger.");
@@ -1086,7 +1125,9 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 
 SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	command_stop_acquisition(sdi);
+	struct dev_context *devc = sdi->priv;
+
+	devc->ops->acquisition_stop(sdi);
 	abort_acquisition(sdi->priv);
 	return SR_OK;
 }
