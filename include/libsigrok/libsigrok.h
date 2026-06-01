@@ -1267,6 +1267,15 @@ enum sr_configkey {
 	 */
 	SR_CONF_GATE_TIME,
 
+	/**
+	 * Chunk-loop mode: when set, the driver automatically re-arms the
+	 * device at the end of each capture chunk (instead of ending the
+	 * session) and continues until the user-requested time budget is
+	 * spent. Useful for sustained capture beyond single-chunk hardware
+	 * limits (FPGA buffer or counter width). Type: boolean.
+	 */
+	SR_CONF_CHUNK_LOOP,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };
 

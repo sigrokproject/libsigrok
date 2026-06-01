@@ -21,28 +21,39 @@
 #include <config.h>
 #include <math.h>
 #include "protocol.h"
+#include "protocol_v2.h"
 
 static const struct dslogic_profile supported_device[] = {
 	/* DreamSourceLab DSLogic */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 	/* DreamSourceLab DSCope */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
 		"dreamsourcelab-dscope-fx2.fw",
-		0, "DreamSourceLab", "DSCope", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSCope", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 	/* DreamSourceLab DSLogic Pro */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
 		"dreamsourcelab-dslogic-pro-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 	/* DreamSourceLab DSLogic Plus */
 	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
 		"dreamsourcelab-dslogic-plus-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
+	/* DreamSourceLab DSLogic Plus (hardware revision, PID 0x0034) */
+	{ 0x2a0e, 0x0034, "DreamSourceLab", "DSLogic Plus", NULL,
+		"dreamsourcelab-dslogic-plus-fx2.fw",
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024,
+		DSL_PROTO_V2, &dslogic_v2_ops},
 	/* DreamSourceLab DSLogic Basic */
 	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
 		"dreamsourcelab-dslogic-basic-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024,
+		DSL_PROTO_V1, &dslogic_v1_ops},
 
 	ALL_ZERO
 };
@@ -65,6 +76,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CHUNK_LOOP | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const int32_t trigger_matches[] = {
@@ -255,7 +269,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc->samplerates = samplerates;
 		devc->num_samplerates = ARRAY_SIZE(samplerates);
-		has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based Instrument");
+		has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based Instrument")
+		            || usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based DSL Instrument v2");
 
 		if (has_firmware) {
 			/* Already has the firmware, so fix the new address. */
@@ -298,6 +313,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
+	devc->ops = devc->profile->ops;
+
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
 	 * milliseconds for the FX2 to renumerate.
@@ -332,7 +349,22 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
+	/*
+	 * Retry claim on transient BUSY: after a close/reopen cycle (e.g.
+	 * pulseview "Stop" then "Run" again) the kernel-side endpoint state
+	 * can take a few ms to settle, during which claim returns BUSY even
+	 * though no other process holds the interface.
+	 */
+	{
+		int attempt;
+		ret = LIBUSB_ERROR_BUSY;
+		for (attempt = 0; attempt < 10; attempt++) {
+			ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
+			if (ret != LIBUSB_ERROR_BUSY)
+				break;
+			g_usleep(50 * 1000);
+		}
+	}
 	if (ret != 0) {
 		switch (ret) {
 		case LIBUSB_ERROR_BUSY:
@@ -352,8 +384,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 
-	if ((ret = dslogic_fpga_firmware_upload(sdi)) != SR_OK)
-		return ret;
+	if ((ret = devc->ops->fpga_firmware_upload(sdi)) != SR_OK)
+		goto fail_release;
+	if ((ret = devc->ops->security_check(sdi)) != SR_OK)
+		goto fail_release;
+	/* DSView writes VTH_ADDR right after dsl_dev_open returns
+	 * (dslogic.c). Without this, the FPGA threshold DAC
+	 * is uninitialised and subsequent arm-sequence status polls may
+	 * stall. Use a sensible default (1.0V on 3.3V logic). */
+	(void)devc->ops->set_voltage_threshold(sdi, 1.0, 1.0);
 
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
@@ -362,10 +401,23 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_threshold == 0.0) {
 		devc->cur_threshold = thresholds[1][0];
-		return dslogic_set_voltage_threshold(sdi, devc->cur_threshold);
+		return devc->ops->set_voltage_threshold(sdi, devc->cur_threshold, devc->cur_threshold);
 	}
 
 	return SR_OK;
+
+fail_release:
+	/*
+	 * dev_open failed AFTER we claimed the interface. libsigrok will not
+	 * call dev_close on a dev_open that returned non-OK, so we must
+	 * unwind the claim ourselves. Without this, the next dev_open's
+	 * libusb_claim_interface returns LIBUSB_ERROR_BUSY (the kernel
+	 * thinks the interface is still in use by us).
+	 */
+	libusb_release_interface(usb->devhdl, USB_INTERFACE);
+	libusb_close(usb->devhdl);
+	usb->devhdl = NULL;
+	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -434,6 +486,15 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_EXTERNAL_CLOCK:
 		*data = g_variant_new_boolean(devc->external_clock);
 		break;
+	case SR_CONF_RLE:
+		*data = g_variant_new_boolean(devc->rle_mode);
+		break;
+	case SR_CONF_FILTER:
+		*data = g_variant_new_boolean(devc->filter);
+		break;
+	case SR_CONF_CHUNK_LOOP:
+		*data = g_variant_new_boolean(devc->chunk_loop);
+		break;
 	case SR_CONF_CONTINUOUS:
 		*data = g_variant_new_boolean(devc->continuous_mode);
 		break;
@@ -484,14 +545,35 @@ static int config_set(uint32_t key, GVariant *data,
 			return dslogic_fpga_firmware_upload(sdi);
 		} else {
 			g_variant_get(data, "(dd)", &low, &high);
-			return dslogic_set_voltage_threshold(sdi, (low + high) / 2.0);
+			return devc->ops->set_voltage_threshold(sdi, low, high);
 		}
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->external_clock = g_variant_get_boolean(data);
 		break;
+	case SR_CONF_RLE:
+		devc->rle_mode = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_FILTER:
+		devc->filter = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_CHUNK_LOOP:
+		devc->chunk_loop = g_variant_get_boolean(data);
+		break;
 	case SR_CONF_CONTINUOUS:
 		devc->continuous_mode = g_variant_get_boolean(data);
+		if (devc->profile->protocol_version == DSL_PROTO_V2) {
+			/* Re-pick the channel mode for the new stream/buffer
+			 * choice; uses current samplerate + enabled-channel
+			 * count as hints. */
+			uint16_t m = enabled_channel_mask(sdi);
+			unsigned int hi = 0, i;
+			for (i = 0; i < 16; i++)
+				if (m & (1U << i)) hi = i + 1;
+			devc->ch_mode_id = dslogic_plus_auto_pick_mode_id(
+				devc->cur_samplerate, devc->continuous_mode,
+				devc->rle_mode, hi ? hi : 1);
+		}
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edges))) < 0)

@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
+#include "protocol_v2.h"
 
 #define DS_CMD_GET_FW_VERSION		0xb0
 #define DS_CMD_GET_REVID_VERSION	0xb1
@@ -178,7 +179,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	return SR_OK;
 }
 
-static int command_start_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int command_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -199,7 +200,7 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int command_stop_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int command_stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -312,7 +313,7 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
 	return result;
 }
 
-static unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
+SR_PRIV unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
 {
 	unsigned int count = 0;
 	for (const GSList *l = sdi->channels; l; l = l->next) {
@@ -323,7 +324,7 @@ static unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
 	return count;
 }
 
-static uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
+SR_PRIV uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
 {
 	unsigned int mask = 0;
 	for (const GSList *l = sdi->channels; l; l = l->next) {
@@ -425,7 +426,7 @@ static bool set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 	return num_trigger_stages != 0;
 }
 
-static int fpga_configure(const struct sr_dev_inst *sdi)
+SR_PRIV int fpga_configure(const struct sr_dev_inst *sdi)
 {
 	const struct dev_context *const devc = sdi->priv;
 	const struct sr_usb_dev_inst *const usb = sdi->conn;
@@ -601,29 +602,65 @@ SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			}
 		}
 
-		ret = command_get_fw_version(usb->devhdl, &vi);
-		if (ret != SR_OK) {
-			sr_err("Failed to get firmware version.");
-			break;
-		}
-
-		ret = command_get_revid_version(sdi, &revid);
-		if (ret != SR_OK) {
-			sr_err("Failed to get REVID.");
-			break;
-		}
-
 		/*
-		 * Changes in major version mean incompatible/API changes, so
-		 * bail out if we encounter an incompatible version.
-		 * Different minor versions are OK, they should be compatible.
+		 * The V1 firmware-version probe uses bRequest 0xb0, which
+		 * collides with the V2 envelope opcode CMD_CTL_WR. Only run
+		 * the V1 probe + version check for V1 devices.
 		 */
-		if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
-			sr_err("Expected firmware version %d.x, "
-			       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
-			       vi.major, vi.minor);
-			ret = SR_ERR;
-			break;
+		if (devc->profile->protocol_version == DSL_PROTO_V1) {
+			ret = command_get_fw_version(usb->devhdl, &vi);
+			if (ret != SR_OK) {
+				sr_err("Failed to get firmware version.");
+				break;
+			}
+
+			ret = command_get_revid_version(sdi, &revid);
+			if (ret != SR_OK) {
+				sr_err("Failed to get REVID.");
+				break;
+			}
+
+			/*
+			 * Changes in major version mean incompatible/API changes,
+			 * so bail out if we encounter an incompatible version.
+			 * Different minor versions are OK, they should be compatible.
+			 */
+			if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
+				sr_err("Expected firmware version %d.x, "
+				       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
+				       vi.major, vi.minor);
+				ret = SR_ERR;
+				break;
+			}
+		} else {
+			/*
+			 * V2 hello reads - DSView's hw_dev_open starts with
+			 * DSL_CTL_FW_VERSION read (dsl.c) and dsl_dev_open
+			 * follows with a DSL_CTL_HW_STATUS read (dsl.c).
+			 * These appear to prime the firmware's state machine; without
+			 * them, later HW_STATUS reads in the arm path stall. We
+			 * don't validate the values - just perform the reads.
+			 */
+			{
+				uint8_t v2_fw_ver[2] = {0, 0};
+				uint8_t v2_hw_status = 0;
+				struct ctl_rd_cmd v2_rd;
+
+				v2_rd.header.dest = DSL_CTL_FW_VERSION;
+				v2_rd.header.offset = 0;
+				v2_rd.header.size = 2;
+				v2_rd.data = v2_fw_ver;
+				if (command_ctl_rd_v2(usb->devhdl, v2_rd) == SR_OK)
+					sr_info("V2 firmware version: %u.%u",
+						v2_fw_ver[0], v2_fw_ver[1]);
+
+				v2_rd.header.dest = DSL_CTL_HW_STATUS;
+				v2_rd.header.offset = 0;
+				v2_rd.header.size = 1;
+				v2_rd.data = &v2_hw_status;
+				if (command_ctl_rd_v2(usb->devhdl, v2_rd) == SR_OK)
+					sr_dbg("V2 HW_STATUS: 0x%02x", v2_hw_status);
+			}
 		}
 
 		sr_info("Opened device on %d.%d (logical) / %s (physical), "
@@ -656,6 +693,8 @@ SR_PRIV struct dev_context *dslogic_dev_new(void)
 	devc->capture_ratio = 0;
 	devc->continuous_mode = FALSE;
 	devc->clock_edge = DS_EDGE_RISING;
+	/* DSLogic Plus default: 16 channels, buffered, max 100 MHz. */
+	devc->ch_mode_id = dslogic_plus_channel_mode_default()->id;
 
 	return devc;
 }
@@ -687,6 +726,93 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 	g_free(devc->deinterleave_buffer);
 }
 
+/* Forward decl: trigger_receive is defined alongside the V1 acquisition
+ * paths near the end of this file; rearm_chunk_in_place needs it as a
+ * libusb callback for the trigger-position transfer. */
+static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer);
+
+static void rearm_chunk_in_place(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	struct dslogic_trigger_pos *tpos;
+	struct libusb_transfer *transfer;
+	gint64 t_start_us;
+	int ret;
+
+	t_start_us = g_get_monotonic_time();
+
+	/* Per-chunk state. total_deadline_us preserved across chunks. */
+	devc->acq_aborted = FALSE;
+	devc->rearm_pending = FALSE;
+	devc->sent_samples = 0;
+	devc->actual_samples = 0;
+	devc->empty_transfer_count = 0;
+	devc->wallclock_deadline_us = 0;
+
+	g_free(devc->transfers);
+	devc->transfers = NULL;
+	devc->num_transfers = 0;
+	g_free(devc->deinterleave_buffer);
+	devc->deinterleave_buffer = NULL;
+
+	/* Chunk boundary marker for downstream decoders. */
+	std_session_send_df_trigger(sdi);
+
+	if ((ret = devc->ops->acquisition_stop(sdi)) != SR_OK)
+		goto fail;
+	if ((ret = devc->ops->fpga_config(sdi)) != SR_OK)
+		goto fail;
+	if ((ret = devc->ops->acquisition_start(sdi)) != SR_OK)
+		goto fail;
+
+	tpos = g_malloc(sizeof(struct dslogic_trigger_pos));
+	transfer = libusb_alloc_transfer(0);
+	libusb_fill_bulk_transfer(transfer, usb->devhdl,
+			6 | LIBUSB_ENDPOINT_IN,
+			(unsigned char *)tpos,
+			sizeof(struct dslogic_trigger_pos),
+			trigger_receive, (void *)sdi, 0);
+	if ((ret = libusb_submit_transfer(transfer)) < 0) {
+		sr_err("Re-arm trigger transfer submit failed: %s.",
+		       libusb_error_name(ret));
+		libusb_free_transfer(transfer);
+		g_free(tpos);
+		goto fail;
+	}
+
+	devc->transfers = g_try_malloc0(sizeof(*devc->transfers));
+	if (!devc->transfers) {
+		sr_err("Re-arm transfer table malloc failed.");
+		goto fail;
+	}
+	devc->num_transfers = 1;
+	devc->submitted_transfers++;
+	devc->transfers[0] = transfer;
+
+	sr_dbg("Re-armed chunk in %.2f ms.",
+	       (g_get_monotonic_time() - t_start_us) / 1000.0);
+	return;
+
+fail:
+	sr_err("Chunk re-arm failed (%d); ending session.", ret);
+	finish_acquisition(sdi);
+}
+
+/*
+ * Re-arm the FPGA for the next chunk without ending the libsigrok session.
+ *
+ * Called from free_transfer when the previous chunk's transfers have all
+ * been drained and rearm_pending was set. Sends an SR_DF_TRIGGER marker so
+ * downstream decoders can see the chunk boundary, re-runs the arm sequence
+ * (stop / fpga_config / acquisition_start), and re-submits a fresh trigger-
+ * position transfer so the next chunk's data will flow on the same session.
+ *
+ * usb_source_add is NOT re-issued: the libusb event source is owned by the
+ * outer session and remains valid across chunks. Per-chunk counters
+ * (sent_samples, actual_samples, empty_transfer_count, wallclock_deadline_us)
+ * are reset; total_deadline_us is preserved.
+ */
 static void free_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
@@ -708,8 +834,25 @@ static void free_transfer(struct libusb_transfer *transfer)
 	}
 
 	devc->submitted_transfers--;
-	if (devc->submitted_transfers == 0)
-		finish_acquisition(sdi);
+	/*
+	 * Don't kick the re-arm here. We're inside a libusb callback;
+	 * issuing synchronous USB control transfers from this context
+	 * collides with libusb's internal transfer machinery and returns
+	 * LIBUSB_ERROR_BUSY. Instead let the periodic receive_data tick
+	 * notice submitted_transfers == 0 + rearm_pending and run the
+	 * re-arm from a clean stack.
+	 *
+	 * For the no-rearm case (session end), finish_acquisition is
+	 * still safe to call here because it only touches libsigrok
+	 * bookkeeping (no USB I/O).
+	 */
+	if (devc->submitted_transfers == 0) {
+		if (!(devc->rearm_pending
+				&& devc->total_deadline_us
+				&& g_get_monotonic_time() < devc->total_deadline_us)) {
+			finish_acquisition(sdi);
+		}
+	}
 }
 
 static void resubmit_transfer(struct libusb_transfer *transfer)
@@ -806,6 +949,47 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		break;
 	}
 
+	/*
+	 * Stream+RLE wall-clock cutoff. Arm the deadline on the first
+	 * non-empty transfer (so capture-start = first sample seen) and
+	 * abort the moment we cross it. budget_for_deadline is the
+	 * per-chunk capture duration (chunk_samples in chunk_loop mode,
+	 * limit_samples otherwise); the 10% grace lets the FX2 drain its
+	 * in-flight bytes before we cancel.
+	 */
+	if (devc->continuous_mode && devc->rle_mode
+			&& transfer->actual_length > 0
+			&& devc->wallclock_deadline_us == 0
+			&& devc->cur_samplerate) {
+		uint64_t budget_for_deadline = devc->chunk_loop
+			? devc->chunk_samples : devc->limit_samples;
+		if (budget_for_deadline) {
+			gint64 dur_us = (gint64)((double)budget_for_deadline /
+					(double)devc->cur_samplerate * 1e6 * 1.1);
+			devc->wallclock_deadline_us =
+				g_get_monotonic_time() + dur_us;
+			sr_dbg("Stream+RLE wall-clock deadline armed at "
+			       "+%" PRId64 " us (%.2f s)", dur_us, dur_us / 1e6);
+		}
+	}
+	if (devc->wallclock_deadline_us
+			&& g_get_monotonic_time() >= devc->wallclock_deadline_us) {
+		sr_dbg("Stream+RLE: wall-clock deadline reached "
+		       "(sent_samples=%u of budget=%" PRIu64 ").",
+		       devc->sent_samples,
+		       devc->actual_samples ? devc->actual_samples
+					    : devc->limit_samples);
+		/* If chunk_loop is on and we're still inside the session
+		 * deadline, request a re-arm instead of ending the session. */
+		if (devc->chunk_loop && devc->total_deadline_us
+				&& g_get_monotonic_time() < devc->total_deadline_us) {
+			devc->rearm_pending = TRUE;
+		}
+		abort_acquisition(devc);
+		free_transfer(transfer);
+		return;
+	}
+
 	if (transfer->actual_length == 0 || packet_has_error) {
 		devc->empty_transfer_count++;
 		if (devc->empty_transfer_count > MAX_EMPTY_TRANSFERS) {
@@ -813,6 +997,19 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
+			sr_info("Aborting acquisition after %u empty transfers; "
+				"sent_samples=%u, budget=%" PRIu64 ", "
+				"continuous=%d, rle=%d. The FPGA stopped "
+				"emitting data before reaching the requested "
+				"sample budget (likely RLE/USB-bandwidth "
+				"overflow in stream+RLE, or end-of-capture "
+				"in buffered mode).",
+				devc->empty_transfer_count,
+				devc->sent_samples,
+				devc->actual_samples ? devc->actual_samples
+						     : devc->limit_samples,
+				(int)devc->continuous_mode,
+				(int)devc->rle_mode);
 			abort_acquisition(devc);
 			free_transfer(transfer);
 		} else {
@@ -823,9 +1020,18 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		devc->empty_transfer_count = 0;
 	}
 
-	if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
-		if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
-			num_samples = devc->limit_samples - devc->sent_samples;
+	/*
+	 * The acquisition-stop budget is actual_samples (= limit_samples for
+	 * normal captures, possibly less under RLE). Falls back to limit_samples
+	 * if the trigger-position header has not arrived yet (actual_samples
+	 * still zero from dslogic_acquisition_start).
+	 */
+	const uint64_t budget = devc->actual_samples
+		? devc->actual_samples : devc->limit_samples;
+
+	if (!budget || devc->sent_samples < budget) {
+		if (budget && devc->sent_samples + cur_sample_count > budget)
+			num_samples = budget - devc->sent_samples;
 		else
 			num_samples = cur_sample_count;
 
@@ -867,7 +1073,13 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		}
 	}
 
-	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+	if (budget && devc->sent_samples >= budget) {
+		/* Per-chunk budget consumed. In chunk_loop, queue a re-arm
+		 * unless the overall session deadline has elapsed. */
+		if (devc->chunk_loop && devc->total_deadline_us
+				&& g_get_monotonic_time() < devc->total_deadline_us) {
+			devc->rearm_pending = TRUE;
+		}
 		abort_acquisition(devc);
 		free_transfer(transfer);
 	} else
@@ -878,6 +1090,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct timeval tv;
 	struct drv_context *drvc;
+	GSList *l;
 
 	(void)fd;
 	(void)revents;
@@ -886,6 +1099,30 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+
+	/*
+	 * Drain any deferred per-chunk re-arms. free_transfer can't issue
+	 * synchronous control transfers from inside its libusb callback
+	 * (returns LIBUSB_ERROR_BUSY), so it just sets rearm_pending +
+	 * lets the prior chunk's transfers drain. Here, on a clean stack,
+	 * we re-arm the FPGA and submit a fresh trigger-position transfer
+	 * for the next chunk.
+	 */
+	for (l = drvc->instances; l; l = l->next) {
+		struct sr_dev_inst *sdi = l->data;
+		struct dev_context *devc = sdi->priv;
+		if (devc && devc->rearm_pending
+				&& devc->submitted_transfers == 0
+				&& devc->total_deadline_us
+				&& g_get_monotonic_time() < devc->total_deadline_us) {
+			rearm_chunk_in_place(sdi);
+		} else if (devc && devc->rearm_pending
+				&& devc->submitted_transfers == 0) {
+			/* Total deadline elapsed during drain. End the session. */
+			devc->rearm_pending = FALSE;
+			finish_acquisition(sdi);
+		}
+	}
 
 	return TRUE;
 }
@@ -955,6 +1192,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
 	devc->submitted_transfers = 0;
+	devc->wallclock_deadline_us = 0;
 
 	g_free(devc->transfers);
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
@@ -994,7 +1232,16 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		devc->submitted_transfers++;
 	}
 
-	std_session_send_df_header(sdi);
+	/*
+	 * NOTE: DF_HEADER is emitted exactly once per session by
+	 * dslogic_acquisition_start, not here. start_transfers is re-entered
+	 * on every chunk_loop re-arm via trigger_receive; emitting DF_HEADER
+	 * here would tell sigrok-cli's session loop to call
+	 * setup_output_format again, which creates a fresh srzip output
+	 * context with zip_created=FALSE, and the next DF_LOGIC then
+	 * unlinks the .sr file and starts a new archive - silently losing
+	 * all data from prior chunks.
+	 */
 
 	return SR_OK;
 }
@@ -1020,6 +1267,40 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 		sr_info("tpos real_pos %d ram_saddr %d cnt_h %d cnt_l %d", tpos->real_pos,
 			tpos->ram_saddr, tpos->remain_cnt_h, tpos->remain_cnt_l);
 		devc->trigger_pos = tpos->real_pos;
+		{
+			/*
+			 * In buffered (one-shot) mode with RLE the FPGA may have
+			 * captured fewer samples than requested (compressed buffer
+			 * exhausted). remain_cnt tells us by how much. Without this
+			 * adjustment the acquisition never reaches sent_samples >=
+			 * limit_samples and hangs. Matches DSView dsl.c
+			 * receive_header.
+			 *
+			 * In streaming (continuous) mode remain_cnt is an in-flight
+			 * "samples-remaining-to-send" counter that updates as the
+			 * FPGA streams; subtracting it from limit_samples gives a
+			 * meaningless tiny number that would stop the acquisition
+			 * almost immediately. Skip the shortening entirely for
+			 * streaming and let limit_samples be the stop budget.
+			 */
+			/* Per-chunk budget when chunk_loop is active. */
+			uint64_t per_chunk = (devc->chunk_loop && devc->chunk_samples)
+				? devc->chunk_samples : devc->limit_samples;
+
+			if (!devc->continuous_mode) {
+				uint64_t remain = ((uint64_t)tpos->remain_cnt_h << 32)
+					| (uint64_t)tpos->remain_cnt_l;
+				if (per_chunk && remain < per_chunk)
+					devc->actual_samples = per_chunk - remain;
+				else
+					devc->actual_samples = per_chunk;
+				if (devc->actual_samples != per_chunk)
+					sr_info("RLE shortened capture: %" PRIu64 " of %" PRIu64 " samples",
+						devc->actual_samples, per_chunk);
+			} else {
+				devc->actual_samples = per_chunk;
+			}
+		}
 		g_free(tpos);
 		start_transfers(sdi);
 	}
@@ -1045,18 +1326,60 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->ctx = drvc->sr_ctx;
 	devc->sent_samples = 0;
+	devc->actual_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
+	devc->rearm_pending = FALSE;
+	devc->wallclock_deadline_us = 0;
+
+	/*
+	 * chunk_loop: each chunk captures chunk_samples (default ~500ms of
+	 * samples) and then re-arms. The overall session ends after
+	 * total_deadline_us, derived from --time / limit_samples + a 10%
+	 * grace for drain. When chunk_loop is off, chunk_samples = 0 and
+	 * the existing single-shot semantics apply.
+	 */
+	if (devc->chunk_loop && devc->cur_samplerate && devc->limit_samples) {
+		uint64_t default_chunk = devc->cur_samplerate / 2;  /* 500ms */
+		if (default_chunk == 0)
+			default_chunk = devc->cur_samplerate;
+		devc->chunk_samples = devc->limit_samples < default_chunk
+			? devc->limit_samples : default_chunk;
+		devc->total_deadline_us = g_get_monotonic_time() +
+			(gint64)((double)devc->limit_samples /
+				 (double)devc->cur_samplerate * 1e6 * 1.1);
+		sr_info("chunk_loop: per-chunk %" PRIu64 " samples "
+			"(%.2f s), total deadline +%.2f s",
+			devc->chunk_samples,
+			(double)devc->chunk_samples / devc->cur_samplerate,
+			((double)devc->total_deadline_us -
+			 g_get_monotonic_time()) / 1e6);
+	} else {
+		devc->chunk_samples = 0;
+		devc->total_deadline_us = 0;
+	}
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
-	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
+	/*
+	 * Emit DF_HEADER once per session, BEFORE the first arm. Used to
+	 * live at the bottom of start_transfers, but in chunk_loop mode
+	 * start_transfers runs per re-arm and re-emitted DF_HEADER caused
+	 * sigrok-cli to re-initialize its output module, which made srzip
+	 * unlink and recreate the .sr file each chunk - silently dropping
+	 * all prior chunks' data.
+	 */
+	std_session_send_df_header(sdi);
+
+	/* Stop any prior acquisition, then arm and start. Matches DSView's order
+	 * at dslogic.c (STOP -> arm -> START). */
+	if ((ret = devc->ops->acquisition_stop(sdi)) != SR_OK)
 		return ret;
 
-	if ((ret = fpga_configure(sdi)) != SR_OK)
+	if ((ret = devc->ops->fpga_config(sdi)) != SR_OK)
 		return ret;
 
-	if ((ret = command_start_acquisition(sdi)) != SR_OK)
+	if ((ret = devc->ops->acquisition_start(sdi)) != SR_OK)
 		return ret;
 
 	sr_dbg("Getting trigger.");
@@ -1086,7 +1409,9 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 
 SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	command_stop_acquisition(sdi);
+	struct dev_context *devc = sdi->priv;
+
+	devc->ops->acquisition_stop(sdi);
 	abort_acquisition(sdi->priv);
 	return SR_OK;
 }

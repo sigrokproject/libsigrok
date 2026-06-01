@@ -29,6 +29,29 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+struct sr_dev_inst;    /* forward */
+
+enum dslogic_protocol_version {
+	DSL_PROTO_V1 = 0,  /* flat opcodes 0xb0-0xb8 (legacy DSLogic firmware) */
+	DSL_PROTO_V2 = 1,  /* envelope CMD_CTL_WR/RD with ctl_header (DSView 1.3.2-era firmware) */
+};
+
+struct dslogic_protocol_ops {
+	int (*fpga_firmware_upload)(const struct sr_dev_inst *sdi);
+	int (*fpga_config)(const struct sr_dev_inst *sdi);
+	int (*acquisition_start)(const struct sr_dev_inst *sdi);
+	int (*acquisition_stop)(const struct sr_dev_inst *sdi);
+	int (*set_samplerate)(const struct sr_dev_inst *sdi, uint64_t rate);
+	int (*set_voltage_threshold)(const struct sr_dev_inst *sdi, double low, double high);
+	int (*set_trigger)(const struct sr_dev_inst *sdi);
+	int (*set_external_clock)(const struct sr_dev_inst *sdi, gboolean ext);
+	int (*set_clock_edge)(const struct sr_dev_inst *sdi, int edge);
+	int (*security_check)(const struct sr_dev_inst *sdi);
+};
+
+extern const struct dslogic_protocol_ops dslogic_v1_ops;
+extern const struct dslogic_protocol_ops dslogic_v2_ops;
+
 #define LOG_PREFIX "dreamsourcelab-dslogic"
 
 #define USB_INTERFACE		0
@@ -103,10 +126,16 @@ struct dslogic_profile {
 
 	/* Memory depth in bits. */
 	uint64_t mem_depth;
+
+	enum dslogic_protocol_version protocol_version;
+	const struct dslogic_protocol_ops *ops;
 };
 
 struct dev_context {
 	const struct dslogic_profile *profile;
+	const struct dslogic_protocol_ops *ops;
+	/* V2 only: stable ID of the active channel mode (DSLogic Plus presets). */
+	uint8_t ch_mode_id;
 	/*
 	 * Since we can't keep track of a DSLogic device after upgrading
 	 * the firmware (it renumerates into a different device address
@@ -120,9 +149,45 @@ struct dev_context {
 
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
+	/*
+	 * Number of samples the FPGA actually captured. Equals limit_samples
+	 * for normal captures; less when RLE is enabled and the FPGA's
+	 * compressed buffer ran out before reaching limit_samples (the
+	 * trigger-header packet's remain_cnt fields tell us by how much).
+	 * Set in trigger_receive; used by the acquisition stop check.
+	 */
+	uint64_t actual_samples;
 	uint64_t capture_ratio;
 
 	gboolean acq_aborted;
+
+	/*
+	 * Wall-clock deadline for stream+RLE captures, in microseconds
+	 * (monotonic). Set in receive_transfer on the first non-empty
+	 * transfer to (now + chunk_samples/samplerate * 1.1). Used to
+	 * abort once the FPGA's expected runtime has elapsed: in stream+RLE
+	 * sent_samples is counted by raw-byte-arrival rate, which is
+	 * decoupled from wall-clock by the RLE compression ratio, so the
+	 * sample-count budget alone never trips a clean exit at the
+	 * user-requested --time. 0 = not active.
+	 */
+	gint64 wallclock_deadline_us;
+
+	/*
+	 * Chunk-loop mode: when enabled, the FPGA is automatically re-armed
+	 * the moment a chunk's worth of samples has been drained, instead of
+	 * ending the session. Chunks are sized to chunk_samples (default
+	 * samplerate/2, i.e. ~500ms each). Total session length is bounded
+	 * by total_deadline_us (set from limit_samples + samplerate at acq
+	 * start). An SR_DF_TRIGGER marker is sent between chunks so the
+	 * downstream decoder pipeline can see chunk boundaries. Useful for
+	 * bursty triggered captures (each new trigger fires within at most
+	 * one chunk_samples + arm-latency window).
+	 */
+	gboolean chunk_loop;
+	uint64_t chunk_samples;
+	gint64   total_deadline_us;
+	gboolean rearm_pending;
 
 	unsigned int sent_samples;
 	int submitted_transfers;
@@ -137,16 +202,24 @@ struct dev_context {
 	uint16_t mode;
 	uint32_t trigger_pos;
 	gboolean external_clock;
+	/* V2 only: RLE compression + glitch filter toggles (DSLogic Plus). */
+	gboolean rle_mode;
+	gboolean filter;
 	gboolean continuous_mode;
 	int clock_edge;
 	double cur_threshold;
 };
 
+SR_PRIV int fpga_configure(const struct sr_dev_inst *sdi);
+SR_PRIV unsigned int enabled_channel_count(const struct sr_dev_inst *sdi);
+SR_PRIV uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_set_voltage_threshold(const struct sr_dev_inst *sdi, double threshold);
 SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *dslogic_dev_new(void);
 SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi);
+SR_PRIV int command_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int command_stop_acquisition(const struct sr_dev_inst *sdi);
 
 #endif

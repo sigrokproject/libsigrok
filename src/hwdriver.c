@@ -104,6 +104,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Time base", NULL},
 	{SR_CONF_FILTER, SR_T_BOOL, "filter",
 		"Filter", NULL},
+	{SR_CONF_CHUNK_LOOP, SR_T_BOOL, "chunk_loop",
+		"Re-arm automatically after each chunk", NULL},
 	{SR_CONF_VDIV, SR_T_RATIONAL_VOLT, "vdiv",
 		"Volts/div", NULL},
 	{SR_CONF_COUPLING, SR_T_STRING, "coupling",
