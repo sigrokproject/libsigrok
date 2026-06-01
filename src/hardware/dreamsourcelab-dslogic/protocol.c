@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
+#include "protocol_v2.h"
 
 #define DS_CMD_GET_FW_VERSION		0xb0
 #define DS_CMD_GET_REVID_VERSION	0xb1
@@ -178,7 +179,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	return SR_OK;
 }
 
-static int command_start_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int command_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -199,7 +200,7 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int command_stop_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int command_stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
@@ -312,7 +313,7 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
 	return result;
 }
 
-static unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
+SR_PRIV unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
 {
 	unsigned int count = 0;
 	for (const GSList *l = sdi->channels; l; l = l->next) {
@@ -323,7 +324,7 @@ static unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
 	return count;
 }
 
-static uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
+SR_PRIV uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
 {
 	unsigned int mask = 0;
 	for (const GSList *l = sdi->channels; l; l = l->next) {
@@ -425,7 +426,7 @@ static bool set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 	return num_trigger_stages != 0;
 }
 
-static int fpga_configure(const struct sr_dev_inst *sdi)
+SR_PRIV int fpga_configure(const struct sr_dev_inst *sdi)
 {
 	const struct dev_context *const devc = sdi->priv;
 	const struct sr_usb_dev_inst *const usb = sdi->conn;
@@ -601,29 +602,65 @@ SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			}
 		}
 
-		ret = command_get_fw_version(usb->devhdl, &vi);
-		if (ret != SR_OK) {
-			sr_err("Failed to get firmware version.");
-			break;
-		}
-
-		ret = command_get_revid_version(sdi, &revid);
-		if (ret != SR_OK) {
-			sr_err("Failed to get REVID.");
-			break;
-		}
-
 		/*
-		 * Changes in major version mean incompatible/API changes, so
-		 * bail out if we encounter an incompatible version.
-		 * Different minor versions are OK, they should be compatible.
+		 * The V1 firmware-version probe uses bRequest 0xb0, which
+		 * collides with the V2 envelope opcode CMD_CTL_WR. Only run
+		 * the V1 probe + version check for V1 devices.
 		 */
-		if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
-			sr_err("Expected firmware version %d.x, "
-			       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
-			       vi.major, vi.minor);
-			ret = SR_ERR;
-			break;
+		if (devc->profile->protocol_version == DSL_PROTO_V1) {
+			ret = command_get_fw_version(usb->devhdl, &vi);
+			if (ret != SR_OK) {
+				sr_err("Failed to get firmware version.");
+				break;
+			}
+
+			ret = command_get_revid_version(sdi, &revid);
+			if (ret != SR_OK) {
+				sr_err("Failed to get REVID.");
+				break;
+			}
+
+			/*
+			 * Changes in major version mean incompatible/API changes,
+			 * so bail out if we encounter an incompatible version.
+			 * Different minor versions are OK, they should be compatible.
+			 */
+			if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
+				sr_err("Expected firmware version %d.x, "
+				       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
+				       vi.major, vi.minor);
+				ret = SR_ERR;
+				break;
+			}
+		} else {
+			/*
+			 * V2 hello reads - DSView's hw_dev_open starts with
+			 * DSL_CTL_FW_VERSION read (dsl.c) and dsl_dev_open
+			 * follows with a DSL_CTL_HW_STATUS read (dsl.c).
+			 * These appear to prime the firmware's state machine; without
+			 * them, later HW_STATUS reads in the arm path stall. We
+			 * don't validate the values - just perform the reads.
+			 */
+			{
+				uint8_t v2_fw_ver[2] = {0, 0};
+				uint8_t v2_hw_status = 0;
+				struct ctl_rd_cmd v2_rd;
+
+				v2_rd.header.dest = DSL_CTL_FW_VERSION;
+				v2_rd.header.offset = 0;
+				v2_rd.header.size = 2;
+				v2_rd.data = v2_fw_ver;
+				if (command_ctl_rd_v2(usb->devhdl, v2_rd) == SR_OK)
+					sr_info("V2 firmware version: %u.%u",
+						v2_fw_ver[0], v2_fw_ver[1]);
+
+				v2_rd.header.dest = DSL_CTL_HW_STATUS;
+				v2_rd.header.offset = 0;
+				v2_rd.header.size = 1;
+				v2_rd.data = &v2_hw_status;
+				if (command_ctl_rd_v2(usb->devhdl, v2_rd) == SR_OK)
+					sr_dbg("V2 HW_STATUS: 0x%02x", v2_hw_status);
+			}
 		}
 
 		sr_info("Opened device on %d.%d (logical) / %s (physical), "
@@ -656,6 +693,8 @@ SR_PRIV struct dev_context *dslogic_dev_new(void)
 	devc->capture_ratio = 0;
 	devc->continuous_mode = FALSE;
 	devc->clock_edge = DS_EDGE_RISING;
+	/* DSLogic Plus default: 16 channels, buffered, max 100 MHz. */
+	devc->ch_mode_id = dslogic_plus_channel_mode_default()->id;
 
 	return devc;
 }
@@ -823,9 +862,18 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		devc->empty_transfer_count = 0;
 	}
 
-	if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
-		if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
-			num_samples = devc->limit_samples - devc->sent_samples;
+	/*
+	 * The acquisition-stop budget is actual_samples (= limit_samples for
+	 * normal captures, possibly less under RLE). Falls back to limit_samples
+	 * if the trigger-position header has not arrived yet (actual_samples
+	 * still zero from dslogic_acquisition_start).
+	 */
+	const uint64_t budget = devc->actual_samples
+		? devc->actual_samples : devc->limit_samples;
+
+	if (!budget || devc->sent_samples < budget) {
+		if (budget && devc->sent_samples + cur_sample_count > budget)
+			num_samples = budget - devc->sent_samples;
 		else
 			num_samples = cur_sample_count;
 
@@ -867,7 +915,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		}
 	}
 
-	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+	if (budget && devc->sent_samples >= budget) {
 		abort_acquisition(devc);
 		free_transfer(transfer);
 	} else
@@ -1020,6 +1068,36 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 		sr_info("tpos real_pos %d ram_saddr %d cnt_h %d cnt_l %d", tpos->real_pos,
 			tpos->ram_saddr, tpos->remain_cnt_h, tpos->remain_cnt_l);
 		devc->trigger_pos = tpos->real_pos;
+		{
+			/*
+			 * In buffered (one-shot) mode with RLE the FPGA may have
+			 * captured fewer samples than requested (compressed buffer
+			 * exhausted). remain_cnt tells us by how much. Without this
+			 * adjustment the acquisition never reaches sent_samples >=
+			 * limit_samples and hangs. Matches DSView dsl.c
+			 * receive_header.
+			 *
+			 * In streaming (continuous) mode remain_cnt is an in-flight
+			 * "samples-remaining-to-send" counter that updates as the
+			 * FPGA streams; subtracting it from limit_samples gives a
+			 * meaningless tiny number that would stop the acquisition
+			 * almost immediately. Skip the shortening entirely for
+			 * streaming and let limit_samples be the stop budget.
+			 */
+			if (!devc->continuous_mode) {
+				uint64_t remain = ((uint64_t)tpos->remain_cnt_h << 32)
+					| (uint64_t)tpos->remain_cnt_l;
+				if (devc->limit_samples && remain < devc->limit_samples)
+					devc->actual_samples = devc->limit_samples - remain;
+				else
+					devc->actual_samples = devc->limit_samples;
+				if (devc->actual_samples != devc->limit_samples)
+					sr_info("RLE shortened capture: %" PRIu64 " of %" PRIu64 " samples",
+						devc->actual_samples, devc->limit_samples);
+			} else {
+				devc->actual_samples = devc->limit_samples;
+			}
+		}
 		g_free(tpos);
 		start_transfers(sdi);
 	}
@@ -1045,18 +1123,21 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->ctx = drvc->sr_ctx;
 	devc->sent_samples = 0;
+	devc->actual_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
-	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
+	/* Stop any prior acquisition, then arm and start. Matches DSView's order
+	 * at dslogic.c (STOP -> arm -> START). */
+	if ((ret = devc->ops->acquisition_stop(sdi)) != SR_OK)
 		return ret;
 
-	if ((ret = fpga_configure(sdi)) != SR_OK)
+	if ((ret = devc->ops->fpga_config(sdi)) != SR_OK)
 		return ret;
 
-	if ((ret = command_start_acquisition(sdi)) != SR_OK)
+	if ((ret = devc->ops->acquisition_start(sdi)) != SR_OK)
 		return ret;
 
 	sr_dbg("Getting trigger.");
@@ -1086,7 +1167,9 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 
 SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	command_stop_acquisition(sdi);
+	struct dev_context *devc = sdi->priv;
+
+	devc->ops->acquisition_stop(sdi);
 	abort_acquisition(sdi->priv);
 	return SR_OK;
 }
