@@ -353,6 +353,9 @@ if HW_DREAMSOURCELAB_DSLOGIC
 src_libdrivers_la_SOURCES += \
 	src/hardware/dreamsourcelab-dslogic/protocol.h \
 	src/hardware/dreamsourcelab-dslogic/protocol.c \
+	src/hardware/dreamsourcelab-dslogic/protocol_v1.c \
+	src/hardware/dreamsourcelab-dslogic/protocol_v2.h \
+	src/hardware/dreamsourcelab-dslogic/protocol_v2.c \
 	src/hardware/dreamsourcelab-dslogic/api.c
 endif
 if HW_FLUKE_45
