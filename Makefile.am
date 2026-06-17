@@ -319,6 +319,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/chronovu-la/protocol.c \
 	src/hardware/chronovu-la/api.c
 endif
+if HW_ZLG_LA
+src_libdrivers_la_SOURCES += \
+	src/hardware/zlg-la/protocol.h \
+	src/hardware/zlg-la/protocol.c \
+	src/hardware/zlg-la/api.c
+endif
 if HW_COLEAD_SLM
 src_libdrivers_la_SOURCES += \
 	src/hardware/colead-slm/protocol.h \
