@@ -1840,20 +1840,15 @@ static void receive_transfer(struct libusb_transfer *transfer)
                     packet.type = SR_DF_LOGIC;
                     packet.payload = &logic;
 
-                    /* Deinterleave LA_CROSS_DATA to sample-interleaved format */
-                    if (devc->deinterleave_buf && data_len <= devc->deinterleave_buf_size) {
-                        deinterleave_cross_to_interleaved(
-                            (const uint8_t *)transfer->buffer + offset,
-                            devc->deinterleave_buf, data_len, ch_num);
-                        logic.length = data_len;
-                        logic.unitsize = unitsize;
-                        logic.data = devc->deinterleave_buf;
-                    } else {
-                        /* Fallback: send raw data if deinterleave buf unavailable */
-                        logic.length = data_len;
-                        logic.unitsize = unitsize;
-                        logic.data = transfer->buffer + offset;
-                    }
+                    /* Forward raw channel-block (LA_CROSS_DATA) directly — no
+                     * deinterleave in driver. Conversion to per-channel chunk
+                     * tree is done by LogicSnapshot::append_cross_payload on
+                     * the PXView side. This avoids the ~100ms/4MB deinterleave
+                     * bottleneck on the USB receive path (v1.49 architecture). */
+                    logic.length = data_len;
+                    logic.unitsize = unitsize;
+                    logic.format = LA_CROSS_DATA;
+                    logic.data = transfer->buffer + offset;
 
                     sr_session_send(sdi, &packet);
                     devc->samples_counter_div2 = devc->samples_counter / 2;

@@ -1204,6 +1204,8 @@ static inline void write_dblle_inc(uint8_t **p, double x)
 
 SR_API void sr_drivers_init(struct sr_context *context);
 
+struct sr_hotplug_state;
+
 struct sr_context {
 	struct sr_dev_driver **driver_list;
 #ifdef HAVE_LIBUSB_1_0
@@ -1213,6 +1215,9 @@ struct sr_context {
 	sr_resource_close_callback resource_close_cb;
 	sr_resource_read_callback resource_read_cb;
 	void *resource_cb_data;
+#ifdef HAVE_LIBUSB_1_0
+	struct sr_hotplug_state *hotplug_state;
+#endif
 };
 
 /** Input module metadata keys. */
@@ -1704,8 +1709,13 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...) ATTR_FMT_PRINTF(2, 3);
 /** Scan options supported by a driver. */
 #define SR_CONF_SCAN_OPTIONS 0x7FFF0000
 
-/** Device options for a particular device. */
+/*
+ * Device options pseudo-key. Also defined in libsigrok.h (public) so external
+ * callers (PXView) can use it. Guarded to avoid macro redefinition warnings.
+ */
+#ifndef SR_CONF_DEVICE_OPTIONS
 #define SR_CONF_DEVICE_OPTIONS 0x7FFF0001
+#endif
 
 /** Mask for separating config keys from capabilities. */
 #define SR_CONF_MASK 0x1fffffff

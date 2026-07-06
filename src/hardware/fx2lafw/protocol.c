@@ -272,6 +272,9 @@ SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc)
 {
 	int i;
 
+	sr_err("fx2lafw_abort_acquisition called: sent_samples=%" PRIu64 ", limit_samples=%" PRIu64 ", empty_transfers=%d",
+		devc->sent_samples, devc->limit_samples, devc->empty_transfer_count);
+
 	devc->acq_aborted = TRUE;
 
 	for (i = devc->num_transfers - 1; i >= 0; i--) {
@@ -432,8 +435,9 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		return;
 	}
 
-	sr_dbg("receive_transfer(): status %s received %d bytes.",
-		libusb_error_name(transfer->status), transfer->actual_length);
+	sr_dbg("receive_transfer: status=%s (%d), actual_length=%zu, sent_samples=%" PRIu64 ", limit_samples=%" PRIu64,
+		libusb_error_name(transfer->status), transfer->status,
+		(size_t)transfer->actual_length, devc->sent_samples, devc->limit_samples);
 
 	/* Save incoming transfer before reusing the transfer struct. */
 	unitsize = devc->sample_wide ? 2 : 1;
@@ -442,19 +446,31 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
+		sr_err("USB transfer error: status=%s (%d), actual_length=%zu",
+			libusb_error_name(transfer->status), transfer->status,
+			(size_t)transfer->actual_length);
 		fx2lafw_abort_acquisition(devc);
 		free_transfer(transfer);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
 	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though. */
+		if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT)
+			sr_dbg("USB transfer timed out (data may still be valid): actual_length=%zu",
+				(size_t)transfer->actual_length);
 		break;
 	default:
+		sr_err("USB transfer error: status=%s (%d), actual_length=%zu",
+			libusb_error_name(transfer->status), transfer->status,
+			(size_t)transfer->actual_length);
 		packet_has_error = TRUE;
 		break;
 	}
 
 	if (transfer->actual_length == 0 || packet_has_error) {
 		devc->empty_transfer_count++;
+		sr_dbg("Empty/error transfer: status=%d, actual_length=%zu, empty_count=%d/%d",
+			transfer->status, (size_t)transfer->actual_length,
+			devc->empty_transfer_count, MAX_EMPTY_TRANSFERS);
 		if (devc->empty_transfer_count > MAX_EMPTY_TRANSFERS) {
 			/*
 			 * The FX2 gave up. End the acquisition, the frontend
@@ -532,8 +548,11 @@ check_trigger:
 	if (frame_ended && final_frame) {
 		fx2lafw_abort_acquisition(devc);
 		free_transfer(transfer);
-	} else
+	} else {
+		sr_dbg("Resubmitting transfer: sent_samples=%" PRIu64 ", frame_ended=%d",
+			devc->sent_samples, frame_ended);
 		resubmit_transfer(transfer);
+	}
 }
 
 static int configure_channels(const struct sr_dev_inst *sdi)

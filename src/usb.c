@@ -261,11 +261,6 @@ static GSource *usb_source_new(struct sr_session *session,
 	struct usb_source *usource;
 	const struct libusb_pollfd **upollfds, **upfd;
 
-	upollfds = libusb_get_pollfds(usb_ctx);
-	if (!upollfds) {
-		sr_err("Failed to get libusb file descriptors.");
-		return NULL;
-	}
 	source = g_source_new(&usb_source_funcs, sizeof(struct usb_source));
 	usource = (struct usb_source *)source;
 
@@ -282,16 +277,29 @@ static GSource *usb_source_new(struct sr_session *session,
 	usource->usb_ctx = usb_ctx;
 	usource->pollfds = g_ptr_array_new_full(8, &usb_source_free_pollfd);
 
-	for (upfd = upollfds; *upfd != NULL; upfd++)
-		usb_pollfd_added((*upfd)->fd, (*upfd)->events, usource);
+	upollfds = libusb_get_pollfds(usb_ctx);
+	if (upollfds) {
+		for (upfd = upollfds; *upfd != NULL; upfd++)
+			usb_pollfd_added((*upfd)->fd, (*upfd)->events, usource);
 
 #if (LIBUSB_API_VERSION >= 0x01000104)
-	libusb_free_pollfds(upollfds);
+		libusb_free_pollfds(upollfds);
 #else
-	free(upollfds);
+		free(upollfds);
 #endif
-	libusb_set_pollfd_notifiers(usb_ctx,
-		&usb_pollfd_added, &usb_pollfd_removed, usource);
+		libusb_set_pollfd_notifiers(usb_ctx,
+			&usb_pollfd_added, &usb_pollfd_removed, usource);
+	} else {
+		/*
+		 * Windows: libusb_get_pollfds() returns NULL (WinUSB backend
+		 * does not expose pollfds). Fall back to timer-only mode —
+		 * the prepare/check callbacks still fire on the driver timeout,
+		 * and the dispatch callback invokes receive_data which calls
+		 * libusb_handle_events_timeout() to harvest USB completions.
+		 */
+		sr_dbg("libusb pollfds unavailable, using timer-only USB "
+			"event source (%dms).", timeout_ms);
+	}
 
 	return source;
 }

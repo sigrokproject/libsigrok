@@ -130,6 +130,13 @@ target_compile_definitions(libsigrok PRIVATE
     HAVE_LIBZIP
     HAVE_DRIVERS
     _GNU_SOURCE
+    # FIRMWARE_DIR: hard-coded firmware search path (resource.c).
+    # Points to the install.dir layout where sigrok-firmware files are staged.
+    # Without this, #ifdef FIRMWARE_DIR in resource.c is not compiled, and
+    # libsigrok only searches $SIGROK_FIRMWARE_DIR env var and system data dirs
+    # (C:\Users\<user>\AppData\Local\sigrok-firmware etc.) — missing the
+    # install.dir/share/sigrok-firmware bundled with PXView.
+    "FIRMWARE_DIR=\"${CMAKE_SOURCE_DIR}/install.dir/share/sigrok-firmware\""
 )
 
 # -- C standard ----------------------------------------------------------------

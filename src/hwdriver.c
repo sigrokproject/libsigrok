@@ -1068,9 +1068,13 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 		return SR_ERR_ARG;
 	}
 
+	sr_dbg("sr_config_list: calling driver->config_list, key=%u, sdi=%p, cg=%p, sdi->priv=%p",
+		key, (void*)sdi, (void*)cg, sdi ? sdi->priv : NULL);
 	if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK) {
 		log_key(sdi, cg, key, SR_CONF_LIST, *data);
 		g_variant_ref_sink(*data);
+	} else {
+		sr_err("sr_config_list: driver->config_list returned %d, key=%u", ret, key);
 	}
 
 	if (ret == SR_ERR_CHANNEL_GROUP)

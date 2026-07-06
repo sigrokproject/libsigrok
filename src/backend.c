@@ -665,6 +665,10 @@ SR_API int sr_exit(struct sr_context *ctx)
 
 	sr_hw_cleanup_all(ctx);
 
+#ifdef HAVE_LIBUSB_1_0
+	sr_close_hotplug(ctx);
+#endif
+
 #ifdef _WIN32
 	WSACleanup();
 #endif

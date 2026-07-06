@@ -1145,6 +1145,19 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		return SR_ERR_BUG;
 	}
 
+	/* LA_CROSS_DATA (PXLogic/DSLogic fork format) must be explicitly opt-in
+	 * by the driver. Any driver that does not set logic.format (stack
+	 * variable, uninitialized) or uses designated initializer (zero-init)
+	 * defaults to LA_SPLIT_DATA (upstream sample-interleaved format).
+	 * This lets all 80+ upstream sigrok drivers work unchanged alongside
+	 * the fork drivers that forward raw channel-block data. */
+	if (packet->type == SR_DF_LOGIC && packet->payload) {
+		struct sr_datafeed_logic *logic =
+			(struct sr_datafeed_logic *)packet->payload;
+		if (logic->format != LA_CROSS_DATA)
+			logic->format = LA_SPLIT_DATA;
+	}
+
 	/*
 	 * Pass the packet to the first transform module. If that returns
 	 * another packet (instead of NULL), pass that packet to the next
