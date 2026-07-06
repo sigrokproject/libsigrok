@@ -1268,6 +1268,51 @@ enum sr_configkey {
 	SR_CONF_GATE_TIME,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- PXLogic driver extension keys ---------------------------------*/
+	/*
+	 * Keys required by the PXLogic (ch569w) driver, ported from PXView
+	 * fork libsigrok. Fork 60001-60013 values are kept as-is (no conflict
+	 * with upstream 10000-50000 ranges). Fork 30000-range keys are
+	 * reassigned to 60020+ to avoid conflict with upstream's 30000-range
+	 * keys (SR_CONF_PATTERN_MODE=30002, SR_CONF_RLE=30003, etc).
+	 */
+
+	/* Fork 60001-60013: keep original values (no conflict) */
+	SR_CONF_LOOP_MODE = 60001,
+	SR_CONF_EX_TRIGGER_MATCH,
+	SR_CONF_TRIGGER_OUT,
+	SR_CONF_PWM0_EN,
+	SR_CONF_PWM0_FREQ,
+	SR_CONF_PWM0_DUTY,
+	SR_CONF_PWM1_EN,
+	SR_CONF_PWM1_FREQ,
+	SR_CONF_PWM1_DUTY,
+	SR_CONF_STREAM_BUFF,
+	SR_CONF_DISK_CACHE_ENABLE,
+	SR_CONF_DISK_CACHE_PATH,
+	SR_CONF_STREAM_MEM_BUFF,
+
+	/* Fork 30000-range keys reassigned to 60020+ (avoid upstream conflict) */
+	SR_CONF_USB_SPEED = 60020,
+	SR_CONF_USB30_SUPPORT,
+	SR_CONF_INSTANT,
+	SR_CONF_VLD_CH_NUM,
+	SR_CONF_STREAM,
+	SR_CONF_ROLL,
+	SR_CONF_TEST,
+	SR_CONF_OPERATION_MODE,
+	SR_CONF_BUFFER_OPTIONS,
+	SR_CONF_CHANNEL_MODE,
+	SR_CONF_MAX_HEIGHT,
+	SR_CONF_MAX_HEIGHT_VALUE,
+	SR_CONF_THRESHOLD,
+	SR_CONF_VTH,
+	SR_CONF_HW_DEPTH,
+	SR_CONF_DEVICE_OPTIONS,
+	SR_CONF_DEVICE_SESSIONS,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };
 
 /**
