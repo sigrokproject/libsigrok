@@ -99,6 +99,19 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi);
 SR_API GSList *sr_dev_inst_channels_get(const struct sr_dev_inst *sdi);
 SR_API GSList *sr_dev_inst_channel_groups_get(const struct sr_dev_inst *sdi);
 
+/*
+ * Queries a USB device instance's negotiated link speed.
+ * @param sdi Device instance. Must not be NULL. Must be SR_INST_USB.
+ * @returns LIBUSB_SPEED_UNKNOWN (0) if not a USB device or speed cannot be
+ *          determined, otherwise one of LIBUSB_SPEED_LOW/FULL/HIGH/SUPER/
+ *          SUPER_PLUS.
+ *
+ * This API replaces the deleted fork key SR_CONF_USB_SPEED — the speed is
+ * a property of the USB link, not a per-driver config, so it lives in the
+ * libsigrok device layer rather than in each driver's config_get/set.
+ */
+SR_API int sr_dev_inst_usb_speed_get(const struct sr_dev_inst *sdi);
+
 SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 		const char *model, const char *version);
 SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type, const char *name);

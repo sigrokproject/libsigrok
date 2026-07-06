@@ -364,6 +364,11 @@ static const char *probeMapUnits[] = {
     "V", "A", "°C", "°F", "g", "m", "m/s",
 };
 
+// C-class keys (DISK_CACHE_ENABLE/PATH, STREAM_BUFF, STREAM_MEM_BUFF) are
+// NOT declared here — they are app-layer concepts served by DeviceAgent's
+// app-layer config state (see deviceagent.cpp is_app_layer_key). Declaring
+// them in hwoptions would cause the UI to query the driver, but the driver
+// no longer implements config_get/set for these keys.
 static const int hwoptions[] = {
     SR_CONF_OPERATION_MODE,
     SR_CONF_VTH,
@@ -371,6 +376,9 @@ static const int hwoptions[] = {
     SR_CONF_FILTER,
     SR_CONF_CLOCK_EDGE,
     SR_CONF_TRIGGER_OUT,
+    SR_CONF_PWM0_EN,
+    SR_CONF_PWM0_FREQ,
+    SR_CONF_PWM0_DUTY,
 };
 
 static const int32_t sessions[] = {

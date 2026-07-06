@@ -939,6 +939,66 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 }
 
 /**
+ * Queries a USB device instance's negotiated link speed.
+ *
+ * For USB devices, this returns the libusb-reported device speed. If the
+ * device handle is open, the speed is read from the handle's underlying
+ * libusb_device; otherwise the device is located on the bus by bus/address
+ * and its speed is queried. Returns LIBUSB_SPEED_UNKNOWN (0) for non-USB
+ * devices or when the speed cannot be determined.
+ *
+ * @param sdi Device instance to use. Must not be NULL.
+ *
+ * @return LIBUSB_SPEED_* enum value, or LIBUSB_SPEED_UNKNOWN (0).
+ */
+SR_API int sr_dev_inst_usb_speed_get(const struct sr_dev_inst *sdi)
+{
+#ifdef HAVE_LIBUSB_1_0
+	struct sr_usb_dev_inst *usb;
+	struct libusb_device *dev;
+	struct drv_context *drvc;
+	struct libusb_device **devlist;
+	int cnt, i, b, a, speed;
+
+	if (!sdi || sdi->inst_type != SR_INST_USB || !sdi->conn)
+		return LIBUSB_SPEED_UNKNOWN;
+
+	usb = sdi->conn;
+
+	/* Fast path: the device handle is already open. libusb can read
+	 * the speed directly from the handle's underlying device. */
+	if (usb->devhdl) {
+		dev = libusb_get_device(usb->devhdl);
+		if (dev)
+			return libusb_get_device_speed(dev);
+	}
+
+	/* Slow path: device not open — locate it on the bus by address. */
+	if (!sdi->driver || !sdi->driver->context)
+		return LIBUSB_SPEED_UNKNOWN;
+	drvc = sdi->driver->context;
+
+	cnt = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	if (cnt < 0)
+		return LIBUSB_SPEED_UNKNOWN;
+
+	speed = LIBUSB_SPEED_UNKNOWN;
+	for (i = 0; i < cnt; i++) {
+		b = libusb_get_bus_number(devlist[i]);
+		a = libusb_get_device_address(devlist[i]);
+		if (b != usb->bus || a != usb->address)
+			continue;
+		speed = libusb_get_device_speed(devlist[i]);
+		break;
+	}
+	libusb_free_device_list(devlist, 1);
+	return speed;
+#else
+	return LIBUSB_SPEED_UNKNOWN;
+#endif
+}
+
+/**
  * Queries a device instances' channel list.
  *
  * @param sdi Device instance to use. Must not be NULL.
