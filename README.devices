@@ -75,6 +75,11 @@ The following drivers/devices require a firmware upload upon connection:
 
      http://sigrok.org/wiki/LeCroy_LogicStudio#Firmware
 
+ - px-logic: The PX Logic device series requires a firmware file for the USB
+   interface controller and various bitstream files for the FPGA.
+   These can be extracted/downloaded from the vendor's GitHub repo using a tool
+   from our 'sigrok-util' repository/project.
+
  - raspberrypi-pico: In order to use a Raspberry Pi Pico as a logic analyzer,
    it must be flashed with special open-source firmware:
 

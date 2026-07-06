@@ -222,6 +222,10 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", ENV{ID_SIGROK}="1"
 # Openbench Logic Sniffer
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", ENV{ID_SIGROK}="1"
 
+# PX Logic
+ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="05dc", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="5237", ENV{ID_SIGROK}="1"
+
 # Rigol DS1000 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", ENV{ID_SIGROK}="1"
 

@@ -610,6 +610,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/pipistrello-ols/protocol.c \
 	src/hardware/pipistrello-ols/api.c
 endif
+if HW_PX_LOGIC
+src_libdrivers_la_SOURCES += \
+	src/hardware/px-logic/protocol.h \
+	src/hardware/px-logic/protocol.c \
+	src/hardware/px-logic/api.c
+endif
 if HW_RASPBERRYPI_PICO
 src_libdrivers_la_SOURCES += \
 	src/hardware/raspberrypi-pico/protocol.h \
