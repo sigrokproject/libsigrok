@@ -81,8 +81,13 @@ set(libsigrok_SOURCES
     ${SR_DRIVER_LIST_STOP}
 )
 
-# -- Shared library target -----------------------------------------------------
-add_library(libsigrok SHARED ${libsigrok_SOURCES})
+# -- Static library target -----------------------------------------------------
+# 构建为静态库，直接链接进 PXView.exe。
+# 之前用 SHARED DLL 时，扫描阶段 fx2lafw 调用 libusb_open 报 LIBUSB_ERROR_ACCESS，
+# 同时 usb_source_new 报 "Failed to get libusb file descriptors"。
+# 怀疑是 DLL 边界的 libusb context 在某些路径上行为异常，改为静态链接让所有
+# libsigrok/libusb 代码运行在同一 PXView.exe 进程映像内，避免 DLL 间状态隔离。
+add_library(libsigrok STATIC ${libsigrok_SOURCES})
 
 # -- Include paths -------------------------------------------------------------
 # libsigrok/include -- upstream libsigrok/libsigrok.h, proto.h, version.h
@@ -131,17 +136,6 @@ target_compile_definitions(libsigrok PRIVATE
 set_target_properties(libsigrok PROPERTIES
     C_STANDARD 11
     C_STANDARD_REQUIRED ON
-    # Windows DLL symbol export: upstream libsigrok's SR_API macro is empty on
-    # _WIN32 (upstream uses autotools/libtool for DLL export, not __declspec).
-    # With -fvisibility=hidden, this would hide ALL symbols including public
-    # SR_API functions like sr_init/sr_exit/sr_driver_list. WINDOWS_EXPORT_ALL_
-    # SYMBOLS=ON makes CMake auto-generate a .def file that exports all global
-    # symbols, which is the standard MinGW approach for building shared libs
-    # whose sources were not designed with __declspec(dllexport) annotations.
-    # This exports both SR_API (public) and SR_PRIV (internal) symbols; the
-    # latter is acceptable on Windows (MinGW tradition) and only matters for
-    # ABI surface, not for functionality.
-    WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
 
 # -- Output name + output directory --------------------------------------------
