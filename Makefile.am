@@ -150,6 +150,7 @@ libsigrok_la_SOURCES += \
 	src/serial_hid.h \
 	src/serial_hid_bu86x.c \
 	src/serial_hid_ch9325.c \
+	src/serial_hid_ch9329.c \
 	src/serial_hid_cp2110.c \
 	src/serial_hid_victor.c \
 	src/serial_libsp.c \

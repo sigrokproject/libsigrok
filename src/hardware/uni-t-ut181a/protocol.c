@@ -681,7 +681,7 @@ SR_PRIV int ut181a_set_range_from_text(const struct sr_dev_inst *sdi, const char
 	/* Handle the simple case of "auto" caller spec. */
 	if (strcmp(text, range_auto) == 0) {
 		range = 0;
-		return ut181a_send_cmd_setmode(sdi->conn, range);
+		return ut181a_send_cmd_setrange(sdi->conn, range);
 	}
 
 	/* Lookup the list of ranges which depend on the meter's current mode. */
