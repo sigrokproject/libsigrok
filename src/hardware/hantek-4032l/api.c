@@ -591,8 +591,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		cmd_pkt->trigger[0].data_range_max = range_value;
 	}
 
-	usb_source_add(sdi->session, drvc->sr_ctx, 1000,
-		h4032l_receive_data, sdi->driver->context);
+	usb_source_add(sdi->session, drvc->sr_ctx, 0, NULL, NULL);
 
 	/* Start capturing. */
 	return h4032l_start(sdi);
