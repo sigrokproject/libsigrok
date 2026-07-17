@@ -46,14 +46,16 @@
 #define DEVICE_STATE_DATA_TRIG_RDY 8193	/* Trigger is ready bit */
 
 enum protocol_version {
-	SPO_MODEL,
+	SPO_MODEL = 10000,
 	NON_SPO_MODEL,
 	ESERIES,
 };
 
 enum data_source {
-	DATA_SOURCE_SCREEN,
+	DATA_SOURCE_SCREEN = 10000,
 	DATA_SOURCE_HISTORY,
+	DATA_SOURCE_SINGLE,
+	DATA_SOURCE_READ_ONLY,
 };
 
 struct siglent_sds_vendor {
@@ -82,10 +84,21 @@ struct siglent_sds_model {
 };
 
 enum wait_events {
-	WAIT_NONE,	/* Don't wait */
-	WAIT_TRIGGER,	/* Wait for trigger */
-	WAIT_BLOCK,	/* Wait for block data (only when reading sample mem) */
-	WAIT_STOP,	/* Wait for scope stopping (only single shots) */
+	WAIT_NONE = 10000,	/* Don't wait */
+	WAIT_TRIGGER,		/* Wait for trigger */
+	WAIT_BLOCK,		/* Wait for block data (only when reading sample mem) */
+	WAIT_STOP,		/* Wait for scope stopping (only single shots) */
+	WAIT_INIT		/* Wait for waveform request init */
+};
+
+enum acq_states {
+	ACQ_SETUP = 10000,	   /* Perform necessary setup SCPI commands before waveform read */
+	ACQ_WAIT_STOP,             /* Wait for device to stop */
+	ACQ_REQUEST_WAVEFORM,      /* Request the waveform, prepare SCPI read */
+	ACQ_READ_WAVEFORM_HEADER,  /* Read and parse the header */
+	ACQ_READ_WAVEFORM_DATA,    /* Read the waveform data */
+	ACQ_FINALIZE_WAVEFORM,
+	ACQ_DONE,	           /* All done */
 };
 
 struct dev_context {
@@ -153,6 +166,14 @@ struct dev_context {
 	unsigned char *buffer;
 	float *data;
 	GArray *dig_buffer;
+
+	/* Eseries specific */
+	enum acq_states acq_state;
+	/* Close history after acquistion is done if history was not open when acqusition started  */
+	gboolean close_history;
+	/* General retry counter to allow bailing out of infinite loops */
+	int retry_count;
+	gboolean acq_error;
 };
 
 SR_PRIV int siglent_sds_config_set(const struct sr_dev_inst *sdi,
@@ -163,5 +184,17 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data);
 SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi);
 SR_PRIV int siglent_sds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi);
 SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi);
+
+SR_PRIV int siglent_sds_eseries_receive(int fd, int revents, void *cb_data);
+SR_PRIV int siglent_sds_eseries_acq_setup(const struct sr_dev_inst *sdi, struct dev_context *devc);
+SR_PRIV int siglent_sds_eseries_acq_wait_stop(const struct sr_dev_inst *sdi, struct dev_context *devc);
+SR_PRIV int siglent_sds_eseries_acq_request_waveform(const struct sr_dev_inst *sdi, struct dev_context *devc);
+SR_PRIV int siglent_sds_eseries_acq_read_waveform_header(const struct sr_dev_inst *sdi, struct dev_context *devc);
+SR_PRIV int siglent_sds_eseries_acq_read_waveform_data(const struct sr_dev_inst *sdi, struct dev_context *devc);
+SR_PRIV int siglent_sds_eseries_send_waveform(const struct sr_dev_inst *sdi, struct dev_context *devc, guint bytes_read);
+SR_PRIV int siglent_sds_eseries_acq_finalize_waveform(const struct sr_dev_inst *sdi, struct dev_context *devc);
+SR_PRIV int siglent_sds_eseries_stop_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int siglent_sds_eseries_acq_error(struct dev_context *devc);
+SR_PRIV int siglent_sds_flush_buffers(const struct sr_dev_inst *sdi);
 
 #endif
