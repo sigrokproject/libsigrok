@@ -33,7 +33,7 @@ void srtest_setup(void)
 	int ret;
 
 	ret = sr_init(&srtest_ctx);
-	fail_unless(ret == SR_OK, "sr_init() failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() failed: %d.", ret);
 }
 
 void srtest_teardown(void)
@@ -41,7 +41,7 @@ void srtest_teardown(void)
 	int ret;
 
 	ret = sr_exit(srtest_ctx);
-	fail_unless(ret == SR_OK, "sr_exit() failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() failed: %d.", ret);
 }
 
 /* Get a libsigrok driver by name. */
@@ -51,14 +51,14 @@ struct sr_dev_driver *srtest_driver_get(const char *drivername)
 	int i;
 
 	drivers = sr_driver_list(srtest_ctx);
-	fail_unless(drivers != NULL, "No drivers found.");
+	ck_assert_msg(drivers != NULL, "No drivers found.");
 
 	for (i = 0; drivers[i]; i++) {
 		if (strcmp(drivers[i]->name, drivername))
 			continue;
 		driver = drivers[i];
 	}
-	fail_unless(driver != NULL, "Driver '%s' not found.", drivername);
+	ck_assert_msg(driver != NULL, "Driver '%s' not found.", drivername);
 
 	return driver;
 }
@@ -69,8 +69,8 @@ void srtest_driver_init(struct sr_context *sr_ctx, struct sr_dev_driver *driver)
 	int ret;
 
 	ret = sr_driver_init(sr_ctx, driver);
-	fail_unless(ret == SR_OK, "Failed to init '%s' driver: %d.",
-		    driver->name, ret);
+	ck_assert_msg(ret == SR_OK, "Failed to init '%s' driver: %d.",
+		      driver->name, ret);
 }
 
 /* Initialize all libsigrok drivers. */
@@ -80,13 +80,13 @@ void srtest_driver_init_all(struct sr_context *sr_ctx)
 	int i, ret;
 
 	drivers = sr_driver_list(srtest_ctx);
-	fail_unless(drivers != NULL, "No drivers found.");
+	ck_assert_msg(drivers != NULL, "No drivers found.");
 
 	for (i = 0; drivers[i]; i++) {
 		driver = drivers[i];
 		ret = sr_driver_init(sr_ctx, driver);
-		fail_unless(ret == SR_OK, "Failed to init '%s' driver: %d.",
-			    driver->name, ret);
+		ck_assert_msg(ret == SR_OK, "Failed to init '%s' driver: %d.",
+			      driver->name, ret);
 	}
 }
 
@@ -103,8 +103,9 @@ void srtest_set_samplerate(struct sr_dev_driver *driver, uint64_t samplerate)
 	ret = driver->config_set(SR_CONF_SAMPLERATE, gvar, sdi, NULL);
 	g_variant_unref(gvar);
 
-	fail_unless(ret == SR_OK, "%s: Failed to set SR_CONF_SAMPLERATE: %d.",
-		    driver->name, ret);
+	ck_assert_msg(ret == SR_OK,
+		      "%s: Failed to set SR_CONF_SAMPLERATE: %d.",
+		      driver->name, ret);
 }
 
 /* Get the respective driver's current samplerate. */
@@ -121,8 +122,9 @@ uint64_t srtest_get_samplerate(struct sr_dev_driver *driver)
 	samplerate = g_variant_get_uint64(gvar);
 	g_variant_unref(gvar);
 
-	fail_unless(ret == SR_OK, "%s: Failed to get SR_CONF_SAMPLERATE: %d.",
-		    driver->name, ret);
+	ck_assert_msg(ret == SR_OK,
+		      "%s: Failed to get SR_CONF_SAMPLERATE: %d.",
+		      driver->name, ret);
 
 	return samplerate;
 }
@@ -138,8 +140,8 @@ void srtest_check_samplerate(struct sr_context *sr_ctx, const char *drivername,
 	srtest_driver_init(sr_ctx, driver);;
 	srtest_set_samplerate(driver, samplerate);
 	s = srtest_get_samplerate(driver);
-	fail_unless(s == samplerate, "%s: Incorrect samplerate: %" PRIu64 ".",
-		    drivername, s);
+	ck_assert_msg(s == samplerate,
+		      "%s: Incorrect samplerate: %" PRIu64 ".", drivername, s);
 }
 
 GArray *srtest_get_enabled_logic_channels(const struct sr_dev_inst *sdi)

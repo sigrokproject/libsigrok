@@ -213,13 +213,13 @@ static int process_header(GString *buf, struct context *inc)
 
 	/*
 	 * First-level file header:
-	 * 0x00-1F  file format name
-	 * 0x20 u64 trigger timestamp
-	 * 0x28-2F  unused
-	 * 0x30 u8  compression
-	 * 0x31-35 ??
-	 *  0x32 u8 0x00 (PI), 0x01 (iprobe)
-	 * 0x36 u8  device id: 0x08 (PI 250/500), 0x0A (iprobe 250)
+	 * 000-031  0x00-1F  file format name
+	 * 032      0x20 u64 trigger timestamp
+	 * 040-047  0x28-2F  unused
+	 * 048      0x30 u8  compression
+	 * 049-053  0x31-35 ??
+	 *  050     0x32 u8 0x00 (PI), 0x01 (iprobe)
+	 * 054      0x36 u8  device id: 0x08 (PI 250/500), 0x0A (iprobe 250)
 	 */
 
 	/*

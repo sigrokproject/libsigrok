@@ -35,24 +35,24 @@ START_TEST(test_version_numbers)
 	int ver;
 
 	ver = sr_package_version_major_get();
-	fail_unless(ver == SR_PACKAGE_VERSION_MAJOR);
-	fail_unless(ver >= 0 && ver <= 20);
+	ck_assert(ver == SR_PACKAGE_VERSION_MAJOR);
+	ck_assert(ver >= 0 && ver <= 20);
 	ver = sr_package_version_minor_get();
-	fail_unless(ver == SR_PACKAGE_VERSION_MINOR);
-	fail_unless(ver >= 0 && ver <= 20);
+	ck_assert(ver == SR_PACKAGE_VERSION_MINOR);
+	ck_assert(ver >= 0 && ver <= 20);
 	ver = sr_package_version_micro_get();
-	fail_unless(ver == SR_PACKAGE_VERSION_MICRO);
-	fail_unless(ver >= 0 && ver <= 20);
+	ck_assert(ver == SR_PACKAGE_VERSION_MICRO);
+	ck_assert(ver >= 0 && ver <= 20);
 
 	ver = sr_lib_version_current_get();
-	fail_unless(ver == SR_LIB_VERSION_CURRENT);
-	fail_unless(ver >= 0 && ver <= 20);
+	ck_assert(ver == SR_LIB_VERSION_CURRENT);
+	ck_assert(ver >= 0 && ver <= 20);
 	ver = sr_lib_version_revision_get();
-	fail_unless(ver == SR_LIB_VERSION_REVISION);
-	fail_unless(ver >= 0 && ver <= 20);
+	ck_assert(ver == SR_LIB_VERSION_REVISION);
+	ck_assert(ver >= 0 && ver <= 20);
 	ver = sr_lib_version_age_get();
-	fail_unless(ver == SR_LIB_VERSION_AGE);
-	fail_unless(ver >= 0 && ver <= 20);
+	ck_assert(ver == SR_LIB_VERSION_AGE);
+	ck_assert(ver >= 0 && ver <= 20);
 }
 END_TEST
 
@@ -86,15 +86,15 @@ START_TEST(test_version_strings)
 	const size_t len_max = 2 + 1 + 2 + 1 + 2 + 5 + 12 + 6;
 
 	str = sr_package_version_string_get();
-	fail_unless(str != NULL);
-	fail_unless(strlen(str) >= len_min);
-	fail_unless(strlen(str) <= len_max,
-		"Max len exceeded, max %zu, text %s", len_max, str);
+	ck_assert(str != NULL);
+	ck_assert(strlen(str) >= len_min);
+	ck_assert_msg(strlen(str) <= len_max,
+		      "Max len exceeded, max %zu, text %s", len_max, str);
 	str = sr_lib_version_string_get();
-	fail_unless(str != NULL);
-	fail_unless(strlen(str) >= len_min);
-	fail_unless(strlen(str) <= len_max,
-		"Max len exceeded, max %zu, text %s", len_max, str);
+	ck_assert(str != NULL);
+	ck_assert(strlen(str) >= len_min);
+	ck_assert_msg(strlen(str) <= len_max,
+		      "Max len exceeded, max %zu, text %s", len_max, str);
 }
 END_TEST
 

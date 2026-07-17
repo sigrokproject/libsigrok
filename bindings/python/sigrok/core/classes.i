@@ -61,16 +61,6 @@ typedef gint pyg_flags_type;
 typedef guint pyg_flags_type;
 #endif
 
-#if PY_VERSION_HEX >= 0x03000000
-#define string_check PyUnicode_Check
-#define string_from_python PyUnicode_AsUTF8
-#define string_to_python PyUnicode_FromString
-#else
-#define string_check PyString_Check
-#define string_from_python PyString_AsString
-#define string_to_python PyString_FromString
-#endif
-
 %}
 
 %init %{
@@ -84,16 +74,21 @@ typedef guint pyg_flags_type;
      */
     if (!GLib) {
         fprintf(stderr, "Import of gi.repository.GLib failed.\n");
-#if PY_VERSION_HEX >= 0x03000000
         return nullptr;
-#else
-        return;
-#endif
     }
     import_array();
 %}
 
 %include "../../../swig/templates.i"
+
+%pythoncode
+{
+    def _class_attribute_repr(obj, attributes):
+        attribute_str = ", ".join(
+            ["%s=%s" % (key, repr(obj.__getattribute__(key))) for key in attributes]
+        )
+        return "{:s} ({:s})".format(obj.__class__.__name__, attribute_str)
+}
 
 /* Map file objects to file descriptors. */
 %typecheck(SWIG_TYPECHECK_POINTER) int fd {
@@ -130,7 +125,7 @@ typedef guint pyg_flags_type;
         auto log_obj = SWIG_NewPointerObj(
                 SWIG_as_voidptr(loglevel), SWIGTYPE_p_sigrok__LogLevel, 0);
 
-        auto string_obj = string_to_python(message.c_str());
+        auto string_obj = PyUnicode_FromString(message.c_str());
 
         auto arglist = Py_BuildValue("(OO)", log_obj, string_obj);
 
@@ -311,12 +306,12 @@ std::map<std::string, std::string> dict_to_map_string(PyObject *dict)
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(dict, &pos, &py_key, &py_value)) {
-        if (!string_check(py_key))
+        if (!PyUnicode_Check(py_key))
             throw sigrok::Error(SR_ERR_ARG);
-        if (!string_check(py_value))
+        if (!PyUnicode_Check(py_value))
             throw sigrok::Error(SR_ERR_ARG);
-        auto key = string_from_python(py_key);
-        auto value = string_from_python(py_value);
+        auto key = PyUnicode_AsUTF8(py_key);
+        auto value = PyUnicode_AsUTF8(py_value);
         output[key] = value;
     }
 
@@ -332,8 +327,8 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));
     if (type == SR_T_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
-    else if (type == SR_T_STRING && string_check(input))
-        return Glib::Variant<Glib::ustring>::create(string_from_python(input));
+    else if (type == SR_T_STRING && PyUnicode_Check(input))
+        return Glib::Variant<Glib::ustring>::create(PyUnicode_AsUTF8(input));
     else if (type == SR_T_BOOL && PyBool_Check(input))
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == SR_T_FLOAT && PyFloat_Check(input))
@@ -350,6 +345,18 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
           return Glib::Variant< std::vector<guint64> >::create(v);
         }
     }
+    else if ((type == SR_T_MQ) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
+        PyObject *numObj = PyTuple_GetItem(input, 0);
+        PyObject *denomObj = PyTuple_GetItem(input, 1);
+        if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
+            return Glib::Variant<std::tuple<guint32, guint64>>::create(
+                std::make_tuple(
+                    (guint32)PyInt_AsLong(numObj),
+                    (guint64)PyInt_AsLong(denomObj)
+                )
+            );
+        }
+    }
     throw sigrok::Error(SR_ERR_ARG);
 }
 
@@ -363,8 +370,8 @@ Glib::VariantBase python_to_variant_by_option(PyObject *input,
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));
     if (type == G_VARIANT_TYPE_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
-    else if (type == G_VARIANT_TYPE_STRING && string_check(input))
-        return Glib::Variant<Glib::ustring>::create(string_from_python(input));
+    else if (type == G_VARIANT_TYPE_STRING && PyUnicode_Check(input))
+        return Glib::Variant<Glib::ustring>::create(PyUnicode_AsUTF8(input));
     else if (type == G_VARIANT_TYPE_BOOLEAN && PyBool_Check(input))
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == G_VARIANT_TYPE_DOUBLE && PyFloat_Check(input))
@@ -390,9 +397,9 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(dict, &pos, &py_key, &py_value)) {
-        if (!string_check(py_key))
+        if (!PyUnicode_Check(py_key))
             throw sigrok::Error(SR_ERR_ARG);
-        auto key = string_from_python(py_key);
+        auto key = PyUnicode_AsUTF8(py_key);
         auto value = python_to_variant_by_option(py_value, options[key]);
         output[key] = value;
     }
@@ -478,15 +485,21 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 
         while (PyDict_Next(dict, &pos, &py_key, &py_value))
         {
-            if (!string_check(py_key))
+            if (!PyUnicode_Check(py_key))
                 throw sigrok::Error(SR_ERR_ARG);
-            auto key = sigrok::ConfigKey::get_by_identifier(string_from_python(py_key));
+            auto key = sigrok::ConfigKey::get_by_identifier(PyUnicode_AsUTF8(py_key));
             auto value = python_to_variant_by_key(py_value, key);
             options[key] = value;
         }
 
         return $self->scan(options);
     }
+
+%pythoncode
+{
+    def __repr__(self):
+        return _class_attribute_repr(self, ['name', 'long_name'])
+}
 }
 
 %pythoncode
@@ -599,6 +612,24 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
         return self._create_logic_packet_buf(buf, unit_size)
 
     Context.create_logic_packet = _Context_create_logic_packet
+}
+
+%extend sigrok::Channel
+{
+%pythoncode
+{
+    def __repr__(self):
+        return _class_attribute_repr(self, ['type', 'name', 'index', 'enabled'])
+}
+}
+
+%extend sigrok::ChannelGroup
+{
+%pythoncode
+{
+    def __repr__(self):
+        return _class_attribute_repr(self, ['name', 'channels'])
+}
 }
 
 %include "doc_end.i"

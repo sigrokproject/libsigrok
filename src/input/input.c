@@ -75,6 +75,7 @@ extern SR_PRIV struct sr_input_module input_stf;
 extern SR_PRIV struct sr_input_module input_trace32_ad;
 extern SR_PRIV struct sr_input_module input_vcd;
 extern SR_PRIV struct sr_input_module input_wav;
+extern SR_PRIV struct sr_input_module input_isf;
 /** @endcond */
 
 static const struct sr_input_module *input_module_list[] = {
@@ -92,6 +93,7 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_trace32_ad,
 	&input_vcd,
 	&input_wav,
+	&input_isf,
 	NULL,
 };
 

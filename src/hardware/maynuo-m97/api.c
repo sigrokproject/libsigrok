@@ -87,7 +87,7 @@ static const struct maynuo_m97_model supported_models[] = {
 //	{  78, "M9718E"    ,  120, 600,   6000 },
 //	{  79, "M9718F"    ,  480, 150,   6000 },
 //	{  80, "M9716E"    ,  480, 150,   3000 },
-//	{  81, "M9710"     ,   30, 150,    150 },
+	{  28, "M9710"     ,   30, 150,    150 },
 //	{  82, "M9834"     ,  500, 150,  10000 },
 //	{  83, "M9835"     ,  500, 150,  15000 },
 //	{  84, "M9835B"    ,  240, 500,  15000 },
@@ -201,14 +201,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_modbus_open(modbus) < 0)
 		return SR_ERR;
 
-	maynuo_m97_set_bit(modbus, PC1, 1);
+	maynuo_m97_set_bit(sdi, PC1, 1);
 
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 
 	modbus = sdi->conn;
@@ -216,16 +215,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!modbus)
 		return SR_ERR_BUG;
 
-	devc = sdi->priv;
-
-	if (devc->expecting_registers) {
-		/* Wait for the last data that was requested from the device. */
-		uint16_t registers[devc->expecting_registers];
-		sr_modbus_read_holding_registers(modbus, -1,
-			devc->expecting_registers, registers);
-	}
-
-	maynuo_m97_set_bit(modbus, PC1, 0);
+	maynuo_m97_set_bit(sdi, PC1, 0);
 
 	return sr_modbus_close(modbus);
 }
@@ -234,14 +224,12 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_modbus_dev_inst *modbus;
 	enum maynuo_m97_mode mode;
 	int ret, ivalue;
 	float fvalue;
 
 	(void)cg;
 
-	modbus = sdi->conn;
 	devc = sdi->priv;
 
 	ret = SR_OK;
@@ -251,60 +239,60 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
 	case SR_CONF_ENABLED:
-		if ((ret = maynuo_m97_get_bit(modbus, ISTATE, &ivalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_bit(sdi, ISTATE, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue);
 		break;
 	case SR_CONF_REGULATION:
-		if ((ret = maynuo_m97_get_bit(modbus, UNREG, &ivalue)) != SR_OK)
+		if ((ret = maynuo_m97_get_bit(sdi, UNREG, &ivalue)) != SR_OK)
 			break;
 		if (ivalue)
 			*data = g_variant_new_string("UR");
-		else if ((ret = maynuo_m97_get_mode(modbus, &mode)) == SR_OK)
+		else if ((ret = maynuo_m97_get_mode(sdi, &mode)) == SR_OK)
 			*data = g_variant_new_string(maynuo_m97_mode_to_str(mode));
 		break;
 	case SR_CONF_VOLTAGE:
-		if ((ret = maynuo_m97_get_float(modbus, U, &fvalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_float(sdi, U, &fvalue)) == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		if ((ret = maynuo_m97_get_float(modbus, UFIX, &fvalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_float(sdi, UFIX, &fvalue)) == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		break;
 	case SR_CONF_CURRENT:
-		if ((ret = maynuo_m97_get_float(modbus, I, &fvalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_float(sdi, I, &fvalue)) == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		if ((ret = maynuo_m97_get_float(modbus, IFIX, &fvalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_float(sdi, IFIX, &fvalue)) == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		if ((ret = maynuo_m97_get_bit(modbus, UOVER, &ivalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_bit(sdi, UOVER, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		if ((ret = maynuo_m97_get_float(modbus, UMAX, &fvalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_float(sdi, UMAX, &fvalue)) == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		if ((ret = maynuo_m97_get_bit(modbus, IOVER, &ivalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_bit(sdi, IOVER, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		if ((ret = maynuo_m97_get_float(modbus, IMAX, &fvalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_float(sdi, IMAX, &fvalue)) == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
-		if ((ret = maynuo_m97_get_bit(modbus, HEAT, &ivalue)) == SR_OK)
+		if ((ret = maynuo_m97_get_bit(sdi, HEAT, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue);
 		break;
 	default:
@@ -318,11 +306,9 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_modbus_dev_inst *modbus;
 
 	(void)cg;
 
-	modbus = sdi->conn;
 	devc = sdi->priv;
 
 	switch (key) {
@@ -330,15 +316,15 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
-		return maynuo_m97_set_input(modbus, g_variant_get_boolean(data));
+		return maynuo_m97_set_input(sdi, g_variant_get_boolean(data));
 	case SR_CONF_VOLTAGE_TARGET:
-		return maynuo_m97_set_float(modbus, UFIX, g_variant_get_double(data));
+		return maynuo_m97_set_float(sdi, UFIX, g_variant_get_double(data));
 	case SR_CONF_CURRENT_LIMIT:
-		return maynuo_m97_set_float(modbus, IFIX, g_variant_get_double(data));
+		return maynuo_m97_set_float(sdi, IFIX, g_variant_get_double(data));
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		return maynuo_m97_set_float(modbus, UMAX, g_variant_get_double(data));
+		return maynuo_m97_set_float(sdi, UMAX, g_variant_get_double(data));
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		return maynuo_m97_set_float(modbus, IMAX, g_variant_get_double(data));
+		return maynuo_m97_set_float(sdi, IMAX, g_variant_get_double(data));
 	default:
 		return SR_ERR_NA;
 	}
@@ -394,7 +380,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	return maynuo_m97_capture_start(sdi);
+	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)

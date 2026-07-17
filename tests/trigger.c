@@ -41,9 +41,9 @@ START_TEST(test_trigger_new_free)
 	for (i = 0; i < NUM_TRIGGERS; i++) {
 		sprintf((char *)&name, "T%d", i);
 		t[i] = sr_trigger_new((const char *)&name);
-		fail_unless(t[i] != NULL);
-		fail_unless(!strcmp(t[i]->name, (const char *)&name));
-		fail_unless(t[i]->stages == NULL);
+		ck_assert(t[i] != NULL);
+		ck_assert(!strcmp(t[i]->name, (const char *)&name));
+		ck_assert(t[i]->stages == NULL);
 	}
 
 	/* Free the triggers again (must not segfault). */
@@ -61,9 +61,9 @@ START_TEST(test_trigger_new_free_null)
 	/* Create a few triggers with a NULL name (which is allowed). */
 	for (i = 0; i < NUM_TRIGGERS; i++) {
 		t[i] = sr_trigger_new(NULL);
-		fail_unless(t[i] != NULL);
-		fail_unless(t[i]->name == NULL);
-		fail_unless(t[i]->stages == NULL);
+		ck_assert(t[i] != NULL);
+		ck_assert(t[i]->name == NULL);
+		ck_assert(t[i]->stages == NULL);
 	}
 
 	/* Free the triggers again (must not segfault). */
@@ -93,11 +93,11 @@ START_TEST(test_trigger_stage_add)
 		/* Add a bunch of trigger stages to this trigger. */
 		for (j = 0; j < NUM_STAGES; j++) {
 			s[j] = sr_trigger_stage_add(t[i]);
-			fail_unless(s[j] != NULL);
-			fail_unless(t[i]->stages != NULL);
-			fail_unless((int)g_slist_length(t[i]->stages) == (j + 1));
-			fail_unless(s[j]->stage == j);
-			fail_unless(s[j]->matches == NULL);
+			ck_assert(s[j] != NULL);
+			ck_assert(t[i]->stages != NULL);
+			ck_assert((int)g_slist_length(t[i]->stages) == (j + 1));
+			ck_assert(s[j]->stage == j);
+			ck_assert(s[j]->matches == NULL);
 		}
 	}
 
@@ -111,7 +111,7 @@ END_TEST
 START_TEST(test_trigger_stage_add_null)
 {
 	/* Should not segfault, but rather return NULL. */
-	fail_unless(sr_trigger_stage_add(NULL) == NULL);
+	ck_assert(sr_trigger_stage_add(NULL) == NULL);
 }
 END_TEST
 
@@ -155,13 +155,13 @@ START_TEST(test_trigger_match_add)
 				/* Logic channel matches. */
 				tm = 1 + (k % 5); /* *_ZERO .. *_EDGE */
 				ret = sr_trigger_match_add(s[j], chl[k], tm, 0);
-				fail_unless(ret == SR_OK);
+				ck_assert(ret == SR_OK);
 
 				/* Analog channel matches. */
 				tm = 3 + (k % 4); /* *_RISING .. *_UNDER */
 				ret = sr_trigger_match_add(s[j], cha[k],
 					tm, ((rand() % 500) - 500) * 1.739);
-				fail_unless(ret == SR_OK);
+				ck_assert(ret == SR_OK);
 			}
 		}
 	}
@@ -203,43 +203,43 @@ START_TEST(test_trigger_match_add_bogus)
 
 	/* Initially we have no matches at all. */
 	sl = t->stages->data;
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(g_slist_length(sl->matches) == 0);
 
 	/* NULL stage */
 	ret = sr_trigger_match_add(NULL, chl, SR_TRIGGER_ZERO, 0);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 
 	/* NULL channel */
 	ret = sr_trigger_match_add(s, NULL, SR_TRIGGER_ZERO, 0);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 
 	/* Invalid trigger matches for logic channels. */
 	ret = sr_trigger_match_add(s, chl, SR_TRIGGER_OVER, 0);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 	ret = sr_trigger_match_add(s, chl, SR_TRIGGER_UNDER, 0);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 
 	/* Invalid trigger matches for analog channels. */
 	ret = sr_trigger_match_add(s, cha, SR_TRIGGER_ZERO, 9.4);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 	ret = sr_trigger_match_add(s, cha, SR_TRIGGER_ONE, -9.4);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 
 	/* Invalid channel type. */
 	chl->type = -1;
 	ret = sr_trigger_match_add(s, chl, SR_TRIGGER_ZERO, 0);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 	chl->type = 270;
 	ret = sr_trigger_match_add(s, chl, SR_TRIGGER_ZERO, 0);
-	fail_unless(ret == SR_ERR_ARG);
-	fail_unless(g_slist_length(sl->matches) == 0);
+	ck_assert(ret == SR_ERR_ARG);
+	ck_assert(g_slist_length(sl->matches) == 0);
 
 	sr_trigger_free(t);
 	g_free(chl->name);

@@ -408,7 +408,8 @@ struct context {
 		enum textinput_t textinput;
 		enum proto_type_t {
 			PROTO_TYPE_NONE,
-			PROTO_TYPE_UART,
+			PROTO_TYPE_FIRST,
+			PROTO_TYPE_UART = PROTO_TYPE_FIRST,
 			PROTO_TYPE_SPI,
 			PROTO_TYPE_I2C,
 			PROTO_TYPE_COUNT,
@@ -2520,13 +2521,13 @@ static int lookup_protocol_name(struct context *inc)
 	name = inc->curr_opts.proto_name;
 	if (!name || !*name) {
 		/* Fallback to first item after NONE slot. */
-		handler = &protocols[PROTO_TYPE_NONE + 1];
+		handler = &protocols[PROTO_TYPE_FIRST];
 		name = handler->name;
+		if (!name)
+			return SR_ERR_ARG;
 	}
 
-	for (idx = 0; idx < ARRAY_SIZE(protocols); idx++) {
-		if (idx == PROTO_TYPE_NONE)
-			continue;
+	for (idx = PROTO_TYPE_FIRST; idx < ARRAY_SIZE(protocols); idx++) {
 		handler = &protocols[idx];
 		if (!handler->name || !*handler->name)
 			continue;

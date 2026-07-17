@@ -33,7 +33,7 @@ START_TEST(test_session_new)
 	struct sr_session *sess;
 
 	ret = sr_session_new(srtest_ctx, &sess);
-	fail_unless(ret == SR_OK, "sr_session_new() failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_new() failed: %d.", ret);
 	sr_session_destroy(sess);
 }
 END_TEST
@@ -47,7 +47,7 @@ START_TEST(test_session_new_bogus)
 	int ret;
 
 	ret = sr_session_new(srtest_ctx, NULL);
-	fail_unless(ret != SR_OK, "sr_session_new(NULL) worked.");
+	ck_assert_msg(ret != SR_OK, "sr_session_new(NULL) worked.");
 }
 END_TEST
 
@@ -64,29 +64,29 @@ START_TEST(test_session_new_multiple)
 
 	/* Multiple sr_session_new() calls must work. */
 	ret = sr_session_new(srtest_ctx, &sess1);
-	fail_unless(ret == SR_OK, "sr_session_new() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_new() 1 failed: %d.", ret);
 	ret = sr_session_new(srtest_ctx, &sess2);
-	fail_unless(ret == SR_OK, "sr_session_new() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_new() 2 failed: %d.", ret);
 	ret = sr_session_new(srtest_ctx, &sess3);
-	fail_unless(ret == SR_OK, "sr_session_new() 3 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_new() 3 failed: %d.", ret);
 
 	/* The returned session pointers must all be non-NULL. */
-	fail_unless(sess1 != NULL);
-	fail_unless(sess2 != NULL);
-	fail_unless(sess3 != NULL);
+	ck_assert(sess1 != NULL);
+	ck_assert(sess2 != NULL);
+	ck_assert(sess3 != NULL);
 
 	/* The returned session pointers must not be the same. */
-	fail_unless(sess1 != sess2);
-	fail_unless(sess1 != sess3);
-	fail_unless(sess2 != sess3);
+	ck_assert(sess1 != sess2);
+	ck_assert(sess1 != sess3);
+	ck_assert(sess2 != sess3);
 
 	/* Destroying any of the sessions must work. */
 	ret = sr_session_destroy(sess1);
-	fail_unless(ret == SR_OK, "sr_session_destroy() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_destroy() 1 failed: %d.", ret);
 	ret = sr_session_destroy(sess2);
-	fail_unless(ret == SR_OK, "sr_session_destroy() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_destroy() 2 failed: %d.", ret);
 	ret = sr_session_destroy(sess3);
-	fail_unless(ret == SR_OK, "sr_session_destroy() 3 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_destroy() 3 failed: %d.", ret);
 }
 END_TEST
 
@@ -101,7 +101,7 @@ START_TEST(test_session_destroy)
 
 	sr_session_new(srtest_ctx, &sess);
 	ret = sr_session_destroy(sess);
-	fail_unless(ret == SR_OK, "sr_session_destroy() failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_session_destroy() failed: %d.", ret);
 }
 END_TEST
 
@@ -114,7 +114,7 @@ START_TEST(test_session_destroy_bogus)
 	int ret;
 
 	ret = sr_session_destroy(NULL);
-	fail_unless(ret != SR_OK, "sr_session_destroy() worked.");
+	ck_assert_msg(ret != SR_OK, "sr_session_destroy() worked.");
 }
 END_TEST
 
@@ -129,12 +129,12 @@ START_TEST(test_session_trigger_set_get)
 
 	/* Set a trigger and see if getting it works OK. */
 	ret = sr_session_trigger_set(sess, t1);
-	fail_unless(ret == SR_OK);
+	ck_assert(ret == SR_OK);
 	t2 = sr_session_trigger_get(sess);
-	fail_unless(t2 != NULL);
-	fail_unless(t1 == t2);
-	fail_unless(g_slist_length(t1->stages) == g_slist_length(t2->stages));
-	fail_unless(!strcmp(t1->name, t2->name));
+	ck_assert(t2 != NULL);
+	ck_assert(t1 == t2);
+	ck_assert(g_slist_length(t1->stages) == g_slist_length(t2->stages));
+	ck_assert(!strcmp(t1->name, t2->name));
 
 	sr_session_destroy(sess);
 }
@@ -150,9 +150,9 @@ START_TEST(test_session_trigger_set_get_null)
 
 	/* Adding a NULL trigger is allowed. */
 	ret = sr_session_trigger_set(sess, NULL);
-	fail_unless(ret == SR_OK);
+	ck_assert(ret == SR_OK);
 	t = sr_session_trigger_get(sess);
-	fail_unless(t == NULL);
+	ck_assert(t == NULL);
 
 	sr_session_destroy(sess);
 }
@@ -167,11 +167,11 @@ START_TEST(test_session_trigger_set_null)
 
 	/* NULL session, must not segfault. */
 	ret = sr_session_trigger_set(NULL, t);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 
 	/* NULL session and NULL trigger, must not segfault. */
 	ret = sr_session_trigger_set(NULL, NULL);
-	fail_unless(ret == SR_ERR_ARG);
+	ck_assert(ret == SR_ERR_ARG);
 }
 END_TEST
 
@@ -181,7 +181,7 @@ START_TEST(test_session_trigger_get_null)
 
 	/* NULL session, must not segfault. */
 	t = sr_session_trigger_get(NULL);
-	fail_unless(t == NULL);
+	ck_assert(t == NULL);
 }
 END_TEST
 

@@ -17,7 +17,6 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-from __future__ import print_function
 from xml.etree import ElementTree
 from collections import OrderedDict
 import sys, os, re
@@ -73,8 +72,10 @@ header = open(os.path.join(outdirname, 'cxx/include/libsigrokcxx/enums.hpp'), 'w
 code = open(os.path.join(outdirname, 'cxx/enums.cpp'), 'w')
 swig = open(os.path.join(outdirname, 'swig/enums.i'), 'w')
 
-for file in (header, code):
+for file in (header, code, swig):
     print("/* Generated file - edit enums.py instead! */", file=file)
+
+print('%include "attribute.i"', file=swig)
 
 print("namespace sigrok {", file=header)
 

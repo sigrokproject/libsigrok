@@ -83,7 +83,6 @@ class build_ext(_build_ext):
 
 setup(
     name = 'libsigrok',
-    namespace_packages = ['sigrok'],
     packages = find_packages(srcdir),
     version = os.environ.get('VERSION'),
     description = "libsigrok API wrapper",

@@ -63,6 +63,10 @@ struct dev_context {
 	enum sr_mqflag mqflags;
 };
 
+SR_PRIV void fluke_handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens);
+SR_PRIV void fluke_handle_qm_190(const struct sr_dev_inst *sdi, char **tokens);
+SR_PRIV void fluke_handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens);
+
 SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);
 
 #endif

@@ -17,7 +17,6 @@
 ## along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ##
 
-from __future__ import print_function
 from xml.etree import ElementTree
 import sys, os
 

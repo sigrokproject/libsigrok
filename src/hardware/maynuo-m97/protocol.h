@@ -37,7 +37,7 @@ struct maynuo_m97_model {
 struct dev_context {
 	const struct maynuo_m97_model *model;
 	struct sr_sw_limits limits;
-	int expecting_registers;
+	GMutex rw_mutex;
 };
 
 enum maynuo_m97_coil {
@@ -130,26 +130,25 @@ enum maynuo_m97_mode {
 	INPUT_OFF     = 43,
 };
 
-SR_PRIV int maynuo_m97_get_bit(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_get_bit(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_coil address, int *value);
-SR_PRIV int maynuo_m97_set_bit(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_set_bit(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_coil address, int value);
-SR_PRIV int maynuo_m97_get_float(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_get_float(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_register address, float *value);
-SR_PRIV int maynuo_m97_set_float(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_set_float(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_register address, float value);
 
-SR_PRIV int maynuo_m97_get_mode(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_get_mode(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_mode *mode);
-SR_PRIV int maynuo_m97_set_mode(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int maynuo_m97_set_mode(const struct sr_dev_inst *sdi,
 		enum maynuo_m97_mode mode);
-SR_PRIV int maynuo_m97_set_input(struct sr_modbus_dev_inst *modbus, int enable);
+SR_PRIV int maynuo_m97_set_input(const struct sr_dev_inst *sdi, int enable);
 SR_PRIV int maynuo_m97_get_model_version(struct sr_modbus_dev_inst *modbus,
 		uint16_t *model, uint16_t *version);
 
 SR_PRIV const char *maynuo_m97_mode_to_str(enum maynuo_m97_mode mode);
 
-SR_PRIV int maynuo_m97_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data);
 
 #endif

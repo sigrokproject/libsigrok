@@ -342,7 +342,7 @@ static int config_get(uint32_t key, GVariant **data,
 	int cmd, ret;
 	const char *s;
 	int reg;
-	gboolean is_hmp_sqii;
+	gboolean is_hmp_sqii, is_keysight_e36300a;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -453,7 +453,8 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
 			devc->device->dialect == SCPI_DIALECT_HP_COMP ||
-			devc->device->dialect == SCPI_DIALECT_HMP)
+			devc->device->dialect == SCPI_DIALECT_HMP ||
+			devc->device->dialect == SCPI_DIALECT_KEYSIGHT_E36300A)
 			gvtype = G_VARIANT_TYPE_STRING;
 		else
 			gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -480,7 +481,13 @@ static int config_get(uint32_t key, GVariant **data,
 	is_hmp_sqii |= cmd == SCPI_CMD_GET_OUTPUT_REGULATION;
 	is_hmp_sqii |= cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE;
 	is_hmp_sqii &= devc->device->dialect == SCPI_DIALECT_HMP;
-	if (is_hmp_sqii) {
+
+	is_keysight_e36300a = FALSE;
+	is_keysight_e36300a |= cmd == SCPI_CMD_GET_OUTPUT_REGULATION;
+	is_keysight_e36300a |= cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE;
+	is_keysight_e36300a &= devc->device->dialect == SCPI_DIALECT_KEYSIGHT_E36300A;
+
+	if (is_hmp_sqii || is_keysight_e36300a) {
 		if (!cg) {
 			/* STAT:QUES:INST:ISUMx query requires channel spec. */
 			sr_err("Need a channel group for regulation or OTP-active query.");
@@ -555,6 +562,23 @@ static int config_get(uint32_t key, GVariant **data,
 			else
 				*data = g_variant_new_string("UR");
 		}
+		if (devc->device->dialect == SCPI_DIALECT_KEYSIGHT_E36300A) {
+			/* Evaluate Condition Status Register from a Keysight E36300A series device. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			reg &= 0x03u;
+			g_variant_unref(*data);
+			if (reg == 0x01u)
+				*data = g_variant_new_string("CC");
+			else if (reg == 0x02u)
+				*data = g_variant_new_string("CV");
+			else if (reg == 0x03u)
+				/* 2 LSBs == 11: HW Failure*/
+				*data = g_variant_new_string("");
+			else
+				/* 2 LSBs == 00: Unregulated */
+				*data = g_variant_new_string("UR");
+		}
 
 		s = g_variant_get_string(*data, NULL);
 		if (g_strcmp0(s, "CV") && g_strcmp0(s, "CC") && g_strcmp0(s, "CC-") &&
@@ -608,8 +632,12 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(reg & (1 << 4));
 		}
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
-		    devc->device->dialect == SCPI_DIALECT_HMP) {
+		    devc->device->dialect == SCPI_DIALECT_HMP ||
+		    devc->device->dialect == SCPI_DIALECT_KEYSIGHT_E36300A) {
 			/* Evaluate Questionable Status Register bit 4 from a HP 66xxB. */
+			/* For Keysight E36300A, the queried register is the Questionable Instrument Summary register, */
+			/* but the bit position is the same as an HP 66xxB's Questionable Status Register. */
+
 			s = g_variant_get_string(*data, NULL);
 			sr_atoi(s, &reg);
 			g_variant_unref(*data);

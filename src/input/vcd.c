@@ -35,6 +35,9 @@
  *     timestamp 0.
  *   Value > 0: Start at the given timestamp.
  *
+ * samplerate: overwrite/manually specify the samplerate for this VCD file
+ *   and ignore timescale sections.
+ *
  * downsample: Divide the samplerate by the given factor. This can
  *   speed up operation on long captures.
  *
@@ -45,7 +48,7 @@
  * Based on Verilog standard IEEE Std 1364-2001 Version C
  *
  * Supported features:
- * - $var with 'wire' and 'reg' types of scalar variables
+ * - $var with 'wire', 'reg' and 'logic' types of scalar variables
  * - $timescale definition for samplerate
  * - multiple character variable identifiers
  * - same identifer used for multiple signals (identical values)
@@ -123,6 +126,7 @@
 struct context {
 	struct vcd_user_opt {
 		size_t maxchannels; /* sigrok channels (output) */
+		uint64_t samplerate;
 		uint64_t downsample;
 		uint64_t compress;
 		uint64_t skip_starttime;
@@ -557,6 +561,11 @@ static int parse_timescale(struct context *inc, char *contents)
 {
 	uint64_t p, q;
 
+	if (inc->options.samplerate != 0) {
+		sr_info("Ignoring timescale section as the samplerate was manually overwritten!");
+		return SR_OK;
+	}
+
 	/*
 	 * The standard allows for values 1, 10 or 100
 	 * and units s, ms, us, ns, ps and fs.
@@ -680,7 +689,7 @@ static int parse_scope(struct context *inc, char *contents, gboolean is_up)
 static int parse_header_var(struct context *inc, char *contents)
 {
 	char *type, *size_txt, *id, *ref, *idx;
-	gboolean is_reg, is_wire, is_real, is_int;
+	gboolean is_reg, is_wire, is_logic, is_real, is_int;
 	gboolean is_str;
 	enum sr_channeltype ch_type;
 	size_t size, next_size;
@@ -704,11 +713,12 @@ static int parse_header_var(struct context *inc, char *contents)
 
 	is_reg = g_strcmp0(type, "reg") == 0;
 	is_wire = g_strcmp0(type, "wire") == 0;
+	is_logic = g_strcmp0(type, "logic") == 0;
 	is_real = g_strcmp0(type, "real") == 0;
 	is_int = g_strcmp0(type, "integer") == 0;
 	is_str = g_strcmp0(type, "string") == 0;
 
-	if (is_reg || is_wire) {
+	if (is_reg || is_wire || is_logic) {
 		ch_type = SR_CHANNEL_LOGIC;
 	} else if (is_real || is_int) {
 		ch_type = SR_CHANNEL_ANALOG;
@@ -1945,6 +1955,13 @@ static int init(struct sr_input *in, GHashTable *options)
 	data = g_hash_table_lookup(options, "numchannels");
 	inc->options.maxchannels = g_variant_get_uint32(data);
 
+	data = g_hash_table_lookup(options, "samplerate_overwrite");
+	inc->options.samplerate = g_variant_get_uint64(data);
+	if (inc->options.samplerate != 0) {
+		// Set the samplerate
+		inc->samplerate = inc->options.samplerate;
+	}
+
 	data = g_hash_table_lookup(options, "downsample");
 	inc->options.downsample = g_variant_get_uint64(data);
 	if (inc->options.downsample < 1)
@@ -2083,6 +2100,7 @@ static int reset(struct sr_input *in)
 
 enum vcd_option_t {
 	OPT_NUM_CHANS,
+	OPT_SAMPLERATE,
 	OPT_DOWN_SAMPLE,
 	OPT_SKIP_COUNT,
 	OPT_COMPRESS,
@@ -2093,6 +2111,13 @@ static struct sr_option options[] = {
 	[OPT_NUM_CHANS] = {
 		"numchannels", "Max number of sigrok channels",
 		"The maximum number of sigrok channels to create for VCD input signals.",
+		NULL, NULL,
+	},
+	[OPT_SAMPLERATE] = {
+		"samplerate_overwrite", "Overwrite Samplerate",
+		"Overwrite the input file's samplerate, i.e. for frequencies not representable via timescale."
+		"By default the VCD file is searched for a timescale section to compute the samplerate."
+		"For values other than 0 this value will be considered as the actual samplerate and the timescale section will be ignored.",
 		NULL, NULL,
 	},
 	[OPT_DOWN_SAMPLE] = {
@@ -2120,6 +2145,7 @@ static const struct sr_option *get_options(void)
 {
 	if (!options[0].def) {
 		options[OPT_NUM_CHANS].def = g_variant_ref_sink(g_variant_new_uint32(0));
+		options[OPT_SAMPLERATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
 		options[OPT_DOWN_SAMPLE].def = g_variant_ref_sink(g_variant_new_uint64(1));
 		options[OPT_SKIP_COUNT].def = g_variant_ref_sink(g_variant_new_uint64(~UINT64_C(0)));
 		options[OPT_COMPRESS].def = g_variant_ref_sink(g_variant_new_uint64(0));

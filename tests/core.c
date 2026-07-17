@@ -40,9 +40,9 @@ START_TEST(test_init_exit)
 	struct sr_context *sr_ctx;
 
 	ret = sr_init(&sr_ctx);
-	fail_unless(ret == SR_OK, "sr_init() failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() failed: %d.", ret);
 	ret = sr_exit(sr_ctx);
-	fail_unless(ret == SR_OK, "sr_exit() failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() failed: %d.", ret);
 }
 END_TEST
 
@@ -57,13 +57,13 @@ START_TEST(test_init_exit_2)
 	struct sr_context *sr_ctx1, *sr_ctx2;
 
 	ret = sr_init(&sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
 	ret = sr_init(&sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
 	ret = sr_exit(sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
 	ret = sr_exit(sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
 }
 END_TEST
 
@@ -77,13 +77,13 @@ START_TEST(test_init_exit_2_reverse)
 	struct sr_context *sr_ctx1, *sr_ctx2;
 
 	ret = sr_init(&sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
 	ret = sr_init(&sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
 	ret = sr_exit(sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
 	ret = sr_exit(sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
 }
 END_TEST
 
@@ -98,17 +98,17 @@ START_TEST(test_init_exit_3)
 	struct sr_context *sr_ctx1, *sr_ctx2, *sr_ctx3;
 
 	ret = sr_init(&sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
 	ret = sr_init(&sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
 	ret = sr_init(&sr_ctx3);
-	fail_unless(ret == SR_OK, "sr_init() 3 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 3 failed: %d.", ret);
 	ret = sr_exit(sr_ctx3);
-	fail_unless(ret == SR_OK, "sr_exit() 3 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 3 failed: %d.", ret);
 	ret = sr_exit(sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
 	ret = sr_exit(sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
 }
 END_TEST
 
@@ -122,17 +122,17 @@ START_TEST(test_init_exit_3_reverse)
 	struct sr_context *sr_ctx1, *sr_ctx2, *sr_ctx3;
 
 	ret = sr_init(&sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 1 failed: %d.", ret);
 	ret = sr_init(&sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 2 failed: %d.", ret);
 	ret = sr_init(&sr_ctx3);
-	fail_unless(ret == SR_OK, "sr_init() 3 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_init() 3 failed: %d.", ret);
 	ret = sr_exit(sr_ctx1);
-	fail_unless(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 1 failed: %d.", ret);
 	ret = sr_exit(sr_ctx2);
-	fail_unless(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 2 failed: %d.", ret);
 	ret = sr_exit(sr_ctx3);
-	fail_unless(ret == SR_OK, "sr_exit() 3 failed: %d.", ret);
+	ck_assert_msg(ret == SR_OK, "sr_exit() 3 failed: %d.", ret);
 }
 END_TEST
 
@@ -142,10 +142,10 @@ START_TEST(test_init_null)
 	int ret;
 
         ret = sr_log_loglevel_set(SR_LOG_NONE);
-        fail_unless(ret == SR_OK, "sr_log_loglevel_set() failed: %d.", ret);
+        ck_assert_msg(ret == SR_OK, "sr_log_loglevel_set() failed: %d.", ret);
 
 	ret = sr_init(NULL);
-	fail_unless(ret != SR_OK, "sr_init(NULL) should have failed.");
+	ck_assert_msg(ret != SR_OK, "sr_init(NULL) should have failed.");
 }
 END_TEST
 
@@ -155,10 +155,10 @@ START_TEST(test_exit_null)
 	int ret;
 
         ret = sr_log_loglevel_set(SR_LOG_NONE);
-        fail_unless(ret == SR_OK, "sr_log_loglevel_set() failed: %d.", ret);
+        ck_assert_msg(ret == SR_OK, "sr_log_loglevel_set() failed: %d.", ret);
 
 	ret = sr_exit(NULL);
-	fail_unless(ret != SR_OK, "sr_exit(NULL) should have failed.");
+	ck_assert_msg(ret != SR_OK, "sr_exit(NULL) should have failed.");
 }
 END_TEST
 

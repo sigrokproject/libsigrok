@@ -75,6 +75,11 @@ The following drivers/devices require a firmware upload upon connection:
 
      http://sigrok.org/wiki/LeCroy_LogicStudio#Firmware
 
+ - raspberrypi-pico: In order to use a Raspberry Pi Pico as a logic analyzer,
+   it must be flashed with special open-source firmware:
+
+     https://github.com/pico-coder/sigrok-pico
+
  - saleae-logic16: The Saleae Logic16 needs a firmware file for the
    Cypress FX2 chip in the device, as well as two FPGA bitstream files.
    These can be extracted from the vendor's Linux application using a tool
@@ -283,7 +288,7 @@ files should already be installed in /usr/lib/udev/rules.d/, i.e.
 61-libsigrok-uaccess.rules is encouraged on systemd distributions.
 
 The access policy can be locally overridden by placing appropriate rules in
-/etc/udev/rules.d/, disabling or ammending the default policy. See the
+/etc/udev/rules.d/, disabling or amending the default policy. See the
 udev documentation, e.g. man 7 udev, for details.
 
 If you're building from source, you need to copy the file to the place

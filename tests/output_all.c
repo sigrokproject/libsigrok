@@ -29,7 +29,7 @@ START_TEST(test_output_available)
 	const struct sr_output_module **outputs;
 
 	outputs = sr_output_list();
-	fail_unless(outputs != NULL, "No output modules found.");
+	ck_assert_msg(outputs != NULL, "No output modules found.");
 }
 END_TEST
 
@@ -42,7 +42,7 @@ START_TEST(test_output_id)
 	outputs = sr_output_list();
 
 	id = sr_output_id_get(outputs[0]);
-	fail_unless(id != NULL, "No id found in output module.");
+	ck_assert_msg(id != NULL, "No id found in output module.");
 }
 END_TEST
 
@@ -55,7 +55,7 @@ START_TEST(test_output_name)
 	outputs = sr_output_list();
 
 	name = sr_output_name_get(outputs[0]);
-	fail_unless(name != NULL, "No name found in output module.");
+	ck_assert_msg(name != NULL, "No name found in output module.");
 }
 END_TEST
 
@@ -68,7 +68,7 @@ START_TEST(test_output_desc)
 	outputs = sr_output_list();
 
 	desc = sr_output_description_get(outputs[0]);
-	fail_unless(desc != NULL, "No description found in output module.");
+	ck_assert_msg(desc != NULL, "No description found in output module.");
 }
 END_TEST
 
@@ -79,9 +79,9 @@ START_TEST(test_output_find)
 	const char *id;
 
 	omod = sr_output_find("bits");
-	fail_unless(omod != NULL, "Couldn't find the 'bits' output module.");
+	ck_assert_msg(omod != NULL, "Couldn't find the 'bits' output module.");
 	id = sr_output_id_get(omod);
-	fail_unless(!strcmp(id, "bits"), "That is not the 'bits' module!");
+	ck_assert_msg(!strcmp(id, "bits"), "That is not the 'bits' module!");
 }
 END_TEST
 
@@ -91,8 +91,9 @@ START_TEST(test_output_options)
 	const struct sr_option **opt;
 
 	opt = sr_output_options_get(sr_output_find("bits"));
-	fail_unless(opt != NULL, "Couldn't find 'bits' options.");
-	fail_unless(!strcmp((*opt)->id, "width"), "Wrong 'bits' option found!");
+	ck_assert_msg(opt != NULL, "Couldn't find 'bits' options.");
+	ck_assert_msg(!strcmp((*opt)->id, "width"),
+		      "Wrong 'bits' option found!");
 }
 END_TEST
 
