@@ -77,30 +77,29 @@
  */
 #define CLEAR_EP_READ_TIMEOUT_MS 10
 
-static const uint64_t samplerates[] = {
-	SR_MHZ(1),
-	SR_MHZ(2),
-	SR_MHZ(4),
-	SR_MHZ(5),
-	SR_MHZ(8),
-	SR_MHZ(10),
-	SR_MHZ(16),
-	SR_MHZ(20),
-	SR_MHZ(32),
-	/* x 4ch */
-	SR_MHZ(40),
-	SR_MHZ(80),
-	/* x 2ch */
-	SR_MHZ(160),
-};
+#define DEFAULT_SAMPLE_CHANNEL 8
+#define DEFAULT_SAMPLERATE SR_MHZ(40)
+
+/* Default pre-trigger ratio in percent; the SR_CONF_CAPTURE_RATIO config key
+ * overrides this at runtime. */
+#define DEFAULT_CAPTURE_RATIO 20
+
+/*
+ * Maximum pre-trigger ring buffer depth in samples (4 MSamples ~ 4 MB RAM)
+ * to prevent excessive memory allocation on very large sample limits.
+ */
+#define MAX_PRE_TRIGGER_SAMPLES (4 * 1024 * 1024)
 
 struct dev_context {
 	uint64_t limit_samples;
+	uint64_t limit_msec;
 	uint64_t cur_samplerate;
+	uint64_t limit_samplerate;
 	uint64_t cur_samplechannel;
 
 	struct libusb_transfer *transfers[NUM_CONCURRENT_TRANSFERS];
 
+	gboolean acq_running;
 	gboolean acq_aborted;
 
 	uint64_t timeout;
@@ -116,6 +115,23 @@ struct dev_context {
 	 * abort when too high. */
 	int empty_transfer_count;
 
+	/* Total samples to deliver this acquisition, derived from
+	 * limit_samples or limit_msec. */
+	uint64_t samples_need;
+	/* Samples already delivered to the session (used with triggers). */
+	uint64_t samples_sent;
+
+	/* Software trigger state. */
+	struct soft_trigger_logic *stl;
+	gboolean trigger_fired;
+	uint64_t capture_ratio;
+
+	/*
+	 * Guard against re-entrant config_channel_set() calls while
+	 * update_channel_enables() bulk-enables/disables channels.
+	 */
+	gboolean updating_channels;
+
 	/*
 	 * Pre-allocated buffer for expanding packed samples (2ch/4ch modes) to
 	 * one sample per byte.  Sized for transfers_buffer_size * max_step
@@ -126,119 +142,8 @@ struct dev_context {
 	size_t expand_buf_size;
 };
 
-/* Channel count derives automatically from samplerate. */
-static inline void devc_set_samplerate(struct dev_context *devc,
-				       uint64_t new_samplerate)
-{
-	devc->cur_samplerate = new_samplerate;
-	if (new_samplerate >= SR_MHZ(160)) {
-		devc->cur_samplechannel = 2;
-	} else if (new_samplerate >= SR_MHZ(80)) {
-		devc->cur_samplechannel = 4;
-	} else {
-		devc->cur_samplechannel = 8;
-	}
-	sr_info("Rebind sample channel to %" PRIu64 "CH",
-		devc->cur_samplechannel);
-}
-
 SR_PRIV int
 sipeed_slogic_combo8_acquisition_start(const struct sr_dev_inst *sdi);
 SR_PRIV int sipeed_slogic_combo8_acquisition_stop(struct sr_dev_inst *sdi);
-
-/*
- * Bytes produced per millisecond at the current samplerate and channel count.
- * cur_samplechannel bits per sample, 8 bits per byte, 1000 ms per second.
- */
-static inline size_t to_bytes_per_ms(struct dev_context *devc)
-{
-	return (devc->cur_samplerate * devc->cur_samplechannel) / 8 / 1000;
-}
-
-/*
- * Per-transfer buffer size: fixed at 210 x 512 = 107,520 bytes (~2.7 ms at
- * 40 MB/s).  This must be a multiple of SIZE_MAX_EP_HS for USB bulk
- * alignment.
- *
- * We deliberately keep this fixed rather than scaling it with samplerate.
- * Each libusb bulk transfer maps to a kernel DMA allocation; on Linux the
- * default usbfs memory limit is 16 MB (/sys/module/usbcore/parameters/
- * usbfs_memory_mb).  With NUM_CONCURRENT_TRANSFERS = 16 transfers in flight,
- * total DMA usage is 16 x 107,520 ~ 1.7 MB -- well within the limit at all
- * samplerates.  Scaling the buffer size with samplerate would push this over
- * the limit at 80-160 MHz (e.g., 16 x 400 KB = 6.4 MB) and cause
- * LIBUSB_ERROR_NO_MEM at submission time.
- */
-static inline size_t get_buffer_size(struct dev_context *devc)
-{
-	(void)devc;
-	return 210 * SIZE_MAX_EP_HS; /* 107,520 bytes */
-}
-
-static inline size_t get_number_of_transfers(struct dev_context *devc)
-{
-	(void)devc;
-	return NUM_CONCURRENT_TRANSFERS;
-}
-
-/*
- * Per-transfer timeout in milliseconds: time to fill one transfer buffer at
- * the current data rate, plus 25 % headroom.  Floor of 50 ms ensures a
- * reasonable timeout at very low samplerates.
- */
-static inline size_t get_timeout(struct dev_context *devc)
-{
-	size_t bytes_per_ms = to_bytes_per_ms(devc);
-	size_t buf_size = get_buffer_size(devc);
-	size_t timeout;
-
-	if (bytes_per_ms == 0)
-		bytes_per_ms = 1;
-
-	timeout = buf_size / bytes_per_ms; /* ms to fill one transfer */
-	timeout = timeout * 5 / 4; /* +25 % headroom          */
-	if (timeout < 50)
-		timeout = 50; /* floor: 50 ms            */
-	return timeout;
-}
-
-/*
- * Drain any stale data from the bulk IN endpoint until the device goes quiet
- * or the wall-clock deadline is reached.
- *
- * Strategy: use a short per-read timeout (CLEAR_EP_READ_TIMEOUT_MS) so that
- * the first empty read -- which signals the device has actually stopped
- * streaming -- is detected within ~10 ms rather than the original 100 ms.
- * A total wall-clock deadline (CLEAR_EP_TIMEOUT_MS) caps the worst case.
- *
- * Returns  0 if the endpoint was drained cleanly (a read returned 0 bytes),
- *         -1 if the deadline was reached before the device went quiet.
- */
-static inline int clear_ep(uint8_t ep, libusb_device_handle *usbh)
-{
-	uint8_t tmp[SIZE_MAX_EP_HS];
-	int actual_length;
-	gint64 deadline;
-
-	sr_dbg("Clearing EP: %u", ep);
-
-	deadline = g_get_monotonic_time() + CLEAR_EP_TIMEOUT_MS * 1000;
-
-	do {
-		actual_length = 0;
-		libusb_bulk_transfer(usbh, ep | LIBUSB_ENDPOINT_IN, tmp,
-				     sizeof(tmp), &actual_length,
-				     CLEAR_EP_READ_TIMEOUT_MS);
-	} while (actual_length > 0 && g_get_monotonic_time() < deadline);
-
-	if (actual_length > 0) {
-		sr_warn("clear_ep: device still streaming after %d ms deadline",
-			CLEAR_EP_TIMEOUT_MS);
-		return -1;
-	}
-
-	sr_dbg("Cleared EP: %u", ep);
-	return 0;
-}
 
 #endif
