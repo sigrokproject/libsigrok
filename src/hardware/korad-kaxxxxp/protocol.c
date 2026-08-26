@@ -25,15 +25,17 @@
 #define EXTRA_PROCESSING_TIME_MS  450
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-	const char *cmd)
+	const char *cmd, gboolean nl_termination)
 {
+	char *text;
 	int ret;
 
 	sr_dbg("Sending '%s'.", cmd);
-	if ((ret = serial_write_blocking(serial, cmd, strlen(cmd), 0)) < 0) {
+	text = g_strdup_printf("%s%s", cmd, nl_termination ? "\n" : "");
+	ret = serial_write_blocking(serial, text, strlen(text), 0);
+	g_free(text);
+	if (ret < 0)
 		sr_err("Error sending command: %d.", ret);
-		return ret;
-	}
 
 	return ret;
 }
@@ -188,6 +190,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	int target, struct dev_context *devc)
 {
 	char msg[20];
+	gboolean nl_termination;
 	int ret;
 
 	g_mutex_lock(&devc->rw_mutex);
@@ -259,7 +262,8 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	}
 
 	if (ret == SR_OK && msg[0]) {
-		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		nl_termination = devc->model->quirks & KORAD_QUIRK_KKG_FAMILY;
+		ret = korad_kaxxxxp_send_cmd(serial, msg, nl_termination);
 		devc->next_req_time = next_req_time(devc, TRUE, target);
 	}
 
@@ -272,37 +276,39 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	int target, struct dev_context *devc)
 {
 	int ret, count;
-	char reply[6];
+	char reply[8];
 	float *value;
-	char status_byte;
+	uint8_t status_byte;
 	gboolean needs_ovp_quirk;
 	gboolean prev_status;
+	gboolean nl_termination;
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
 
 	value = NULL;
 	count = 5;
+	nl_termination = devc->model->quirks & KORAD_QUIRK_KKG_FAMILY;
 
 	switch (target) {
 	case KAXXXXP_CURRENT:
 		/* Read current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?", nl_termination);
 		value = &(devc->current);
 		break;
 	case KAXXXXP_CURRENT_LIMIT:
 		/* Read set current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?", nl_termination);
 		value = &(devc->current_limit);
 		break;
 	case KAXXXXP_VOLTAGE:
 		/* Read voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?", nl_termination);
 		value = &(devc->voltage);
 		break;
 	case KAXXXXP_VOLTAGE_TARGET:
 		/* Read set voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?", nl_termination);
 		value = &(devc->voltage_target);
 		break;
 	case KAXXXXP_STATUS:
@@ -310,7 +316,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	case KAXXXXP_OCP:
 	case KAXXXXP_OVP:
 		/* Read status from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?");
+		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?", nl_termination);
 		count = 1;
 		break;
 	default:
@@ -324,12 +330,17 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 
 	devc->next_req_time = next_req_time(devc, FALSE, target);
 
+	/* KKG models terminate responses with LF, read it too. */
+	if (nl_termination)
+		count++;
+
 	if ((ret = korad_kaxxxxp_read_chars(serial, count, reply)) < 0) {
 		g_mutex_unlock(&devc->rw_mutex);
 		return ret;
 	}
 
 	if (value) {
+		g_strchomp(reply);
 		sr_atof_ascii((const char *)&reply, value);
 		sr_dbg("value: %f", *value);
 	} else {
@@ -340,10 +351,27 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		prev_status = devc->cc_mode[0];
 		devc->cc_mode[0] = !(status_byte & (1 << 0));
 		devc->cc_mode_1_changed = devc->cc_mode[0] != prev_status;
-		/* Constant current channel two. */
-		prev_status = devc->cc_mode[1];
-		devc->cc_mode[1] = !(status_byte & (1 << 1));
-		devc->cc_mode_2_changed = devc->cc_mode[1] != prev_status;
+		if (devc->model->quirks & KORAD_QUIRK_KKG_FAMILY) {
+			/*
+			 * KKG family status bits differ:
+			 * bit 1 - remote compensation (sense) status
+			 * bit 2 - external interface (trigger, switch) status
+			 */
+			prev_status = devc->rmt_comp_enabled;
+			devc->rmt_comp_enabled = status_byte & (1 << 1);
+			devc->rmt_comp_changed =
+				devc->rmt_comp_enabled != prev_status;
+			prev_status = devc->ext_int_enabled;
+			devc->ext_int_enabled = status_byte & (1 << 2);
+			devc->ext_int_changed =
+				devc->ext_int_enabled != prev_status;
+		} else {
+			/* Constant current channel two. */
+			prev_status = devc->cc_mode[1];
+			devc->cc_mode[1] = !(status_byte & (1 << 1));
+			devc->cc_mode_2_changed =
+				devc->cc_mode[1] != prev_status;
+		}
 
 		/*
 		 * Tracking:
@@ -371,17 +399,31 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		}
 
 		sr_dbg("Status: 0x%02x", status_byte);
-		sr_spew("Status: CH1: constant %s CH2: constant %s. "
-			"Tracking would be %s and %s. Output is %s. "
-			"OCP is %s, OVP is %s. Device is %s.",
-			(status_byte & (1 << 0)) ? "voltage" : "current",
-			(status_byte & (1 << 1)) ? "voltage" : "current",
-			(status_byte & (1 << 2)) ? "parallel" : "series",
-			(status_byte & (1 << 3)) ? "tracking" : "independent",
-			(status_byte & (1 << 6)) ? "enabled" : "disabled",
-			(status_byte & (1 << 5)) ? "enabled" : "disabled",
-			(status_byte & (1 << 7)) ? "enabled" : "disabled",
-			(status_byte & (1 << 4)) ? "beeping" : "silent");
+		if (devc->model->quirks & KORAD_QUIRK_KKG_FAMILY) {
+			sr_spew("Status: CH1: constant %s. "
+				"Remote compensation is %s. "
+				"External interface is %s. Output is %s. "
+				"OCP is %s, OVP is %s. Device is %s.",
+				(status_byte & (1 << 0)) ? "voltage" : "current",
+				(status_byte & (1 << 1)) ? "enabled" : "disabled",
+				(status_byte & (1 << 2)) ? "enabled" : "disabled",
+				(status_byte & (1 << 6)) ? "enabled" : "disabled",
+				(status_byte & (1 << 5)) ? "enabled" : "disabled",
+				(status_byte & (1 << 7)) ? "enabled" : "disabled",
+				(status_byte & (1 << 4)) ? "beeping" : "silent");
+		} else {
+			sr_spew("Status: CH1: constant %s CH2: constant %s. "
+				"Tracking would be %s and %s. Output is %s. "
+				"OCP is %s, OVP is %s. Device is %s.",
+				(status_byte & (1 << 0)) ? "voltage" : "current",
+				(status_byte & (1 << 1)) ? "voltage" : "current",
+				(status_byte & (1 << 2)) ? "parallel" : "series",
+				(status_byte & (1 << 3)) ? "tracking" : "independent",
+				(status_byte & (1 << 6)) ? "enabled" : "disabled",
+				(status_byte & (1 << 5)) ? "enabled" : "disabled",
+				(status_byte & (1 << 7)) ? "enabled" : "disabled",
+				(status_byte & (1 << 4)) ? "beeping" : "silent");
+		}
 	}
 
 	/* Read the sixth byte from ISET? BUG workaround. */
