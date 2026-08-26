@@ -61,6 +61,8 @@ static const struct korad_kaxxxxp_model models[] = {
 		KORAD_QUIRK_ID_TRAILING},
 	{"Korad", "KD3005P", "", 1, volts_30, amps_5, 0},
 	{"Korad", "KD6005P", "", 1, volts_60, amps_5, 0},
+	{"Korad", "KKG305P", "", 1, volts_30, amps_5,
+		KORAD_QUIRK_KKG_FAMILY},
 	{"RND", "KA3005P", "RND 320-KA3005P", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_OPT_VERSION},
 	{"RND", "KD3005P", "RND 320-KD3005P", 1, volts_30, amps_5,
@@ -278,14 +280,23 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		len = sizeof(reply) - 1;
 	sr_dbg("Want max %zu bytes.", len);
 
-	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?");
+	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?", FALSE);
 	if (ret < 0)
 		return NULL;
 
 	ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	if (ret == 0) {
+		/* Empty response. KKG models want LF terminated requests. */
+		ret = korad_kaxxxxp_send_cmd(serial, "\n", FALSE);
+		if (ret < 0)
+			return NULL;
+		ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	}
 	if (ret < 0)
 		return NULL;
 	sr_dbg("Received: %d, %s", ret, reply);
+	/* Strip the LF termination of KKG model responses. */
+	g_strchomp(reply);
 
 	/*
 	 * Isolate the optional serial number at the response's end.
