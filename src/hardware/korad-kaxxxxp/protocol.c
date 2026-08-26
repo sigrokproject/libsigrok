@@ -278,7 +278,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	int ret, count;
 	char reply[8];
 	float *value;
-	char status_byte;
+	uint8_t status_byte;
 	gboolean needs_ovp_quirk;
 	gboolean prev_status;
 	gboolean nl_termination;
