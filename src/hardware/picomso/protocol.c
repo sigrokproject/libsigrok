@@ -499,6 +499,7 @@ static int build_capture_request(const struct sr_dev_inst *sdi,
     uint64_t total_samples;
     unsigned int trigger_index;
     int ret;
+    uint64_t max_samples;
 
     devc = sdi->priv;
     memset(request, 0, sizeof(*request));
@@ -510,7 +511,8 @@ static int build_capture_request(const struct sr_dev_inst *sdi,
         return SR_ERR_ARG;
     if (devc->capture_ratio > 100)
         return SR_ERR_ARG;
-    if (total_samples > PICOMSO_MAX_TOTAL_SAMPLES)
+    max_samples = devc->fw_caps.max_samples_logic;
+    if (total_samples > max_samples)
         return SR_ERR_ARG;
 
     request->total_samples = (uint32_t)total_samples;
