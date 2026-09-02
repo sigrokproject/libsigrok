@@ -132,6 +132,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	struct center_info info;
+	struct sr_channel *ch;
 	GSList *l;
 	int i, ret;
 
@@ -156,8 +157,12 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 
 	/* Send the values for T1 - T4. */
 	for (i = 0; i < NUM_CHANNELS; i++) {
+		ch = g_slist_nth_data(sdi->channels, i);
+		/* Only send data for channels the user has enabled. */
+		if (!ch->enabled)
+			continue;
 		l = NULL;
-		l = g_slist_append(l, g_slist_nth_data(sdi->channels, i));
+		l = g_slist_append(l, ch);
 		analog.meaning->channels = l;
 		analog.encoding->digits = info.digits[i];
 		analog.spec->spec_digits = info.digits[i];
