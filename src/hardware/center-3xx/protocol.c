@@ -30,7 +30,7 @@ struct center_info {
 	gboolean mode_std, mode_rel, mode_max, mode_min, mode_maxmin;
 };
 
-static int center_send(struct sr_serial_dev_inst *serial, const char *cmd)
+SR_PRIV int center_3xx_send(struct sr_serial_dev_inst *serial, const char *cmd)
 {
 	int ret;
 
@@ -215,7 +215,7 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	static gboolean request_new_packet = TRUE;
+	gboolean request_new_packet = TRUE;
 	struct sr_serial_dev_inst *serial;
 
 	(void)fd;
@@ -231,15 +231,16 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 	if (revents == G_IO_IN) {
 		/* New data arrived. */
 		request_new_packet = handle_new_data(sdi, idx);
-	} else {
+	} else if (revents == 0) {
 		/*
-		 * Timeout. Send "A" to request a packet, but then don't send
-		 * further "A" commands until we received a full packet first.
+		 * Timeout. Device missed the last "A"? Send another one.
+		 * Note that the device ignores duplicate "A"s.
 		 */
-		if (request_new_packet) {
-			center_send(serial, "A");
-			request_new_packet = FALSE;
-		}
+		sr_warn("timeout waiting for data");
+	} else {
+		sr_err("serial port error 0x%02x", revents);
+		sr_dev_acquisition_stop(sdi);
+		return FALSE;
 	}
 
 	if (sr_sw_limits_check(&devc->sw_limits))

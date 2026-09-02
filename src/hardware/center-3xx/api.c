@@ -139,12 +139,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
 	struct sr_serial_dev_inst *serial;
 
 	devc = sdi->priv;
+	serial = sdi->conn;
 
 	sr_sw_limits_acquisition_start(&devc->sw_limits);
 
+	/* Request the first packet */
+	if (center_3xx_send(serial, "A") != SR_OK)
+		return SR_ERR;
+
 	std_session_send_df_header(sdi);
 
-	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 500,
 		      center_devs[idx].receive_data, (void *)sdi);
 
