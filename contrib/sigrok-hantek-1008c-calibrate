@@ -1,0 +1,558 @@
+#!/usr/bin/env python3
+#
+# Copyright (C) 2026 VK4TMZ
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+"""Calibrate Hantek 1008C channels through the installed sigrok-cli."""
+
+import argparse
+import configparser
+import datetime as dt
+import math
+import os
+import pathlib
+import re
+import shutil
+import statistics
+import subprocess
+import sys
+import tempfile
+import time
+
+VID = "0783"
+PID = "5725"
+SAMPLERATE = 2_400_000
+SAMPLES = 12_000
+RETRY_WINDOW = 15.0
+RETRY_INTERVAL = 0.5
+NOMINAL_SCALE = {1: 0.0002, 2: 0.00125, 3: 0.01}
+RANGE_NAMES = {1: "Narrow", 2: "Medium", 3: "Wide"}
+RANGE_ALIASES = {
+    "narrow": 1, "medium": 2, "wide": 3,
+    "01": 1, "02": 2, "03": 3,
+    "a2=01": 1, "a2=02": 2, "a2=03": 3,
+}
+REFERENCE_RANGES = {2, 3}
+ADC_MAX = 4095
+FIRST_ZERO_MIN = 0.45 * ADC_MAX
+FIRST_ZERO_MAX = 0.55 * ADC_MAX
+DEFAULT_MAX_ZERO_SHIFT_COUNTS = 20.0
+SAMPLE_RE = re.compile(r"^CH(\d+):\s+([-+]?\d+(?:\.\d+)?)\s+pcs$")
+CONNECTION_RE = re.compile(r"\((usb/[^)]+)\)")
+
+
+class CalibrationError(RuntimeError):
+    pass
+
+
+def parse_number_set(text, minimum, maximum, label):
+    result = []
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            value = int(part, 16 if label == "range" else 10)
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(f"invalid {label}: {part}") from exc
+        if not minimum <= value <= maximum:
+            raise argparse.ArgumentTypeError(
+                f"{label} must be between {minimum} and {maximum}: {part}")
+        if value not in result:
+            result.append(value)
+    if not result:
+        raise argparse.ArgumentTypeError(f"at least one {label} is required")
+    return result
+
+
+def parse_ranges(text):
+    result = []
+    for part in text.split(","):
+        token = part.strip().lower()
+        if not token:
+            continue
+        if token not in RANGE_ALIASES:
+            raise argparse.ArgumentTypeError(
+                f"range must be Narrow, Medium, or Wide: {part.strip()}")
+        value = RANGE_ALIASES[token]
+        if value not in result:
+            result.append(value)
+    if not result:
+        raise argparse.ArgumentTypeError("at least one range is required")
+    return result
+
+
+def positive_finite(value):
+    try:
+        number = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("value must be a number") from exc
+    if not math.isfinite(number) or number <= 0:
+        raise argparse.ArgumentTypeError("value must be finite and > 0")
+    return number
+
+
+def parse_capture(stdout, channel):
+    frames = []
+    current = None
+    for line in stdout.splitlines():
+        line = line.strip()
+        if line == "FRAME-BEGIN":
+            if current is not None:
+                raise CalibrationError("nested frame in sigrok-cli output")
+            current = []
+            continue
+        if line == "FRAME-END":
+            if current is None:
+                raise CalibrationError("frame end without frame begin")
+            frames.append(current)
+            current = None
+            continue
+        match = SAMPLE_RE.match(line)
+        if match and current is not None and int(match.group(1)) == channel:
+            current.append(float(match.group(2)))
+    if current is not None:
+        raise CalibrationError("unterminated frame in sigrok-cli output")
+    if not frames:
+        raise CalibrationError("sigrok-cli output contained no frame")
+    values = [value for frame in frames for value in frame]
+    if len(values) != SAMPLES:
+        raise CalibrationError(
+            f"expected {SAMPLES} raw samples for CH{channel}, received {len(values)}")
+    return frames
+
+
+def percentile(sorted_values, fraction):
+    position = (len(sorted_values) - 1) * fraction
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return sorted_values[lower]
+    return (sorted_values[lower] * (upper - position) +
+            sorted_values[upper] * (position - lower))
+
+
+def reference_metrics(frames, scale):
+    values = [value for frame in frames for value in frame]
+    ordered = sorted(values)
+    low = percentile(ordered, 0.10)
+    high = percentile(ordered, 0.90)
+    vpp = (high - low) * scale
+    lower_threshold = low + 0.25 * (high - low)
+    upper_threshold = low + 0.75 * (high - low)
+    high_durations = []
+    low_durations = []
+    for frame in frames:
+        if not frame:
+            continue
+        if frame[0] <= lower_threshold:
+            state = "low"
+        elif frame[0] >= upper_threshold:
+            state = "high"
+        else:
+            state = None
+        last_transition = None
+        for index, value in enumerate(frame[1:], 1):
+            new_state = state
+            if value <= lower_threshold:
+                new_state = "low"
+            elif value >= upper_threshold:
+                new_state = "high"
+            if state is None:
+                state = new_state
+                continue
+            if new_state == state:
+                continue
+            if last_transition is not None:
+                duration = index - last_transition
+                if state == "high":
+                    high_durations.append(duration)
+                else:
+                    low_durations.append(duration)
+            state = new_state
+            last_transition = index
+    if not high_durations or not low_durations:
+        raise CalibrationError(
+            "reference waveform has insufficient same-frame high/low durations")
+    period = (statistics.median(high_durations) +
+              statistics.median(low_durations))
+    frequency = SAMPLERATE / period
+    return vpp, frequency
+
+
+def connection_id(stderr):
+    for line in stderr.splitlines():
+        if "USB connection active" in line:
+            match = CONNECTION_RE.search(line)
+            if match:
+                return match.group(1)
+    raise CalibrationError("could not determine the stable USB connection ID")
+
+
+def capture_once(sigrok_cli, channel, range_id, raw_data_home):
+    command = [
+        sigrok_cli,
+        "--driver", "hantek-1008c",
+        "--channels", f"CH{channel}",
+        "--config", "device_mode=Trigger",
+        "--config", f"range={RANGE_NAMES[range_id]}",
+        "--config", f"samplerate={SAMPLERATE}",
+        "--samples", str(SAMPLES),
+        "--output-format", "analog",
+        "--loglevel", "5",
+    ]
+    environment = os.environ.copy()
+    environment["XDG_DATA_HOME"] = str(raw_data_home)
+    completed = subprocess.run(command, text=True, capture_output=True,
+                               env=environment, timeout=30)
+    if completed.returncode:
+        detail = next((line.strip() for line in reversed(completed.stderr.splitlines())
+                       if line.strip()), f"sigrok-cli exited {completed.returncode}")
+        raise CalibrationError(detail)
+    return parse_capture(completed.stdout, channel), connection_id(completed.stderr)
+
+
+def capture_with_retry(sigrok_cli, channel, range_id, raw_data_home):
+    started = time.monotonic()
+    attempts = 1
+    try:
+        return capture_once(sigrok_cli, channel, range_id, raw_data_home)
+    except (CalibrationError, subprocess.TimeoutExpired) as exc:
+        last_error = str(exc)
+
+    print("\n[USB/capture recovery]")
+    print(f"  - Initial capture failed: {last_error}")
+    print(f"  - Retry window: {RETRY_WINDOW:.1f} seconds")
+    print(f"  - Retry interval: {RETRY_INTERVAL:.1f} seconds")
+    retry = 0
+    while time.monotonic() - started < RETRY_WINDOW:
+        remaining = RETRY_WINDOW - (time.monotonic() - started)
+        time.sleep(min(RETRY_INTERVAL, remaining))
+        retry += 1
+        attempts += 1
+        print(f"  - Retry {retry} at +{time.monotonic() - started:.1f}s", end="")
+        try:
+            result = capture_once(sigrok_cli, channel, range_id, raw_data_home)
+            print(": SUCCESS")
+            print("  - Recovery: SUCCESS")
+            print(f"  - Ready after: {time.monotonic() - started:.1f} seconds")
+            print(f"  - Capture attempts: {attempts}\n")
+            return result
+        except (CalibrationError, subprocess.TimeoutExpired) as exc:
+            last_error = str(exc)
+            print(f": {last_error}")
+    raise CalibrationError(
+        f"capture recovery failed after {time.monotonic() - started:.1f}s: {last_error}")
+
+
+def load_store(path):
+    config = configparser.ConfigParser(interpolation=None)
+    config.optionxform = str
+    if path.exists():
+        config.read(path)
+    if not config.has_section("format"):
+        config.add_section("format")
+    config.set("format", "version", "1")
+    return config
+
+
+def save_store(config, path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=".calibration-", suffix=".ini",
+                                     dir=path.parent, text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            config.write(stream)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def section_name(connection, channel, range_id):
+    return f"device {connection} channel CH{channel} range {range_id:02X}"
+
+
+def policy_section_name(connection):
+    return f"calibration policy {connection}"
+
+
+def resolve_zero_shift_policy(config, connection, command_line_value):
+    if command_line_value is not None:
+        return command_line_value, "command line"
+    section = policy_section_name(connection)
+    if not config.has_option(section, "max_zero_shift_counts"):
+        return DEFAULT_MAX_ZERO_SHIFT_COUNTS, "default"
+    value = config.getfloat(section, "max_zero_shift_counts")
+    if not math.isfinite(value) or value <= 0:
+        raise CalibrationError(
+            f"invalid max_zero_shift_counts in [{section}]")
+    return value, "saved device policy"
+
+
+def validate_zero_candidate(candidate, previous, limit):
+    if not FIRST_ZERO_MIN <= candidate <= FIRST_ZERO_MAX:
+        raise CalibrationError(
+            f"candidate zero {candidate:.3f} is outside the plausible "
+            f"{FIRST_ZERO_MIN:.0f}..{FIRST_ZERO_MAX:.0f} count region")
+    if previous is None:
+        return None
+    shift = candidate - previous
+    if abs(shift) > limit:
+        raise CalibrationError(
+            f"candidate zero shift {shift:+.3f} counts exceeds "
+            f"the permitted +/-{limit:.3f} counts")
+    return shift
+
+
+def utc_now():
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
+
+
+def save_zero(config, path, connection, channel, range_id, values,
+              command_line_max_shift):
+    section = section_name(connection, channel, range_id)
+    mean = statistics.fmean(values)
+    stddev = statistics.pstdev(values)
+    span = max(values) - min(values)
+    if stddev > 5.0 or span > 32:
+        raise CalibrationError(
+            f"ground capture is too noisy (stddev={stddev:.3f}, span={span:.0f})")
+    print("  Grounded-zero result")
+    print(f"    - Mean: {mean:.3f} counts")
+    print(f"    - Standard deviation: {stddev:.3f} counts")
+    print(f"    - Minimum: {min(values):.0f} counts")
+    print(f"    - Maximum: {max(values):.0f} counts")
+    print(f"    - Span: {span:.0f} counts")
+    print(f"    - Samples: {len(values)}\n")
+    previous = None
+    if config.has_option(section, "zero_adc"):
+        previous = config.getfloat(section, "zero_adc")
+        if not math.isfinite(previous):
+            raise CalibrationError(f"invalid existing zero_adc in [{section}]")
+    limit, policy_source = resolve_zero_shift_policy(
+        config, connection, command_line_max_shift)
+
+    print("  Zero-calibration safeguard")
+    if previous is None:
+        print("    - Existing zero: none (first calibration for this entry)")
+    else:
+        print(f"    - Existing zero: {previous:.3f} counts")
+    print(f"    - Candidate zero: {mean:.3f} counts")
+    print(f"    - Maximum permitted shift: +/-{limit:g} counts")
+    print(f"    - Policy source: {policy_source}")
+    try:
+        shift = validate_zero_candidate(mean, previous, limit)
+    except CalibrationError:
+        print("    - Result: REJECTED")
+        print("    - Existing calibration and saved policy were not modified")
+        raise
+    if shift is not None:
+        print(f"    - Change: {shift:+.3f} counts")
+    print("    - Result: PASS")
+
+    if not config.has_section(section):
+        config.add_section(section)
+    fields = {
+        "usb_vid": VID, "usb_pid": PID, "connection_id": connection,
+        "channel": f"CH{channel}", "range_a2": f"{range_id:02X}",
+        "zero_adc": f"{mean:.9f}", "zero_stddev": f"{stddev:.9f}",
+        "zero_min": f"{min(values):.0f}", "zero_max": f"{max(values):.0f}",
+        "samples": str(len(values)),
+        "volts_per_count": f"{NOMINAL_SCALE[range_id]:.12g}",
+        "scale_source": "reference_nominal_mfg92", "calibrated_utc": utc_now(),
+    }
+    for key, value in fields.items():
+        config.set(section, key, value)
+    if command_line_max_shift is not None:
+        policy_section = policy_section_name(connection)
+        if not config.has_section(policy_section):
+            config.add_section(policy_section)
+        config.set(policy_section, "max_zero_shift_counts", f"{limit:.9g}")
+        config.set(policy_section, "updated_utc", utc_now())
+        print(f"    - Saved device policy: +/-{limit:g} counts")
+    save_store(config, path)
+    return mean, stddev, span
+
+
+def save_validation(config, path, connection, channel, range_id, vpp, frequency):
+    section = section_name(connection, channel, range_id)
+    passed = 1.6 <= vpp <= 2.4 and 900.0 <= frequency <= 1100.0
+    fields = {
+        "validation_source": "onboard_1khz_2vpp",
+        "validation_measured_vpp": f"{vpp:.9f}",
+        "validation_measured_frequency_hz": f"{frequency:.9f}",
+        "validation_passed": "true" if passed else "false",
+        "validation_samples": str(SAMPLES), "validated_utc": utc_now(),
+    }
+    for key, value in fields.items():
+        config.set(section, key, value)
+    save_store(config, path)
+    return passed
+
+
+def prompt(message):
+    input(message)
+
+
+def run(args):
+    sigrok_cli = shutil.which(args.sigrok_cli) if os.sep not in args.sigrok_cli else args.sigrok_cli
+    if not sigrok_cli or not pathlib.Path(sigrok_cli).is_file():
+        raise CalibrationError(f"sigrok-cli not found: {args.sigrok_cli}")
+    store = pathlib.Path(args.store).expanduser()
+    config = load_store(store)
+    reference_ranges = [value for value in args.ranges if value in REFERENCE_RANGES]
+
+    print("Hantek 1008C grouped calibration")
+    print(f"  - sigrok-cli: {sigrok_cli}")
+    print(f"  - Store: {store}")
+    print("  - Close PulseView and other programs using the oscilloscope.\n")
+    print("Connection rule")
+    print("  - During a grounded capture, disconnect or ground every other input.")
+    print("  - Never leave the onboard reference connected to another channel.\n")
+    with tempfile.TemporaryDirectory(prefix="hantek-raw-calibration-") as temp:
+        raw_home = pathlib.Path(temp)
+        for position, channel in enumerate(args.channels, 1):
+            print("=" * 72)
+            print(f"Channel {position}/{len(args.channels)}")
+            print(f"  - Channel: CH{channel}\n")
+            print("[Connection 1: grounded]")
+            print(f"  - Connect the CH{channel} probe input to scope ground.")
+            print("  - Disconnect or ground every other scope input.")
+            print("  - Do not leave the onboard reference connected to another channel.")
+            print("  - These ranges will run without another cable move: " +
+                  ", ".join(f"{RANGE_NAMES[value]} (A2={value:02X})"
+                            for value in args.ranges))
+            prompt(f"\nPress Enter when CH{channel} is grounded, or Ctrl-C to stop... ")
+            connection = None
+            for range_id in args.ranges:
+                print(f"\n--- CH{channel} grounded zero, "
+                      f"{RANGE_NAMES[range_id]} (A2={range_id:02X}) ---\n")
+                frames, observed_connection = capture_with_retry(
+                    sigrok_cli, channel, range_id, raw_home)
+                values = [value for frame in frames for value in frame]
+                if connection and observed_connection != connection:
+                    raise CalibrationError("USB connection path changed during calibration")
+                connection = observed_connection
+                mean, stddev, span = save_zero(
+                    config, store, connection, channel, range_id, values,
+                    args.max_zero_shift_counts)
+                print(f"    - Saved: {store}")
+            if reference_ranges:
+                print("\n[Connection 2: onboard reference]")
+                print(f"  Move the CH{channel} probe to the onboard 1 kHz / 2 Vp-p output.")
+                print("  Connect the reference only to this target channel.")
+                print("  Disconnect or ground every other scope input.")
+                print("  These ranges will run without another cable move: " +
+                      ", ".join(f"{RANGE_NAMES[value]} (A2={value:02X})"
+                                for value in reference_ranges))
+                prompt(f"\nPress Enter when CH{channel} is on the reference, or Ctrl-C to stop... ")
+                for range_id in reference_ranges:
+                    print(f"\n--- CH{channel} reference validation, "
+                          f"{RANGE_NAMES[range_id]} (A2={range_id:02X}) ---\n")
+                    frames, observed_connection = capture_with_retry(
+                        sigrok_cli, channel, range_id, raw_home)
+                    if observed_connection != connection:
+                        raise CalibrationError("USB connection path changed during calibration")
+                    vpp, frequency = reference_metrics(
+                        frames, NOMINAL_SCALE[range_id])
+                    passed = save_validation(config, store, connection, channel,
+                                             range_id, vpp, frequency)
+                    print("  Reference result")
+                    print(f"    - Amplitude: {vpp:.3f} Vp-p")
+                    print(f"    - Frequency: {frequency:.2f} Hz")
+                    print(f"    - Validation: {'PASS' if passed else 'FAIL'}")
+                    print("    - zero_adc and volts_per_count were not changed")
+                    if not passed:
+                        raise CalibrationError(
+                            f"CH{channel} A2={range_id:02X} reference validation failed")
+            print("\nChannel calibration complete.\n")
+    print("=" * 72)
+    print("All requested grouped calibrations completed successfully.")
+
+
+def self_test():
+    lines = ["META samplerate: 2400000"]
+    for frame_number in range(3):
+        lines.append("FRAME-BEGIN")
+        lines.extend(f"CH2: {2000 + ((i + frame_number) % 2)} pcs"
+                     for i in range(4000))
+        lines.append("FRAME-END")
+    frames = parse_capture("\n".join(lines), 2)
+    assert list(map(len, frames)) == [4000, 4000, 4000]
+    wave_frames = []
+    for phase in (0, 700, 1700):
+        wave_frames.append([
+            2000 + (100 if math.sin(
+                2 * math.pi * 1000 * (i + phase) / SAMPLERATE) >= 0 else -100)
+            for i in range(4000)
+        ])
+    vpp, frequency = reference_metrics(wave_frames, 0.01)
+    assert abs(vpp - 2.0) < 1e-9 and abs(frequency - 1000.0) < 1.0
+    assert connection_id("USB connection active at 1.94 (usb/1-1.1).") == "usb/1-1.1"
+    assert validate_zero_candidate(2015.0, None, 20.0) is None
+    assert validate_zero_candidate(2029.0, 2015.0, 20.0) == 14.0
+    try:
+        validate_zero_candidate(1969.0, 2015.0, 20.0)
+    except CalibrationError:
+        pass
+    else:
+        raise AssertionError("an anomalous zero shift was accepted")
+    assert validate_zero_candidate(1969.0, 2015.0, 50.0) == -46.0
+    policy_config = load_store(pathlib.Path("/does/not/exist"))
+    assert resolve_zero_shift_policy(policy_config, "usb/1-1.1", None) == (20.0, "default")
+    print("Self-test: PASS")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--channels", default="1,2,3,4,5,6,7,8",
+                        help="comma-separated channels (default: all)")
+    parser.add_argument("--ranges", default="Narrow,Medium,Wide",
+                        help="comma-separated ranges (default: Narrow,Medium,Wide)")
+    parser.add_argument("--sigrok-cli", default="sigrok-cli")
+    parser.add_argument("--store", default=os.path.join(
+        os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share")),
+        "hantek-1008c", "calibration.ini"))
+    parser.add_argument("--self-test", action="store_true")
+    parser.add_argument(
+        "--max-zero-shift-counts", type=positive_finite,
+        help=("maximum permitted change from an existing zero calibration; "
+              "a successful grounded calibration persists this device policy "
+              "(default: saved policy or 20 counts)"))
+    args = parser.parse_args()
+    if args.self_test:
+        self_test()
+        return 0
+    args.channels = parse_number_set(args.channels, 1, 8, "channel")
+    args.ranges = parse_ranges(args.ranges)
+    try:
+        run(args)
+    except KeyboardInterrupt:
+        print("\nStopped by user.", file=sys.stderr)
+        return 130
+    except CalibrationError as exc:
+        print(f"\nERROR: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

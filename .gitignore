@@ -80,3 +80,5 @@ stamp-h?
 /tests/*.log
 /tests/*.trs
 /tests/main
+
+/tests/hantek-1008c

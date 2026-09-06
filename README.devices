@@ -127,6 +127,7 @@ The following drivers/devices do not need any firmware upload:
  - gwinstek-gds-800
  - gwinstek-gpd
  - hameg-hmo
+ - hantek-1008c
  - hantek-4032l
  - hp-3457a
  - hp-3478a
@@ -560,6 +561,39 @@ device with a USB VID/PID of 0403:8867.
 
 The 'chronovu-la' driver in libsigrok supports both VID/PID pairs and
 automatically finds devices with either VID/PID pair.
+
+
+Hantek 1008C
+------------
+
+The hantek-1008c driver supports Trigger, Scan, and Roll acquisition modes,
+including multi-channel acquisition and channel-selectable voltage triggering.
+
+The driver uses optional per-channel and per-range voltage calibration. Before
+relying on voltage measurements, run:
+
+  sigrok-hantek-1008c-calibrate
+
+Calibration data is stored at:
+
+  $XDG_DATA_HOME/hantek-1008c/calibration.ini
+
+When XDG_DATA_HOME is not set, the default location is:
+
+  ~/.local/share/hantek-1008c/calibration.ini
+
+Calibration entries are currently keyed by the device's USB connection path.
+Moving the oscilloscope to another USB port may require recalibration or moving
+the applicable calibration entries to the new connection-path sections.
+
+During calibration, disconnect or ground every input other than the channel
+being calibrated. In particular, do not leave the onboard reference output
+connected to another input while capturing a grounded zero.
+
+A common raw ADC-zero displacement has been observed on the development unit
+after calibration, including while it remained continuously powered. Its cause
+and whether it affects other units are still under investigation. Recheck the
+grounded zero before measurements where absolute DC accuracy is important.
 
 
 OLS

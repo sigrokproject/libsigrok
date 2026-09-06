@@ -424,6 +424,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/hantek-4032l/protocol.c \
 	src/hardware/hantek-4032l/api.c
 endif
+if HW_HANTEK_1008C
+src_libdrivers_la_SOURCES += \
+	src/hardware/hantek-1008c/protocol.h \
+	src/hardware/hantek-1008c/protocol.c \
+	src/hardware/hantek-1008c/api.c
+endif
 if HW_HANTEK_6XXX
 src_libdrivers_la_SOURCES += \
 	src/hardware/hantek-6xxx/protocol.h \
@@ -821,6 +827,8 @@ CLEAN_EXTRA += version-clean
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
 
+dist_bin_SCRIPTS = contrib/sigrok-hantek-1008c-calibrate
+
 mimeappdir = $(datadir)/mime/packages
 mimeapp_DATA = contrib/vnd.sigrok.session.xml
 
@@ -891,6 +899,15 @@ tests_main_SOURCES = \
 	tests/conv.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
+
+if HAVE_CHECK
+if HW_HANTEK_1008C
+TESTS += tests/hantek-1008c
+tests_hantek_1008c_SOURCES = tests/hantek_1008c.c
+tests_hantek_1008c_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
+tests_hantek_1008c_LDFLAGS = -static-libtool-libs
+endif
+endif
 
 BUILD_EXTRA =
 INSTALL_EXTRA =
