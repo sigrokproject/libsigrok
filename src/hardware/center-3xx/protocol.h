@@ -60,6 +60,7 @@ struct dev_context {
 };
 
 SR_PRIV gboolean center_3xx_packet_valid(const uint8_t *buf);
+SR_PRIV int center_3xx_send(struct sr_serial_dev_inst *serial, const char *cmd);
 
 SR_PRIV int receive_data_CENTER_309(int fd, int revents, void *cb_data);
 SR_PRIV int receive_data_VOLTCRAFT_K204(int fd, int revents, void *cb_data);
