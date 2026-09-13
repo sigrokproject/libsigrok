@@ -9,6 +9,7 @@
 #define _VXI_H_RPCGEN
 
 #include <rpc/rpc.h>
+#include <stdint.h>
 
 
 #ifdef __cplusplus
@@ -16,7 +17,7 @@ extern "C" {
 #endif
 
 
-typedef long Device_Link;
+typedef int32_t Device_Link;
 
 enum Device_AddrFamily {
 	DEVICE_TCP = 0,
@@ -24,9 +25,9 @@ enum Device_AddrFamily {
 };
 typedef enum Device_AddrFamily Device_AddrFamily;
 
-typedef long Device_Flags;
+typedef int32_t Device_Flags;
 
-typedef long Device_ErrorCode;
+typedef int32_t Device_ErrorCode;
 
 struct Device_Error {
 	Device_ErrorCode error;
@@ -34,9 +35,9 @@ struct Device_Error {
 typedef struct Device_Error Device_Error;
 
 struct Create_LinkParms {
-	long clientId;
+	int32_t clientId;
 	bool_t lockDevice;
-	u_long lock_timeout;
+	uint32_t lock_timeout;
 	char *device;
 };
 typedef struct Create_LinkParms Create_LinkParms;
@@ -45,14 +46,14 @@ struct Create_LinkResp {
 	Device_ErrorCode error;
 	Device_Link lid;
 	u_short abortPort;
-	u_long maxRecvSize;
+	uint32_t maxRecvSize;
 };
 typedef struct Create_LinkResp Create_LinkResp;
 
 struct Device_WriteParms {
 	Device_Link lid;
-	u_long io_timeout;
-	u_long lock_timeout;
+	uint32_t io_timeout;
+	uint32_t lock_timeout;
 	Device_Flags flags;
 	struct {
 		u_int data_len;
@@ -63,15 +64,15 @@ typedef struct Device_WriteParms Device_WriteParms;
 
 struct Device_WriteResp {
 	Device_ErrorCode error;
-	u_long size;
+	uint32_t size;
 };
 typedef struct Device_WriteResp Device_WriteResp;
 
 struct Device_ReadParms {
 	Device_Link lid;
-	u_long requestSize;
-	u_long io_timeout;
-	u_long lock_timeout;
+	uint32_t requestSize;
+	uint32_t io_timeout;
+	uint32_t lock_timeout;
 	Device_Flags flags;
 	char termChar;
 };
@@ -79,7 +80,7 @@ typedef struct Device_ReadParms Device_ReadParms;
 
 struct Device_ReadResp {
 	Device_ErrorCode error;
-	long reason;
+	int32_t reason;
 	struct {
 		u_int data_len;
 		char *data_val;
@@ -96,16 +97,16 @@ typedef struct Device_ReadStbResp Device_ReadStbResp;
 struct Device_GenericParms {
 	Device_Link lid;
 	Device_Flags flags;
-	u_long lock_timeout;
-	u_long io_timeout;
+	uint32_t lock_timeout;
+	uint32_t io_timeout;
 };
 typedef struct Device_GenericParms Device_GenericParms;
 
 struct Device_RemoteFunc {
-	u_long hostAddr;
+	uint32_t hostAddr;
 	u_short hostPort;
-	u_long progNum;
-	u_long progVers;
+	uint32_t progNum;
+	uint32_t progVers;
 	Device_AddrFamily progFamily;
 };
 typedef struct Device_RemoteFunc Device_RemoteFunc;
@@ -123,18 +124,18 @@ typedef struct Device_EnableSrqParms Device_EnableSrqParms;
 struct Device_LockParms {
 	Device_Link lid;
 	Device_Flags flags;
-	u_long lock_timeout;
+	uint32_t lock_timeout;
 };
 typedef struct Device_LockParms Device_LockParms;
 
 struct Device_DocmdParms {
 	Device_Link lid;
 	Device_Flags flags;
-	u_long io_timeout;
-	u_long lock_timeout;
-	long cmd;
+	uint32_t io_timeout;
+	uint32_t lock_timeout;
+	int32_t cmd;
 	bool_t network_order;
-	long datasize;
+	int32_t datasize;
 	struct {
 		u_int data_in_len;
 		char *data_in_val;
