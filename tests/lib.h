@@ -54,5 +54,6 @@ Suite *suite_device(void);
 Suite *suite_trigger(void);
 Suite *suite_analog(void);
 Suite *suite_conv(void);
+Suite *suite_fnirsi_dla16(void);
 
 #endif

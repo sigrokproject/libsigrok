@@ -370,6 +370,11 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
 endif
+if HW_FNIRSI_DLA16
+src_libdrivers_la_SOURCES += \
+	src/hardware/fnirsi-dla16/protocol.h \
+	src/hardware/fnirsi-dla16/api.c
+endif
 if HW_FTDI_LA
 src_libdrivers_la_SOURCES += \
 	src/hardware/ftdi-la/protocol.h \
@@ -888,7 +893,8 @@ tests_main_SOURCES = \
 	tests/device.c \
 	tests/trigger.c \
 	tests/analog.c \
-	tests/conv.c
+	tests/conv.c \
+	tests/fnirsi_dla16.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 

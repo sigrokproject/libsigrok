@@ -122,6 +122,7 @@ The following drivers/devices do not need any firmware upload:
  - demo
  - fluke-45
  - fluke-dmm
+ - fnirsi-dla16
  - ftdi-la
  - gmc-mh-1x-2x (including all subdrivers)
  - gwinstek-gds-800

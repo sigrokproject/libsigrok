@@ -46,6 +46,7 @@ int main(void)
 	srunner_add_suite(srunner, suite_trigger());
 	srunner_add_suite(srunner, suite_analog());
 	srunner_add_suite(srunner, suite_conv());
+	srunner_add_suite(srunner, suite_fnirsi_dla16());
 
 	srunner_run_all(srunner, CK_VERBOSE);
 	ret = srunner_ntests_failed(srunner);
