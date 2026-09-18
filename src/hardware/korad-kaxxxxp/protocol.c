@@ -185,10 +185,15 @@ static int64_t next_req_time(struct dev_context *devc,
 }
 
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
-	int target, struct dev_context *devc)
+	int target, int out_idx, struct dev_context *devc)
 {
 	char msg[20];
 	int ret;
+
+	if (out_idx < 0 || out_idx >= devc->num_outputs) {
+		sr_err("Invalid output index %d.", out_idx);
+		return SR_ERR_ARG;
+	}
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
@@ -204,11 +209,13 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		break;
 	case KAXXXXP_CURRENT_LIMIT:
 		sr_snprintf_ascii(msg, sizeof(msg),
-			"ISET1:%05.3f", devc->set_current_limit);
+			"ISET%d:%05.3f", out_idx + 1,
+			devc->set_current_limit[out_idx]);
 		break;
 	case KAXXXXP_VOLTAGE_TARGET:
 		sr_snprintf_ascii(msg, sizeof(msg),
-			"VSET1:%05.2f", devc->set_voltage_target);
+			"VSET%d:%05.2f", out_idx + 1,
+			devc->set_voltage_target[out_idx]);
 		break;
 	case KAXXXXP_OUTPUT:
 		sr_snprintf_ascii(msg, sizeof(msg),
@@ -269,14 +276,20 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 }
 
 SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
-	int target, struct dev_context *devc)
+	int target, int out_idx, struct dev_context *devc)
 {
-	int ret, count;
+	int ret, count, i, ovp_bit;
+	char msg[20];
 	char reply[6];
 	float *value;
 	char status_byte;
 	gboolean needs_ovp_quirk;
 	gboolean prev_status;
+
+	if (out_idx < 0 || out_idx >= devc->num_outputs) {
+		sr_err("Invalid output index %d.", out_idx);
+		return SR_ERR_ARG;
+	}
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
@@ -287,23 +300,27 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	switch (target) {
 	case KAXXXXP_CURRENT:
 		/* Read current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?");
-		value = &(devc->current);
+		sr_snprintf_ascii(msg, sizeof(msg), "IOUT%d?", out_idx + 1);
+		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		value = &(devc->current[out_idx]);
 		break;
 	case KAXXXXP_CURRENT_LIMIT:
 		/* Read set current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?");
-		value = &(devc->current_limit);
+		sr_snprintf_ascii(msg, sizeof(msg), "ISET%d?", out_idx + 1);
+		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		value = &(devc->current_limit[out_idx]);
 		break;
 	case KAXXXXP_VOLTAGE:
 		/* Read voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?");
-		value = &(devc->voltage);
+		sr_snprintf_ascii(msg, sizeof(msg), "VOUT%d?", out_idx + 1);
+		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		value = &(devc->voltage[out_idx]);
 		break;
 	case KAXXXXP_VOLTAGE_TARGET:
 		/* Read set voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?");
-		value = &(devc->voltage_target);
+		sr_snprintf_ascii(msg, sizeof(msg), "VSET%d?", out_idx + 1);
+		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		value = &(devc->voltage_target[out_idx]);
 		break;
 	case KAXXXXP_STATUS:
 	case KAXXXXP_OUTPUT:
@@ -336,21 +353,34 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		/* We have status reply. */
 		status_byte = reply[0];
 
-		/* Constant current channel one. */
-		prev_status = devc->cc_mode[0];
-		devc->cc_mode[0] = !(status_byte & (1 << 0));
-		devc->cc_mode_1_changed = devc->cc_mode[0] != prev_status;
-		/* Constant current channel two. */
-		prev_status = devc->cc_mode[1];
-		devc->cc_mode[1] = !(status_byte & (1 << 1));
-		devc->cc_mode_2_changed = devc->cc_mode[1] != prev_status;
+		/*
+		 * Constant current mode, one status bit per output
+		 * (bit 0 belongs to output 1, bit 1 to output 2).
+		 */
+		for (i = 0; i < KAXXXXP_MAX_OUTPUTS; i++) {
+			prev_status = devc->cc_mode[i];
+			devc->cc_mode[i] = !(status_byte & (1 << i));
+			devc->cc_mode_changed[i] =
+				devc->cc_mode[i] != prev_status;
+		}
 
 		/*
 		 * Tracking:
 		 * status_byte & ((1 << 2) | (1 << 3))
 		 * 00 independent 01 series 11 parallel
 		 */
-		devc->beep_enabled = status_byte & (1 << 4);
+		if (devc->model->quirks & KORAD_QUIRK_STATUS_OVP_BIT4) {
+			/*
+			 * This family carries the OVP enable state on bit 4
+			 * and offers no beeper status bit, so do not report
+			 * the OVP bit as if it were the beeper state.
+			 */
+			ovp_bit = 4;
+			devc->beep_enabled = FALSE;
+		} else {
+			ovp_bit = 7;
+			devc->beep_enabled = status_byte & (1 << 4);
+		}
 
 		/* OCP enabled. */
 		prev_status = devc->ocp_enabled;
@@ -366,7 +396,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		needs_ovp_quirk = devc->model->quirks & KORAD_QUIRK_LABPS_OVP_EN;
 		if (!needs_ovp_quirk || devc->output_enabled) {
 			prev_status = devc->ovp_enabled;
-			devc->ovp_enabled = status_byte & (1 << 7);
+			devc->ovp_enabled = status_byte & (1 << ovp_bit);
 			devc->ovp_enabled_changed = devc->ovp_enabled != prev_status;
 		}
 
@@ -381,7 +411,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 			(status_byte & (1 << 6)) ? "enabled" : "disabled",
 			(status_byte & (1 << 5)) ? "enabled" : "disabled",
 			(status_byte & (1 << 7)) ? "enabled" : "disabled",
-			(status_byte & (1 << 4)) ? "beeping" : "silent");
+			(devc->beep_enabled) ? "beeping" : "silent");
 	}
 
 	/* Read the sixth byte from ISET? BUG workaround. */
@@ -396,13 +426,29 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 SR_PRIV int korad_kaxxxxp_get_all_values(struct sr_serial_dev_inst *serial,
 	struct dev_context *devc)
 {
-	int ret, target;
+	int ret, target, out, i;
 
-	for (target = KAXXXXP_CURRENT;
-			target <= KAXXXXP_STATUS; target++) {
-		if ((ret = korad_kaxxxxp_get_value(serial, target, devc)) < 0)
-			return ret;
+	for (out = 0; out < devc->num_outputs; out++) {
+		for (target = KAXXXXP_CURRENT;
+				target <= KAXXXXP_VOLTAGE_TARGET; target++) {
+			ret = korad_kaxxxxp_get_value(serial, target, out, devc);
+			if (ret < 0)
+				return ret;
+		}
 	}
+
+	/*
+	 * The status byte covers all outputs at once, and the outputs'
+	 * CC mode bits are derived from it.
+	 */
+	ret = korad_kaxxxxp_get_value(serial, KAXXXXP_STATUS, 0, devc);
+
+	/* Reset the change tracking, only fresh transitions get reported. */
+	for (i = 0; i < KAXXXXP_MAX_OUTPUTS; i++)
+		devc->cc_mode_changed[i] = FALSE;
+	devc->output_enabled_changed = FALSE;
+	devc->ocp_enabled_changed = FALSE;
+	devc->ovp_enabled_changed = FALSE;
 
 	return ret;
 }
@@ -414,12 +460,25 @@ static void next_measurement(struct dev_context *devc)
 		devc->acquisition_target = KAXXXXP_VOLTAGE;
 		break;
 	case KAXXXXP_VOLTAGE:
-		devc->acquisition_target = KAXXXXP_STATUS;
+		/*
+		 * Voltage is the last value of an output, so advance to the
+		 * next output, or finish the cycle with the shared status
+		 * byte once every output was measured.
+		 */
+		devc->acquisition_out++;
+		if (devc->acquisition_out >= devc->num_outputs) {
+			devc->acquisition_out = 0;
+			devc->acquisition_target = KAXXXXP_STATUS;
+		} else {
+			devc->acquisition_target = KAXXXXP_CURRENT;
+		}
 		break;
 	case KAXXXXP_STATUS:
+		devc->acquisition_out = 0;
 		devc->acquisition_target = KAXXXXP_CURRENT;
 		break;
 	default:
+		devc->acquisition_out = 0;
 		devc->acquisition_target = KAXXXXP_CURRENT;
 		sr_err("Invalid target for next acquisition.");
 	}
@@ -435,7 +494,9 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
+	struct sr_channel *ch;
 	GSList *l;
+	int out, i;
 
 	(void)fd;
 	(void)revents;
@@ -447,9 +508,10 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	serial = sdi->conn;
+	out = devc->acquisition_out;
 
 	/* Get the value. */
-	korad_kaxxxxp_get_value(serial, devc->acquisition_target, devc);
+	korad_kaxxxxp_get_value(serial, devc->acquisition_target, out, devc);
 
 	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
@@ -458,38 +520,62 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = 1;
-	l = g_slist_copy(sdi->channels);
+	l = NULL;
+
+	/*
+	 * Channels were created two per output in output order, so an
+	 * output's channels can be located by index arithmetic: the first
+	 * channel of an output carries its voltage, the second its current.
+	 */
 	if (devc->acquisition_target == KAXXXXP_CURRENT) {
-		l = g_slist_remove_link(l, g_slist_nth(l, 0));
+		ch = g_slist_nth_data(sdi->channels, out * 2 + 1);
+		if (!ch) {
+			sr_err("No current channel for output %d.", out + 1);
+			next_measurement(devc);
+			return TRUE;
+		}
+		l = g_slist_append(l, ch);
 		analog.meaning->channels = l;
 		analog.meaning->mq = SR_MQ_CURRENT;
 		analog.meaning->unit = SR_UNIT_AMPERE;
 		analog.meaning->mqflags = SR_MQFLAG_DC;
 		analog.encoding->digits = 3;
 		analog.spec->spec_digits = 3;
-		analog.data = &devc->current;
+		analog.data = &devc->current[out];
 		sr_session_send(sdi, &packet);
+		g_slist_free(l);
 	} else if (devc->acquisition_target == KAXXXXP_VOLTAGE) {
-		l = g_slist_remove_link(l, g_slist_nth(l, 1));
+		ch = g_slist_nth_data(sdi->channels, out * 2);
+		if (!ch) {
+			sr_err("No voltage channel for output %d.", out + 1);
+			next_measurement(devc);
+			return TRUE;
+		}
+		l = g_slist_append(l, ch);
 		analog.meaning->channels = l;
 		analog.meaning->mq = SR_MQ_VOLTAGE;
 		analog.meaning->unit = SR_UNIT_VOLT;
 		analog.meaning->mqflags = SR_MQFLAG_DC;
 		analog.encoding->digits = 2;
 		analog.spec->spec_digits = 2;
-		analog.data = &devc->voltage;
+		analog.data = &devc->voltage[out];
 		sr_session_send(sdi, &packet);
+		g_slist_free(l);
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	} else if (devc->acquisition_target == KAXXXXP_STATUS) {
-		if (devc->cc_mode_1_changed) {
+		/*
+		 * Note: sr_session_send_meta() carries no channel or channel
+		 * group, so per-output regulation changes cannot be attributed
+		 * to a specific output here. This was already the case before
+		 * multi-output support was added.
+		 */
+		for (i = 0; i < devc->num_outputs; i++) {
+			if (!devc->cc_mode_changed[i])
+				continue;
 			sr_session_send_meta(sdi, SR_CONF_REGULATION,
-				g_variant_new_string((devc->cc_mode[0]) ? "CC" : "CV"));
-			devc->cc_mode_1_changed = FALSE;
-		}
-		if (devc->cc_mode_2_changed) {
-			sr_session_send_meta(sdi, SR_CONF_REGULATION,
-				g_variant_new_string((devc->cc_mode[1]) ? "CC" : "CV"));
-			devc->cc_mode_2_changed = FALSE;
+				g_variant_new_string(
+					(devc->cc_mode[i]) ? "CC" : "CV"));
+			devc->cc_mode_changed[i] = FALSE;
 		}
 		if (devc->output_enabled_changed) {
 			sr_session_send_meta(sdi, SR_CONF_ENABLED,
