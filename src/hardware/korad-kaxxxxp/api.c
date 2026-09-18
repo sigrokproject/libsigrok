@@ -49,6 +49,20 @@ static const uint32_t devopts[] = {
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
+/*
+ * Options which apply to a single output. These are offered per channel
+ * group, so a frontend can address output 2 with e.g. "sigrok-cli -g CH2".
+ * Output enable and the protection flags are global settings on these
+ * devices and therefore only appear in the device level list above.
+ */
+static const uint32_t devopts_cg[] = {
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_REGULATION | SR_CONF_GET,
+};
+
 /* Voltage and current ranges. Values are: Min, max, step. */
 static const double volts_30[] = { 0, 31, 0.01, };
 static const double volts_60[] = { 0, 61, 0.01, };
@@ -59,10 +73,21 @@ static const struct korad_kaxxxxp_model models[] = {
 	/* Vendor, model name, ID reply, channels, voltage, current, quirks. */
 	{"Korad", "KA3005P", "", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_TRAILING},
+	/*
+	 * Dual output. Output enable is a single global setting on this
+	 * family ("OUT0"/"OUT1"), so SR_CONF_ENABLED applies to the device
+	 * as a whole rather than to a channel group, while the voltage and
+	 * current targets are per output. See KORAD_QUIRK_STATUS_OVP_BIT4
+	 * for this family's differing status bit layout.
+	 */
+	{"Korad", "KA3305P", "", 2, volts_30, amps_5,
+		KORAD_QUIRK_ID_TRAILING | KORAD_QUIRK_STATUS_OVP_BIT4},
 	{"Korad", "KD3005P", "", 1, volts_30, amps_5, 0},
 	{"Korad", "KD6005P", "", 1, volts_60, amps_5, 0},
 	{"RND", "KA3005P", "RND 320-KA3005P", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_OPT_VERSION},
+	{"RND", "KA3305P", "RND 320-KA3305P", 2, volts_30, amps_5,
+		KORAD_QUIRK_ID_OPT_VERSION | KORAD_QUIRK_STATUS_OVP_BIT4},
 	{"RND", "KD3005P", "RND 320-KD3005P", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_OPT_VERSION},
 	{"Stamos Soldering", "S-LS-31", "", 1, volts_30, amps_5,
@@ -238,6 +263,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const struct korad_kaxxxxp_model *model;
 	size_t len;
 	char *serno;
+	struct sr_channel_group *cg;
+	char ch_name[16];
+	int out, num_outputs;
 
 	conn = NULL;
 	serialcomm = NULL;
@@ -322,20 +350,62 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->conn = serial;
 	sdi->connection_id = g_strdup(conn);
 
-	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
-	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
+	num_outputs = model->channels;
+	if (num_outputs < 1)
+		num_outputs = 1;
+	if (num_outputs > KAXXXXP_MAX_OUTPUTS) {
+		sr_warn("Model %s lists %d outputs, limiting to %d.",
+			model->name, num_outputs, KAXXXXP_MAX_OUTPUTS);
+		num_outputs = KAXXXXP_MAX_OUTPUTS;
+	}
 
 	devc = g_malloc0(sizeof(*devc));
 	sr_sw_limits_init(&devc->limits);
 	g_mutex_init(&devc->rw_mutex);
 	devc->model = model;
+	devc->num_outputs = num_outputs;
 	devc->next_req_time = 0;
-	devc->cc_mode_1_changed = FALSE;
-	devc->cc_mode_2_changed = FALSE;
-	devc->output_enabled_changed = FALSE;
-	devc->ocp_enabled_changed = FALSE;
-	devc->ovp_enabled_changed = FALSE;
+	devc->acquisition_out = 0;
 	sdi->priv = devc;
+
+	/*
+	 * Create the measurement channels, two per output and in output
+	 * order, voltage first then current. The receive routine relies on
+	 * that ordering to locate an output's channels. Single output models
+	 * keep the historical "V" and "I" names, multi output models get
+	 * numbered names so the outputs can be told apart in frontends.
+	 */
+	for (out = 0; out < num_outputs; out++) {
+		if (num_outputs > 1) {
+			g_snprintf(ch_name, sizeof(ch_name), "V%d", out + 1);
+			sr_channel_new(sdi, out * 2, SR_CHANNEL_ANALOG, TRUE,
+				ch_name);
+			g_snprintf(ch_name, sizeof(ch_name), "I%d", out + 1);
+			sr_channel_new(sdi, out * 2 + 1, SR_CHANNEL_ANALOG, TRUE,
+				ch_name);
+		} else {
+			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
+			sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
+		}
+	}
+
+	/*
+	 * Add one channel group per output on multi output models, so that
+	 * per-output config options can be addressed. There is nothing to
+	 * choose from on single output models, so no groups are created.
+	 */
+	if (num_outputs > 1) {
+		for (out = 0; out < num_outputs; out++) {
+			g_snprintf(ch_name, sizeof(ch_name), "CH%d", out + 1);
+			cg = sr_channel_group_new(sdi, ch_name, NULL);
+			cg->priv = g_new0(int, 1);
+			*(int *)cg->priv = out;
+			cg->channels = g_slist_append(cg->channels,
+				g_slist_nth_data(sdi->channels, out * 2));
+			cg->channels = g_slist_append(cg->channels,
+				g_slist_nth_data(sdi->channels, out * 2 + 1));
+		}
+	}
 
 	/* Get current status of device. */
 	if (korad_kaxxxxp_get_all_values(serial, devc) < 0)
@@ -353,17 +423,37 @@ exit_err:
 	return NULL;
 }
 
+/*
+ * Determine the 0-based output index a channel group refers to. Without a
+ * group the first output is addressed, which keeps single output devices
+ * (which have no groups) working as before.
+ */
+static int cg_to_out_idx(const struct dev_context *devc,
+	const struct sr_channel_group *cg)
+{
+	int out;
+
+	if (!cg || !cg->priv)
+		return 0;
+
+	out = *(const int *)cg->priv;
+	if (out < 0 || out >= devc->num_outputs)
+		return 0;
+
+	return out;
+}
+
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-
-	(void)cg;
+	int out;
 
 	if (!sdi || !data)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+	out = cg_to_out_idx(devc, cg);
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -373,36 +463,36 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(sdi->connection_id);
 		break;
 	case SR_CONF_VOLTAGE:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE, devc);
-		*data = g_variant_new_double(devc->voltage);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE, out, devc);
+		*data = g_variant_new_double(devc->voltage[out]);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, devc);
-		*data = g_variant_new_double(devc->voltage_target);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, out, devc);
+		*data = g_variant_new_double(devc->voltage_target[out]);
 		break;
 	case SR_CONF_CURRENT:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT, devc);
-		*data = g_variant_new_double(devc->current);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT, out, devc);
+		*data = g_variant_new_double(devc->current[out]);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, devc);
-		*data = g_variant_new_double(devc->current_limit);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, out, devc);
+		*data = g_variant_new_double(devc->current_limit[out]);
 		break;
 	case SR_CONF_ENABLED:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OUTPUT, devc);
+		/* Output enable is a single global setting on these devices. */
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OUTPUT, out, devc);
 		*data = g_variant_new_boolean(devc->output_enabled);
 		break;
 	case SR_CONF_REGULATION:
-		/* Dual channel not supported. */
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_STATUS, devc);
-		*data = g_variant_new_string((devc->cc_mode[0]) ? "CC" : "CV");
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_STATUS, out, devc);
+		*data = g_variant_new_string((devc->cc_mode[out]) ? "CC" : "CV");
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OCP, devc);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OCP, out, devc);
 		*data = g_variant_new_boolean(devc->ocp_enabled);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OVP, devc);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OVP, out, devc);
 		*data = g_variant_new_boolean(devc->ovp_enabled);
 		break;
 	default:
@@ -418,10 +508,10 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	double dval;
 	gboolean bval;
-
-	(void)cg;
+	int out;
 
 	devc = sdi->priv;
+	out = cg_to_out_idx(devc, cg);
 
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
@@ -431,35 +521,37 @@ static int config_set(uint32_t key, GVariant *data,
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
 			return SR_ERR_ARG;
-		devc->set_voltage_target = dval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, devc) < 0)
+		devc->set_voltage_target[out] = dval;
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET,
+				out, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->current[0] || dval > devc->model->current[1])
 			return SR_ERR_ARG;
-		devc->set_current_limit = dval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, devc) < 0)
+		devc->set_current_limit[out] = dval;
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_LIMIT,
+				out, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
 		/* Set always so it is possible turn off with sigrok-cli. */
 		devc->set_output_enabled = bval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OUTPUT, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OUTPUT, out, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
 		devc->set_ocp_enabled = bval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OCP, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OCP, out, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
 		devc->set_ovp_enabled = bval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OVP, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OVP, out, devc) < 0)
 			return SR_ERR;
 		break;
 	default:
@@ -475,6 +567,29 @@ static int config_list(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 
 	devc = (sdi) ? sdi->priv : NULL;
+
+	if (cg) {
+		/* Per-output options. The ranges are identical per output. */
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
+
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = std_gvar_array_u32(devopts_cg,
+				ARRAY_SIZE(devopts_cg));
+			break;
+		case SR_CONF_VOLTAGE_TARGET:
+			*data = std_gvar_min_max_step_array(devc->model->voltage);
+			break;
+		case SR_CONF_CURRENT_LIMIT:
+			*data = std_gvar_min_max_step_array(devc->model->current);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+
+		return SR_OK;
+	}
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
