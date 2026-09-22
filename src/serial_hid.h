@@ -35,6 +35,7 @@
  * SiLabs CP2110: up to 63 bytes
  * Victor DMM:    up to 14 bytes
  * WCH CH9325:    up to 7 bytes
+ * WCH CH9329:    up to 63 bytes
  */
 #define SER_HID_CHUNK_SIZE	64
 

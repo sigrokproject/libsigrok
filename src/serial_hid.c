@@ -593,6 +593,7 @@ static struct ser_hid_chip_functions **chips[SER_HID_CHIP_LAST] = {
 	[SER_HID_CHIP_SIL_CP2110] = &ser_hid_chip_funcs_cp2110,
 	[SER_HID_CHIP_VICTOR_DMM] = &ser_hid_chip_funcs_victor,
 	[SER_HID_CHIP_WCH_CH9325] = &ser_hid_chip_funcs_ch9325,
+	[SER_HID_CHIP_WCH_CH9329] = &ser_hid_chip_funcs_ch9329,
 };
 
 static struct ser_hid_chip_functions *get_hid_chip_funcs(enum ser_hid_chip_t chip)
@@ -849,14 +850,27 @@ static int check_serno(const char *path, const char *serno_want)
 	return strcmp(serno_got, serno_want) == 0;
 }
 
+/*
+ * Keep the USB path part (e.g. "raw=/dev/hidraw3") of the port names
+ * which the "find USB" routine yields ("hid/<chip>/<path>"). This is
+ * the format which the chip search routine expects.
+ */
 static GSList *append_find(GSList *devs, const char *path)
 {
+	const char *p;
 	char *copy;
 
 	if (!path || !*path)
 		return devs;
 
-	copy = g_strdup(path);
+	p = path;
+	if (g_str_has_prefix(p, SER_HID_CONN_PREFIX "/")) {
+		p += strlen(SER_HID_CONN_PREFIX "/");
+		p = strchr(p, '/');
+		if (!p || !*++p)
+			return devs;
+	}
+	copy = g_strdup(p);
 	devs = g_slist_append(devs, copy);
 
 	return devs;
@@ -974,9 +988,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 			return SR_ERR_NA;
 		matched = NULL;
 		for (tmplist = list; tmplist; tmplist = tmplist->next) {
-			path = get_hidapi_path_copy(tmplist->data);
-			serno_matched = check_serno(path, serno);
-			g_free(path);
+			serno_matched = check_serno(tmplist->data, serno);
 			if (!serno_matched)
 				continue;
 			matched = tmplist;
@@ -1026,7 +1038,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 		 */
 		if (matched2)
 			sr_info("More than one cable matches, random pick.");
-		path = get_hidapi_path_copy(matched->data);
+		path = g_strdup(matched->data);
 		have_path = 1;
 		g_slist_free_full(list, g_free);
 	}

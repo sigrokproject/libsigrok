@@ -74,7 +74,11 @@ typedef guint pyg_flags_type;
      */
     if (!GLib) {
         fprintf(stderr, "Import of gi.repository.GLib failed.\n");
-        return nullptr;
+        /* %init is used to generate C initialization code; it must return an int
+         * (0 on success, -1 on failure). Returning nullptr (a pointer) causes
+         * a compile error when SWIG emits the wrapper function. Return -1 here
+         * to indicate failure. */
+        return -1;
     }
     import_array();
 %}

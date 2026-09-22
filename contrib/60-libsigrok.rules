@@ -338,6 +338,9 @@ ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", ENV{ID_SIGROK}="1"
 # UNI-T UT325
 ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", ENV{ID_SIGROK}="1"
 
+# UNI-T UT-D09A multimeter cable (WCH CH9329, e.g. UNI-T UT161B/D/E)
+ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e429", ENV{ID_SIGROK}="1"
+
 # V&A VA4000 multimeter cable (for various V&A DMMs)
 ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", ENV{ID_SIGROK}="1"
 
