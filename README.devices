@@ -159,6 +159,7 @@ The following drivers/devices do not need any firmware upload:
  - serial-dmm (including all subdrivers)
  - serial-lcr (including all subdrivers)
  - siglent-sds
+ - sipeed-slogic-combo8
  - teleinfo
  - testo
  - tondaj-sl-814
