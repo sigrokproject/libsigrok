@@ -282,6 +282,19 @@ static int dev_close(struct sr_dev_inst *sdi)
 	di = sdi->driver;
 	drvc = di->context;
 
+	/*
+	 * Stop and JOIN the libusb event thread BEFORE touching the handle. It sits in
+	 * libusb_handle_events_timeout_completed() on this context (blocking up to 1 s per
+	 * iteration), and releasing the interface / closing the handle while that call is
+	 * in flight is a use-after-close — an intermittent crash on config change / run /
+	 * stop, and worse on macOS's libusb backend. Join first, then release + close.
+	 */
+	devc->libusb_event_thread_run = 0;
+	if (devc->libusb_event_thread) {
+		g_thread_join(devc->libusb_event_thread);
+		devc->libusb_event_thread = NULL;
+	}
+
 	ret = libusb_release_interface(usb->devhdl, 0);
 	if (ret != LIBUSB_SUCCESS) {
 		switch (ret) {
@@ -296,12 +309,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 		}
 	}
 
-	devc->libusb_event_thread_run = 0;
 	sr_usb_close(usb);
-	if (devc->libusb_event_thread) {
-		g_thread_join(devc->libusb_event_thread);
-		devc->libusb_event_thread = NULL;
-	}
 
 	return std_dummy_dev_close(sdi);
 }
