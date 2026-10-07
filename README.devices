@@ -120,6 +120,7 @@ The following drivers/devices do not need any firmware upload:
  - colead-slm
  - conrad-digi-35-cpu
  - demo
+ - easysync-dla8
  - fluke-45
  - fluke-dmm
  - ftdi-la

@@ -355,6 +355,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/dreamsourcelab-dslogic/protocol.c \
 	src/hardware/dreamsourcelab-dslogic/api.c
 endif
+if HW_EASYSYNC_DLA8
+src_libdrivers_la_SOURCES += \
+	src/hardware/easysync-dla8/protocol.h \
+	src/hardware/easysync-dla8/protocol.c \
+	src/hardware/easysync-dla8/api.c
+endif
 if HW_FLUKE_45
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-45/protocol.h \
