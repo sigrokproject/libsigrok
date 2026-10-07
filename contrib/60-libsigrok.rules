@@ -63,6 +63,9 @@ ATTRS{idVendor}=="0820", ATTRS{idProduct}=="0001", ENV{ID_SIGROK}="1"
 # ChronoVu LA16 (new VID/PID)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", ENV{ID_SIGROK}="1"
 
+# EasySync ES-DLA-8
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="fac5", ENV{ID_SIGROK}="1"
+
 # CWAV USBee AX
 # ARMFLY AX-Pro (clone of the CWAV USBee AX)
 # ARMFLY Mini-Logic (clone of the CWAV USBee AX)
