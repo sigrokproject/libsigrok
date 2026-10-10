@@ -331,6 +331,34 @@ static int train_bulk_in_transfer(struct dev_context *devc,
 	uint64_t try_transfer_nbytes = cur_transfer_duration * BpMs /* bytes */;
 
 	const uint64_t ALIGN_SIZE = 32 * 1024; /* 32kiB */
+
+#if defined(LIBUSB_API_VERSION) && (LIBUSB_API_VERSION >= 0x0100010C)
+	/*
+	 * Windows throughput fix. libusb's WinUSB backend keeps only ONE bulk-IN
+	 * transfer in flight unless RAW_IO is enabled, no matter how many transfers
+	 * we queue (libusb issue #490), so the pipe idles between transfers and
+	 * throughput roughly halves (~420 vs ~800 MB/s; Linux usbfs is unaffected).
+	 * Enable RAW_IO on the capture endpoint and cap the per-transfer size to the
+	 * backend's RAW_IO maximum (RAW_IO reads must be <= that and a multiple of the
+	 * endpoint max packet size; our sizes stay 32 KiB-aligned). No-op where the
+	 * backend does not support it (returns an error), e.g. Linux. Needs libusb
+	 * >= 1.0.30 (API 0x0100010C), which introduced these calls.
+	 */
+	{
+		int rio = libusb_endpoint_set_raw_io(dev_handle, devc->model->ep_in, 1);
+		if (rio == LIBUSB_SUCCESS) {
+			int maxsz = libusb_get_max_raw_io_transfer_size(
+				dev_handle, devc->model->ep_in);
+			sr_info("RAW_IO enabled on ep 0x%02x, max_raw_io=%d",
+				devc->model->ep_in, maxsz);
+			if (maxsz > 0 && (uint64_t)maxsz < try_transfer_nbytes)
+				try_transfer_nbytes = (uint64_t)maxsz & ~(ALIGN_SIZE - 1);
+		} else {
+			sr_dbg("RAW_IO not enabled (%s)", libusb_error_name(rio));
+		}
+	}
+#endif
+
 	do {
 		// Align up
 		try_transfer_nbytes = (try_transfer_nbytes + (ALIGN_SIZE - 1)) &
