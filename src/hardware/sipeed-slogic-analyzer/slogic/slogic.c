@@ -163,6 +163,16 @@ size_t slogic_apply_first_drop(slogic_stream *s, uint8_t *buf, size_t len)
 	return len - drop;
 }
 
+double slogic_avg_mbps(uint64_t received_bytes, int64_t first_data_us,
+		       int64_t now_us)
+{
+	int64_t span_us = now_us - first_data_us;
+
+	if (received_bytes == 0 || first_data_us == 0 || span_us <= 0)
+		return 0.0;
+	return (double)received_bytes / (double)span_us; /* bytes/us == MB/s */
+}
+
 slogic_verdict slogic_stream_watch(slogic_stream *s, size_t got_bytes,
 				   int64_t now_us, int64_t since_last_us)
 {
@@ -175,6 +185,8 @@ slogic_verdict slogic_stream_watch(slogic_stream *s, size_t got_bytes,
 	if (s->time_start_us == 0)
 		s->time_start_us = now_us;
 	if (got_bytes > 0) {
+		if (s->time_first_data_us == 0)
+			s->time_first_data_us = now_us; /* start the rate clock at first byte */
 		s->received_bytes += got_bytes;
 		s->time_last_data_us = now_us;
 	}

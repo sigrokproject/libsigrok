@@ -62,6 +62,10 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		devc->transfers_reached_nbytes_latest = transfer->actual_length;
 		devc->transfers_reached_nbytes +=
 			devc->transfers_reached_nbytes_latest;
+		if (devc->transfers_reached_nbytes_latest > 0 &&
+		    devc->transfers_reached_time_first_data == 0)
+			devc->transfers_reached_time_first_data =
+				transfers_reached_time_now;
 
 		/* Per-model hardware quirk: drop the partial leading word the
 		 * firmware emits before whole-word gating (e.g. 16U3/Combo8). A
@@ -84,8 +88,9 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			       devc->samples_need_nbytes,
 		       (double)devc->transfers_reached_nbytes_latest /
 			       transfers_reached_duration,
-		       (double)devc->transfers_reached_nbytes /
-			       transfers_all_duration,
+		       slogic_avg_mbps(devc->transfers_reached_nbytes,
+				       devc->transfers_reached_time_first_data,
+				       transfers_reached_time_now),
 			   expected_rate,
 		       (double)transfers_reached_duration / SR_KHZ(1),
 		       (double)transfers_all_duration / SR_KHZ(1));
@@ -490,6 +495,7 @@ static int restart_acquisition_after_stall(const struct sr_dev_inst *sdi)
 	devc->transfers_reached_nbytes_latest = 0;
 	devc->transfers_reached_time_start = g_get_monotonic_time();
 	devc->transfers_reached_time_latest = devc->transfers_reached_time_start;
+	devc->transfers_reached_time_first_data = 0; /* re-captured at the first byte */
 	/* Keep stream.run_retried (one re-arm total); clear progress + timing. */
 	devc->stream.received_bytes = 0;
 	devc->stream.time_start_us = 0;
@@ -603,6 +609,7 @@ SR_PRIV int sipeed_slogic_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->transfers_reached_time_start = g_get_monotonic_time();
 	devc->transfers_reached_time_latest =
 		devc->transfers_reached_time_start;
+	devc->transfers_reached_time_first_data = 0; /* captured at the first byte */
 
 	return SR_OK;
 }

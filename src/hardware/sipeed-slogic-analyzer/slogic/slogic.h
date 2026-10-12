@@ -199,6 +199,7 @@ typedef struct slogic_stream {
 	uint64_t received_bytes;
 	/* stall watchdog (protocol.md section 6.2, all-logic canonical) */
 	int64_t time_start_us;
+	int64_t time_first_data_us; /* first byte arrival; excludes arm/cold-start from the rate */
 	int64_t time_last_data_us;
 	unsigned slow_count;
 	unsigned slow_limit;         /* = ring_count */
@@ -218,6 +219,16 @@ void slogic_stream_init(slogic_stream *s, const slogic_transfer_plan *p,
  * if any bytes were dropped.
  */
 size_t slogic_apply_first_drop(slogic_stream *s, uint8_t *buf, size_t len);
+
+/*
+ * Standard average throughput in MB/s over the data-transfer window only:
+ * received_bytes / (now_us - first_data_us). Starting the clock at the first
+ * byte adaptively excludes the arm/cold-start dead time (the firmware can stall
+ * many ms before the first sample), so the figure reflects real link
+ * throughput. Returns 0 until data has flowed. (bytes/us == MB/s.)
+ */
+double slogic_avg_mbps(uint64_t received_bytes, int64_t first_data_us,
+		       int64_t now_us);
 
 typedef enum {
 	SLOGIC_STREAM_OK,        /* keep going */

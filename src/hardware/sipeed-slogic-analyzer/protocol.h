@@ -74,6 +74,7 @@ struct dev_context {
 		uint64_t transfers_reached_nbytes; /* real received bytes in all */
 		uint64_t transfers_reached_nbytes_latest; /* real received bytes this transfer */
 		int64_t transfers_reached_time_start;
+		int64_t transfers_reached_time_first_data; /* first byte arrival; excludes cold-start from avg */
 		int64_t transfers_reached_time_latest;
 
 		GAsyncQueue *raw_data_queue;
