@@ -95,15 +95,13 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		       (double)transfers_reached_duration / SR_KHZ(1),
 		       (double)transfers_all_duration / SR_KHZ(1));
 
-		/* TODO: move out submit to ensure continuous transfers */
+		/* Swap in a fresh buffer and resubmit the transfer BEFORE handing the
+		 * filled buffer to the consumer thread, so the bulk-IN pipe does not
+		 * idle during post-processing — keeps transfers continuous. The filled
+		 * buffer is enqueued (and freed by the consumer) after the resubmit. */
+		uint8_t *filled = NULL;
+		size_t filled_len = 0;
 		if (devc->raw_data_queue) {
-			uint8_t *d = transfer->buffer;
-			size_t len = transfer->actual_length;
-			// sr_dbg("HEAD: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x
-			// %02x %02x %02x %02x %02x", 	d[0], d[1], d[2], d[3], d[4], d[5], d[6],
-			// d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]);
-			// devc->model->submit_raw_data(d, len, sdi);
-
 			uint8_t *ptr = malloc(devc->per_transfer_nbytes);
 			if (!ptr) {
 				sr_err("Failed to allocate memory: %u bytes!",
@@ -111,9 +109,9 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 				devc->acq_aborted = 1;
 				break;
 			}
-			transfer->buffer = ptr;
-			GByteArray *array = g_byte_array_new_take(d, len);
-			g_async_queue_push(devc->raw_data_queue, array);
+			filled = transfer->buffer;
+			filled_len = transfer->actual_length;
+			transfer->buffer = ptr; /* fresh buffer for the resubmit */
 		}
 
 		if (!devc->trigger_fired)
@@ -136,6 +134,11 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 				sr_spew("Resubmit transfer: %p", transfer);
 				devc->num_transfers_used += 1;
 			}
+		}
+
+		if (filled) {
+			GByteArray *array = g_byte_array_new_take(filled, filled_len);
+			g_async_queue_push(devc->raw_data_queue, array);
 		}
 	} break;
 
