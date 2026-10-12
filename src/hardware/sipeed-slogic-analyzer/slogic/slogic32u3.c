@@ -41,4 +41,5 @@ const slogic_model slogic_model_32u3 = {
 	.rate_count = sizeof(rates_32u3) / sizeof(rates_32u3[0]),
 	.limits = limits_32u3,
 	.limit_count = sizeof(limits_32u3) / sizeof(limits_32u3[0]),
+	.first_drop_bytes = 0, /* firmware gates on whole-word boundaries (SN 202610120954+) */
 };

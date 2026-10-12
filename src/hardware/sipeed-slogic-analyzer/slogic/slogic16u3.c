@@ -42,4 +42,5 @@ const slogic_model slogic_model_16u3 = {
 	.rate_count = sizeof(rates_16u3) / sizeof(rates_16u3[0]),
 	.limits = limits_16u3,
 	.limit_count = sizeof(limits_16u3) / sizeof(limits_16u3[0]),
+	.first_drop_bytes = 4, /* firmware still opens the gate mid-word; drop the partial head */
 };

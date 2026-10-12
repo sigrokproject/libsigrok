@@ -140,7 +140,7 @@ void slogic_stream_init(slogic_stream *s, const slogic_transfer_plan *p,
 	if (!s)
 		return;
 	memset(s, 0, sizeof(*s));
-	s->drop_left = 4; /* first-transfer 4-byte hardware artifact (section 3) */
+	s->drop_left = 0; /* no drop by default; the adapter seeds model->first_drop_bytes */
 	s->need_bytes = need_bytes;
 	if (p) {
 		s->slow_limit = (unsigned)(p->ring_count > 0 ? p->ring_count : 1);

@@ -119,6 +119,7 @@ typedef struct slogic_model {
 	size_t rate_count;
 	const slogic_rate_limit *limits;     /* native channel->max_rate table */
 	size_t limit_count;
+	uint8_t first_drop_bytes;   /* HW quirk: leading stream bytes to drop (0 = none) */
 } slogic_model;
 
 /* Registry (defined across slogic.c + slogic16u3.c + slogic32u3.c). */
@@ -193,7 +194,7 @@ int slogic_plan_transfers(const slogic_config *c, slogic_sizing sizing,
  * vendored source copy, not a shared ABI.
  */
 typedef struct slogic_stream {
-	int drop_left;               /* first-transfer 4-byte drop (section 3) */
+	int drop_left;               /* bytes still to drop at stream start (model quirk, section 6.3) */
 	uint64_t need_bytes;         /* target byte count; 0 = continuous */
 	uint64_t received_bytes;
 	/* stall watchdog (protocol.md section 6.2, all-logic canonical) */
@@ -211,9 +212,10 @@ void slogic_stream_init(slogic_stream *s, const slogic_transfer_plan *p,
 			uint64_t need_bytes);
 
 /*
- * Drop the leading 4 bytes of the stream across however many transfers it takes
- * (drop_left counter, section 6.3). Adjusts *len in place is not used — returns
- * the number of bytes to keep, and shifts buf if any bytes were dropped.
+ * Drop drop_left leading bytes of the stream across however many transfers it
+ * takes (a per-model hardware quirk, section 6.3; seed drop_left from the
+ * model's first_drop_bytes). Returns the number of bytes to keep and shifts buf
+ * if any bytes were dropped.
  */
 size_t slogic_apply_first_drop(slogic_stream *s, uint8_t *buf, size_t len);
 

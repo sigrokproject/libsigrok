@@ -40,4 +40,5 @@ const slogic_model slogic_model_combo8 = {
 	.rate_count = sizeof(rates_8u2) / sizeof(rates_8u2[0]),
 	.limits = limits_8u2,
 	.limit_count = sizeof(limits_8u2) / sizeof(limits_8u2[0]),
+	.first_drop_bytes = 0, /* Combo8 stream has no partial-head artifact */
 };

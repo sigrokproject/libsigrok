@@ -56,7 +56,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	case LIBUSB_TRANSFER_COMPLETED: /* normal case */
 	case LIBUSB_TRANSFER_TIMED_OUT: /* may have received some data */
 	{
-		int first_here = devc->transfers_reached_time_latest == devc->transfers_reached_time_start;
 		devc->transfers_reached_time_latest =
 			transfers_reached_time_now;
 
@@ -64,17 +63,12 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		devc->transfers_reached_nbytes +=
 			devc->transfers_reached_nbytes_latest;
 
-		// remove 32bit for hardware bug workaround
-		if (first_here) {
-			const size_t drop_bytes = 4;
-			if (transfer->actual_length >= drop_bytes) {
-				transfer->actual_length -= drop_bytes;
-				memmove(transfer->buffer, transfer->buffer + drop_bytes,
-					transfer->actual_length);
-			} else {
-				devc->transfers_reached_time_latest = devc->transfers_reached_time_start;
-			}
-		}
+		/* Per-model hardware quirk: drop the partial leading word the
+		 * firmware emits before whole-word gating (e.g. 16U3/Combo8). A
+		 * no-op for models with first_drop_bytes == 0 (e.g. 32U3) and once
+		 * drop_left is exhausted. */
+		transfer->actual_length = slogic_apply_first_drop(
+			&devc->stream, transfer->buffer, transfer->actual_length);
 
 		if (devc->trigger_fired && transfer->actual_length >
 		    devc->samples_need_nbytes - devc->samples_got_nbytes)
@@ -501,6 +495,7 @@ static int restart_acquisition_after_stall(const struct sr_dev_inst *sdi)
 	devc->stream.time_start_us = 0;
 	devc->stream.time_last_data_us = 0;
 	devc->stream.slow_count = 0;
+	devc->stream.drop_left = devc->model->first_drop_bytes; /* re-arm re-opens the gate mid-word */
 
 	if (submit_bulk_ring(sdi) != SR_OK) {
 		sr_err("Stall re-arm: failed to resubmit transfers");
@@ -573,6 +568,7 @@ SR_PRIV int sipeed_slogic_acquisition_start(const struct sr_dev_inst *sdi)
 		.timeout_ms = 0,
 	};
 	slogic_stream_init(&devc->stream, &plan, devc->samples_need_nbytes);
+	devc->stream.drop_left = devc->model->first_drop_bytes; /* per-model HW quirk */
 	devc->restart_pending = 0;
 
 	std_session_send_df_header(sdi);
