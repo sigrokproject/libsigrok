@@ -68,7 +68,11 @@ struct dev_context {
 		uint64_t per_transfer_nbytes;
 
 		size_t num_transfers_completed;
-		size_t num_transfers_used;
+		/* In-flight ring transfers. Atomic: the libusb event thread drops a
+		 * transfer from the count only as the LAST thing its callback does with
+		 * it, so a count of 0 seen on the session thread means no callback can
+		 * still touch the ring and the transfers may be freed. */
+		gint num_transfers_used;
 		struct libusb_transfer *transfers[NUM_MAX_TRANSFERS];
 
 		uint64_t transfers_reached_nbytes; /* real received bytes in all */
@@ -80,7 +84,15 @@ struct dev_context {
 		GAsyncQueue *raw_data_queue;
 	}; // usb
 
-	int acq_aborted;
+	/* Atomic: set from the libusb event thread (error, ring done) and from the
+	 * session thread (stop, consumer reached the sample limit). Once set the ring
+	 * is no longer resubmitted. */
+	gint acq_aborted;
+	gboolean dev_stopped; /* CMD_STOP already issued for this capture */
+	/* Samples actually delivered to the session (consumer side, session thread).
+	 * The capture ends when it reaches cur_limit_samples; with a trigger this
+	 * counts pre-trigger + post-trigger samples. */
+	uint64_t samples_sent;
 
 	/* Zero-progress stall recovery (shared slogic core policy, all-logic
 	 * canonical). The transfer callback folds each completion into `stream`;
@@ -91,7 +103,8 @@ struct dev_context {
 
 	/* Triggers */
 	uint64_t capture_ratio;
-	gboolean trigger_fired;
+	gboolean has_trigger; /* fixed per capture; read by the transfer callback */
+	gboolean trigger_fired; /* session thread only */
 	struct soft_trigger_logic *stl;
 
 	double voltage_threshold[2];

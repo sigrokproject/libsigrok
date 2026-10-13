@@ -214,6 +214,60 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
+/*
+ * The analyzer re-enumerates with a new bus address after a USB reset or a
+ * replug, so the bus/address recorded at scan time stops opening. Find it
+ * again on the same port (connection_id), else by serial number, and refresh
+ * usb->bus/address so the caller can retry.
+ */
+static int rebind_usb(struct sr_dev_inst *sdi, libusb_context *ctx)
+{
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	struct libusb_device_descriptor des;
+	libusb_device **devlist, *match = NULL;
+	libusb_device_handle *hdl;
+	char buf[64];
+	ssize_t n;
+
+	if ((n = libusb_get_device_list(ctx, &devlist)) < 0)
+		return SR_ERR;
+
+	for (int pass = 0; pass < 2 && !match; pass++) {
+		for (ssize_t i = 0; i < n && !match; i++) {
+			libusb_get_device_descriptor(devlist[i], &des);
+			if (des.idVendor != USB_VID_SIPEED ||
+			    des.idProduct != devc->model->pid)
+				continue;
+			if (pass == 0) {
+				if (sdi->connection_id &&
+				    usb_get_port_path(devlist[i], buf, sizeof(buf)) == SR_OK &&
+				    !strcmp(buf, sdi->connection_id))
+					match = devlist[i];
+			} else if (sdi->serial_num &&
+				   libusb_open(devlist[i], &hdl) == LIBUSB_SUCCESS) {
+				if (libusb_get_string_descriptor_ascii(hdl,
+					des.iSerialNumber, (unsigned char *)buf,
+					sizeof(buf)) > 0 &&
+				    !strcmp(buf, sdi->serial_num))
+					match = devlist[i];
+				libusb_close(hdl);
+			}
+		}
+	}
+
+	if (match) {
+		sr_info("Device re-enumerated: %d.%d -> %d.%d.", usb->bus,
+			usb->address, libusb_get_bus_number(match),
+			libusb_get_device_address(match));
+		usb->bus = libusb_get_bus_number(match);
+		usb->address = libusb_get_device_address(match);
+	}
+	libusb_free_device_list(devlist, 1);
+
+	return match ? SR_OK : SR_ERR;
+}
+
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	int ret;
@@ -228,8 +282,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 	drvc = di->context;
 
 	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
-	if (SR_OK != ret)
-		return ret;
+	if (SR_OK != ret) {
+		if (rebind_usb(sdi, drvc->sr_ctx->libusb_ctx) != SR_OK)
+			return ret;
+		ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
+		if (SR_OK != ret)
+			return ret;
+	}
 
 	ret = libusb_claim_interface(usb->devhdl, 0);
 	if (ret != LIBUSB_SUCCESS) {
@@ -246,6 +305,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 			       libusb_error_name(ret));
 			break;
 		}
+		sr_usb_close(usb);
 		return SR_ERR;
 	}
 
@@ -255,6 +315,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (!devc->libusb_event_thread) {
 		devc->libusb_event_thread_run = 0;
 		sr_err("Unable to new libusb_event_thread!");
+		libusb_release_interface(usb->devhdl, 0);
+		sr_usb_close(usb);
 		return SR_ERR_MALLOC;
 	}
 
@@ -653,31 +715,33 @@ int slogic_soft_trigger_raw_data(void *data, size_t len,
 	// 					.data = ptr,
 	// 				} });
 
-	int pre_trigger_samples;
-	devc->stl->unitsize = uintsize;
+	/* Everything here is counted in SAMPLES (devc->samples_sent), the unit of
+	 * cur_limit_samples; ptr holds len / uintsize samples. On a match the soft
+	 * trigger has already sent the pre-trigger samples; send the rest of this
+	 * buffer from the trigger point, capped at the remaining limit. */
+	int pre_trigger_samples = 0;
 	int64_t trigger_offset = soft_trigger_logic_check(devc->stl, ptr, len, &pre_trigger_samples);
 	if (trigger_offset > -1) {
-		ret += pre_trigger_samples * uintsize;
+		uint64_t remain, want;
 
-		int need = devc->samples_need_nbytes - devc->samples_got_nbytes - ret;
+		ret = 1;
+		devc->samples_sent += pre_trigger_samples;
 
-		if (need > 0) {
-			int remain = len - trigger_offset * uintsize;
-			if (need < remain)
-				remain = need;
-
+		remain = len / uintsize - (uint64_t)trigger_offset;
+		want = devc->cur_limit_samples > devc->samples_sent ?
+			devc->cur_limit_samples - devc->samples_sent : 0;
+		if (remain > want)
+			remain = want;
+		if (remain) {
 			sr_session_send(sdi, &(struct sr_datafeed_packet){
 						.type = SR_DF_LOGIC,
 						.payload = &(struct sr_datafeed_logic){
-							.length = remain,
+							.length = remain * uintsize,
 							.unitsize = uintsize,
 							.data = ptr + trigger_offset * uintsize,
 						} });
-
-			ret += remain;
+			devc->samples_sent += remain;
 		}
-
-		devc->samples_got_nbytes += ret;
 	}
 
 	if (nCh < 8)
