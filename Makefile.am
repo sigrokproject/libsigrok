@@ -710,6 +710,8 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/sipeed-slogic-analyzer/slogic/slogic8u2.c \
 	src/hardware/sipeed-slogic-analyzer/slogic/slogic16u3.c \
 	src/hardware/sipeed-slogic-analyzer/slogic/slogic32u3.c \
+	src/hardware/sipeed-slogic-analyzer/slogic/slogic_data.c \
+	src/hardware/sipeed-slogic-analyzer/slogic/slogic_usb.c \
 	src/hardware/sipeed-slogic-analyzer/api.c
 endif
 if HW_SYSCLK_LWLA
