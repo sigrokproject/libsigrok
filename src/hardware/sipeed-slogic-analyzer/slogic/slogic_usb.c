@@ -622,8 +622,9 @@ static void LIBUSB_CALL xfer_cb(struct libusb_transfer *x)
 		}
 		switch (slogic_stream_watch(&c->watch, len, now, since)) {
 		case SLOGIC_STREAM_WARN_SLOW:
-			dlog(d, SLOGIC_LOG_WARN, "USB link slower than the analyzer; "
-			     "draining at the host's pace.");
+			/* One slow completion is normal (cold start, batching);
+			 * the warning is decided on the fitted rate at the end. */
+			dlog(d, SLOGIC_LOG_DBG, "slow transfer completion");
 			break;
 		case SLOGIC_STREAM_RETRY_RUN:
 			dlog(d, SLOGIC_LOG_WARN, "USB stream did not start; re-arming.");
@@ -1140,6 +1141,10 @@ int slogic_capture_poll(slogic_capture *c, unsigned max_buffers, unsigned wait_m
 			__atomic_store_n(&c->reason, "short", __ATOMIC_RELEASE);
 		}
 		build_report(c, &rep);
+		if (rep.fit_n >= 3 && rep.mbps > 0 && rep.mbps < 0.9 * rep.exp_mbps)
+			dlog(c->d, SLOGIC_LOG_WARN, "USB link slower than the analyzer "
+			     "(%.1f of %.1f MB/s); drained at the host's pace.",
+			     rep.mbps, rep.exp_mbps);
 		slogic_report_format(&rep, line, sizeof(line));
 		dlog(c->d, c->end == SLOGIC_END_ERROR ? SLOGIC_LOG_ERR : SLOGIC_LOG_INFO,
 		     "%s", line);
