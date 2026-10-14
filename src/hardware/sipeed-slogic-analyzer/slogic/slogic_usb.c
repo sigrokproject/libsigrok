@@ -931,9 +931,11 @@ int slogic_capture_start(slogic_dev *d, const slogic_capture_config *cfg,
 	}
 	stream_rearm_reset(c);
 
-	r = dev_run(d, &cfg->dev);
+	/* Cold start is measured from when RUN is sent, not from when the
+	 * control transfer returns (that takes ~1 ms on Windows). */
 	c->t_run = now_us();
 	c->fit.t_run = c->t_run;
+	r = dev_run(d, &cfg->dev);
 	if (r != SLOGIC_OK) {
 		dlog(d, SLOGIC_LOG_ERR, "RUN failed (%d)", r);
 		set_abort(c, "run");
@@ -1036,10 +1038,10 @@ static int rearm(slogic_capture *c)
 	if (submit_ring(c) != SLOGIC_OK)
 		return SLOGIC_ERR_IO;
 	stream_rearm_reset(c);
-	if (dev_run(d, &c->cfg.dev) != SLOGIC_OK)
-		return SLOGIC_ERR_IO;
 	c->t_run = now_us();
 	c->fit.t_run = c->t_run;
+	if (dev_run(d, &c->cfg.dev) != SLOGIC_OK)
+		return SLOGIC_ERR_IO;
 	c->rearms++;
 	dlog(d, SLOGIC_LOG_INFO, "acquisition stall recovery: restarted capture.");
 	return SLOGIC_OK;
