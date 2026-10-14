@@ -371,6 +371,15 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
 endif
+if HW_FNIRSI_DLA32
+src_libdrivers_la_SOURCES += \
+	src/hardware/fnirsi-dla32/api.c \
+	src/hardware/fnirsi-dla32/capture-status.h \
+	src/hardware/fnirsi-dla32/protocol.h \
+	src/hardware/fnirsi-dla32/stream-settle-policy.h \
+	src/hardware/fnirsi-dla32/transport-wch.h \
+	src/hardware/fnirsi-dla32/worker-wch.h
+endif
 if HW_FTDI_LA
 src_libdrivers_la_SOURCES += \
 	src/hardware/ftdi-la/protocol.h \
@@ -832,6 +841,7 @@ mimeiconscalabledir = $(datadir)/icons/hicolor/scalable/mimetypes
 mimeiconscalable_DATA = contrib/libsigrok.svg
 
 EXTRA_DIST = \
+	contrib/fnirsi-dla32.md \
 	Doxyfile \
 	HACKING \
 	README.devices \
@@ -889,7 +899,8 @@ tests_main_SOURCES = \
 	tests/device.c \
 	tests/trigger.c \
 	tests/analog.c \
-	tests/conv.c
+	tests/conv.c \
+	tests/fnirsi_dla32.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 
