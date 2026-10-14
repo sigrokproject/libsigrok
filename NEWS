@@ -1,3 +1,17 @@
+0.6.0 (unreleased)
+------------------
+
+ * New supported hardware:
+   - FNIRSI DLA-32 Plus logic analyzer, with Buffer/Stream acquisition,
+     supported basic triggers, threshold presets and four PWM outputs.
+     Windows x64/WCH transport is qualified; Linux/libusb requires validation.
+ * Session metadata:
+   - Proposed host capture outcome/error keys and saved-session replay.
+ * Fixes:
+   - Retire pending stop checks after failed session start.
+   - Preserve shared context when driver cleanup fails.
+   - Use C-locale formatting with MinGW UCRT, including length/truncation.
+
 0.5.0 (2017-06-12)
 ------------------
 
