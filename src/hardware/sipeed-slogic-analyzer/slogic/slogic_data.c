@@ -505,11 +505,7 @@ static int acc_process(slogic_acc *a, const uint8_t *p, size_t len)
 			/* The scan starts after the window: seed it with the
 			 * window's last sample so an edge right there counts. */
 			if (from) {
-				uint8_t last[4] = { 0 };
-				slogic_unpack_range(a->nch, p, from - 1, 1, last);
-				a->trig.prev = (uint32_t)last[0] | (uint32_t)last[1] << 8 |
-					       (uint32_t)last[2] << 16 |
-					       (uint32_t)last[3] << 24;
+				a->trig.prev = get_sample(&a->trig, p, from - 1);
 				a->trig.have_prev = 1;
 			}
 		}
