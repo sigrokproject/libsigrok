@@ -494,6 +494,7 @@ struct slogic_capture {
 	slogic_ratefit fit;
 	uint64_t raw_bytes;
 	int64_t t_prev;
+	int64_t t_progress;           /* last live rate line */
 
 	/* queue */
 	pthread_mutex_t qmx;
@@ -638,6 +639,20 @@ static void LIBUSB_CALL xfer_cb(struct libusb_transfer *x)
 		dlog(d, SLOGIC_LOG_SPEW, "slogic-xfer t_ms=%.3f len=%zu cum=%llu st=%d",
 		     (double)(now - c->t_run) / 1000.0, len,
 		     (unsigned long long)c->raw_bytes, (int)x->status);
+		/* Live rate at debug level, at most every 200 ms: the same fit the
+		 * final slogic-report line uses, so the figures agree. */
+		if (now - c->t_progress >= 200000 &&
+		    c->fit.t_last - c->fit.t_first >= 50000) { /* >= 50 ms of data */
+			double mbps;
+			if (slogic_ratefit_get(&c->fit, &mbps, NULL) == SLOGIC_OK) {
+				dlog(d, SLOGIC_LOG_DBG, "slogic-rate t_ms=%.0f got=%.1fMB "
+				     "mbps=%.1f exp_mbps=%.1f fit_n=%u",
+				     (double)(now - c->t_run) / 1000.0,
+				     (double)c->raw_bytes / 1e6, mbps,
+				     (double)c->rate_bytes / 1e6, c->fit.n);
+				c->t_progress = now;
+			}
+		}
 
 		/* Swap in a fresh buffer and resubmit BEFORE handing the filled
 		 * one over, so the bulk pipe never idles on host processing. */
