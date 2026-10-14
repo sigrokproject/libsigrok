@@ -59,6 +59,18 @@ static unsigned int adapter_channels(const slogic_model *m, int32_t *out)
 	return (unsigned int)m->limit_count;
 }
 
+/* "(10G) Sipeed": the link tag goes first so a truncated device name in a
+ * front end still shows it. */
+static void apply_link_name(struct sr_dev_inst *sdi, const char *vendor)
+{
+	struct dev_context *devc = sdi->priv;
+	const char *tag = slogic_link_tag(devc->link);
+
+	g_free(sdi->vendor);
+	sdi->vendor = tag ? g_strdup_printf("(%s) %s", tag, vendor)
+			  : g_strdup(vendor);
+}
+
 /* Channel mode changed: recompute the rate ceiling for it and the link. */
 static void apply_channel_mode(struct dev_context *devc, int32_t nch)
 {
@@ -82,7 +94,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_descriptor des;
 	GSList *devices, *l, *conn_devices;
 	char *conn;
-	char cbuf[128];
+	char cbuf[128], vendor[64];
 	struct sr_channel *ch;
 	int32_t i;
 	gchar *channel_name;
@@ -116,7 +128,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 			libusb_get_string_descriptor_ascii(usb->devhdl,
 				des.iManufacturer, (unsigned char *)cbuf, sizeof(cbuf));
-			sdi = sr_dev_inst_user_new(cbuf, NULL, NULL);
+			sdi = sr_dev_inst_user_new(NULL, NULL, NULL);
+			g_strlcpy(vendor, cbuf, sizeof(vendor));
 			libusb_get_string_descriptor_ascii(usb->devhdl,
 				des.iProduct, (unsigned char *)cbuf, sizeof(cbuf));
 			sdi->model = g_strdup(cbuf);
@@ -134,6 +147,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->priv = devc;
 			devc->model = model;
 			devc->link = slogic_usb_link(libusb_get_device(usb->devhdl));
+			apply_link_name(sdi, vendor);
 			devc->limit_samplechannel =
 				model->limits[model->limit_count - 1].channels;
 			devc->cur_samplerate = UINT64_MAX;
@@ -186,8 +200,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	usb->devhdl = slogic_dev_handle(devc->sdev);
 
+	/* The link may differ from scan time after a replug. */
 	devc->link = slogic_dev_link(devc->sdev);
 	apply_channel_mode(devc, devc->cur_samplechannel);
+	if (sdi->vendor) {
+		const char *v = strchr(sdi->vendor, ')');
+		gchar *base = g_strdup(v && sdi->vendor[0] == '(' ? v + 2 : sdi->vendor);
+		apply_link_name(sdi, base);
+		g_free(base);
+	}
 	devc->voltage_threshold[0] = devc->voltage_threshold[1] = 1.7000000000000004;
 
 	return std_dummy_dev_open(sdi);

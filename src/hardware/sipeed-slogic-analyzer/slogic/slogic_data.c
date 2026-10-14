@@ -44,17 +44,42 @@ const char *slogic_link_name(slogic_link link)
 	}
 }
 
+const char *slogic_link_tag(slogic_link link)
+{
+	switch (link) {
+	case SLOGIC_LINK_SUPER_PLUS: return "10G";
+	case SLOGIC_LINK_SUPER: return "5G";
+	case SLOGIC_LINK_HIGH: return "USB2";
+	case SLOGIC_LINK_FULL: return "USB1";
+	case SLOGIC_LINK_UNKNOWN:
+	default: return NULL;
+	}
+}
+
+/* Sustained payload a link carries for the U3 stream, in bits/s:
+ * 5G ~ 400 MB/s, USB2 ~ 40 MB/s. 10G is not the limit (the device is). */
+static uint64_t link_payload_bps(slogic_link link)
+{
+	switch (link) {
+	case SLOGIC_LINK_SUPER: return SLOGIC_MHZ(3200);
+	case SLOGIC_LINK_HIGH:
+	case SLOGIC_LINK_FULL: return SLOGIC_MHZ(320);
+	default: return 0;
+	}
+}
+
 uint64_t slogic_link_max_rate(const slogic_model *m, int nch, slogic_link link)
 {
 	uint64_t lim = slogic_max_rate(m, nch);
+	uint64_t bps = link_payload_bps(link);
 
-	/* U3 analyzers also enumerate at high speed; keep the rate within the
-	 * practical USB2 payload when the link is known to be slower. */
-	if (lim && m->proto == SLOGIC_PROTO_U3 && link != SLOGIC_LINK_UNKNOWN &&
-	    link < SLOGIC_LINK_SUPER) {
-		uint64_t usb2 = SLOGIC_MHZ(320) / (uint64_t)nch;
-		if (lim > usb2)
-			lim = usb2;
+	/* A U3 analyzer on a slower link than it was built for (32U3 on 5G,
+	 * any U3 on USB2) is capped at what that link sustains for nch
+	 * channels: 32U3 on 5G gives 4ch@800 8ch@400 16ch@200 32ch@100. */
+	if (lim && m->proto == SLOGIC_PROTO_U3 && bps) {
+		uint64_t cap = bps / (uint64_t)nch;
+		if (lim > cap)
+			lim = cap;
 	}
 	return lim;
 }

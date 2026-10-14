@@ -279,8 +279,10 @@ typedef enum {
 } slogic_link;
 
 const char *slogic_link_name(slogic_link link);
-/* Native ceiling for `nch`, further capped on a known link slower than
- * SuperSpeed for the U3 models (USB2 payload ~320 Mbit/s of samples). */
+/* Short label for device names: "10G", "5G", "USB2", "USB1"; NULL if unknown. */
+const char *slogic_link_tag(slogic_link link);
+/* Native ceiling for `nch`, capped for the U3 models to what the link
+ * sustains: 5G ~400 MB/s (32U3 on 5G: 4ch@800 ... 32ch@100), USB2 ~40 MB/s. */
 uint64_t slogic_link_max_rate(const slogic_model *m, int nch, slogic_link link);
 /* exact=1: `want` if it is an advertised rate within the cap, else 0.
  * exact=0: nearest advertised rate within the cap (0 picks the cap). */
