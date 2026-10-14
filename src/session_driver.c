@@ -39,6 +39,7 @@ SR_PRIV struct sr_dev_driver session_driver_info;
 struct session_vdev {
 	char *sessionfile;
 	char *capturefile;
+	char *capture_status, *capture_error;
 	struct zip *archive;
 	struct zip_file *capfile;
 	int bytes_read;
@@ -59,6 +60,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_NUM_ANALOG_CHANNELS | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SESSIONFILE | SR_CONF_SET,
+	SR_CONF_CAPTURE_STATUS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CAPTURE_ERROR | SR_CONF_GET | SR_CONF_SET,
 };
 
 static gboolean stream_session_data(struct sr_dev_inst *sdi)
@@ -252,6 +255,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	const struct session_vdev *const vdev = sdi->priv;
 	g_free(vdev->sessionfile);
 	g_free(vdev->capturefile);
+	g_free(vdev->capture_status);
+	g_free(vdev->capture_error);
 
 	g_free(sdi->priv);
 	sdi->priv = NULL;
@@ -275,6 +280,16 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(vdev->samplerate);
 		break;
+	case SR_CONF_CAPTURE_STATUS:
+		if (!vdev->capture_status)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(vdev->capture_status);
+		break;
+	case SR_CONF_CAPTURE_ERROR:
+		if (!vdev->capture_status)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(vdev->capture_error ? vdev->capture_error : "");
+		break;
 	case SR_CONF_CAPTURE_UNITSIZE:
 		*data = g_variant_new_uint64(vdev->unitsize);
 		break;
@@ -295,6 +310,13 @@ static int config_set(uint32_t key, GVariant *data,
 	vdev = sdi->priv;
 
 	switch (key) {
+	case SR_CONF_CAPTURE_STATUS:
+	case SR_CONF_CAPTURE_ERROR: {
+		char **value = key == SR_CONF_CAPTURE_STATUS ? &vdev->capture_status : &vdev->capture_error;
+		g_free(*value);
+		*value = g_variant_dup_string(data, NULL);
+		break;
+	}
 	case SR_CONF_SAMPLERATE:
 		vdev->samplerate = g_variant_get_uint64(data);
 		sr_info("Setting samplerate to %" PRIu64 ".", vdev->samplerate);
@@ -361,6 +383,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	std_session_send_df_header(sdi);
+	if (vdev->capture_status) {
+		struct sr_datafeed_meta meta;
+		struct sr_datafeed_packet packet;
+		struct sr_config status = {SR_CONF_CAPTURE_STATUS,
+			g_variant_ref_sink(g_variant_new_string(vdev->capture_status))};
+		struct sr_config reason = {SR_CONF_CAPTURE_ERROR,
+			g_variant_ref_sink(g_variant_new_string(vdev->capture_error ? vdev->capture_error : ""))};
+		meta.config = g_slist_append(NULL, &status);
+		meta.config = g_slist_append(meta.config, &reason);
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		sr_session_send(sdi, &packet);
+		g_slist_free(meta.config);
+		g_variant_unref(status.data);
+		g_variant_unref(reason.data);
+	}
 
 	/* freewheeling source */
 	sr_session_source_add(sdi->session, -1, 0, 0, receive_data, (void *)sdi);
