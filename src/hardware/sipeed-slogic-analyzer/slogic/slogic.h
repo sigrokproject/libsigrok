@@ -142,6 +142,14 @@ typedef struct slogic_config {
 	uint64_t samplerate_hz;
 	double threshold_v;
 	int pattern_mode;       /* SLOGIC_PATTERN_* */
+	/*
+	 * Sample clock source. The U3 models derive the sample clock from one of
+	 * several PLL bases (SLogic32U3: slot 0 = 1400 MHz, slot 1 = 800 MHz).
+	 * 0 = prefer the 800 MHz base and fall back to another base only for a
+	 * rate 800 MHz cannot make (1400 MHz); otherwise only this base (in MHz)
+	 * is used, and slogic_configure fails if the rate does not divide it.
+	 */
+	unsigned clock_base_mhz;
 } slogic_config;
 
 /*

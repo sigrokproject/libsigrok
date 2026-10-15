@@ -389,30 +389,50 @@ static int aux_channel(const slogic_transport *t, int nch)
 	return aux_write_confirm(t, pay, n);
 }
 
-static int aux_rate(const slogic_transport *t, uint64_t want)
+#define PREFERRED_BASE_MHZ 800u
+
+/*
+ * Select the clock base and divider for `want`. The device reports one base
+ * per index (SLogic32U3: 0 = 1400 MHz, 1 = 800 MHz, then empty slots) and
+ * keeps the selected index until CTRL=RST, which selects index 0; the walk
+ * starts at the reported index and wraps past an empty slot.
+ *
+ * `base_mhz_req` != 0 accepts only that base. Otherwise the first lap looks
+ * for the 800 MHz base, and only a rate it cannot divide down to (1400 MHz)
+ * takes another base on the second lap, so e.g. 200 MHz is always 800/4
+ * rather than 1400/7.
+ */
+static int aux_rate(const slogic_transport *t, uint64_t want, unsigned base_mhz_req)
 {
 	uint8_t pay[16];
 	size_t n = 0;
 	int tries, r;
+	unsigned pref;
 
 	if (want == 0)
 		return SLOGIC_ERR_ARG;
+	if (base_mhz_req && (uint64_t)base_mhz_req * UINT64_C(1000000) % want != 0)
+		return SLOGIC_ERR_ARG;
+	pref = base_mhz_req ? base_mhz_req
+	       : (UINT64_C(1000000) * PREFERRED_BASE_MHZ % want == 0 ? PREFERRED_BASE_MHZ : 0);
 	r = aux_begin(t, AUX_CMD_RATE, pay, sizeof(pay), &n);
 	if (r)
 		return r;
 	if (n < 8)
 		n = 8;
-	for (tries = 0; tries < 8; tries++) {
+	/* Two laps over the (at most 4) slots: the preferred base, then, without a
+	 * required base, any base that divides the rate. */
+	for (tries = 0; tries < 16; tries++) {
 		uint16_t idx = (uint16_t)(pay[0] | (pay[1] << 8));
 		uint16_t base_mhz = (uint16_t)(pay[2] | (pay[3] << 8));
 		uint64_t base = (uint64_t)base_mhz * UINT64_C(1000000);
 		uint32_t divm1;
 
-		if (base == 0)
-			return SLOGIC_ERR;
-		if (base % want != 0) {
-			/* Wrong base: bump the index and re-read the next one. */
-			idx++;
+		if (tries == 8 && !base_mhz_req)
+			pref = 0; /* preferred base not offered: take any that divides */
+		if (base == 0 || base % want != 0 || (pref && base_mhz != pref)) {
+			/* Wrong or empty slot: next index, wrapping to 0 after an empty one. */
+			idx = base == 0 ? 0 : (uint16_t)(idx + 1);
 			pay[0] = (uint8_t)idx;
 			pay[1] = (uint8_t)(idx >> 8);
 			r = ctrl_write(t, R_AUX_PAYLOAD, pay, 4);
@@ -499,7 +519,7 @@ int slogic_configure(const slogic_model *m, const slogic_transport *t,
 		return r;
 	if ((r = aux_channel(t, c->channel_count)))
 		return r;
-	if ((r = aux_rate(t, c->samplerate_hz)))
+	if ((r = aux_rate(t, c->samplerate_hz, c->clock_base_mhz)))
 		return r;
 	if ((r = aux_vref(t, c->threshold_v)))
 		return r;
