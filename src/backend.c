@@ -649,21 +649,29 @@ done:
 /**
  * Shutdown libsigrok.
  *
+ * If driver cleanup fails, the context and shared transports remain valid.
+ * Finish stopping the affected acquisition, then retry sr_exit(). Drivers
+ * already cleaned successfully are uninitialized and are skipped on retry.
+ *
  * @param ctx Pointer to a libsigrok context struct. Must not be NULL.
  *
  * @retval SR_OK Success
- * @retval other Error code SR_ERR, ...
+ * @retval other Error code SR_ERR, ...; the context has not been freed.
  *
  * @since 0.2.0
  */
 SR_API int sr_exit(struct sr_context *ctx)
 {
+	int ret;
+
 	if (!ctx) {
 		sr_err("%s(): libsigrok context was NULL.", __func__);
 		return SR_ERR;
 	}
 
-	sr_hw_cleanup_all(ctx);
+	ret = sr_hw_cleanup_all(ctx);
+	if (ret != SR_OK)
+		return ret;
 
 #ifdef _WIN32
 	WSACleanup();

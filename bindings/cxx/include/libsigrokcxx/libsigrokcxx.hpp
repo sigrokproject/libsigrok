@@ -243,6 +243,10 @@ class SR_API Context : public UserOwned<Context>
 public:
 	/** Create new context */
 	static std::shared_ptr<Context> create();
+	/** Retry contexts retained after last-owner cleanup failed.
+	 * Throws Error if cleanup still fails; retained owners remain valid.
+	 * create() also retries before initializing a new context. */
+	static void retry_cleanup();
 	/** libsigrok package version. */
 	static std::string package_version();
 	/** libsigrok library version. */
@@ -309,7 +313,7 @@ private:
 	Session *_session;
 	LogCallbackFunction _log_callback;
 	Context();
-	~Context();
+	~Context() noexcept;
 	friend class Session;
 	friend class Driver;
 	friend struct std::default_delete<Context>;

@@ -278,7 +278,18 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 			g_clear_error(&error);
 
 			for (j = 0; keys[j]; j++) {
-				if (!strcmp(keys[j], "samplerate")) {
+				if (!strcmp(keys[j], "capture status") || !strcmp(keys[j], "capture error")) {
+					val = g_key_file_get_string(kf, sections[i], keys[j], &error);
+					if (!sdi || !val || error) {
+						g_free(val);
+						ret = SR_ERR_DATA;
+						break;
+					}
+					ret = sr_config_set(sdi, NULL,
+						!strcmp(keys[j], "capture status") ? SR_CONF_CAPTURE_STATUS : SR_CONF_CAPTURE_ERROR,
+						g_variant_new_string(val));
+					g_free(val);
+				} else if (!strcmp(keys[j], "samplerate")) {
 					val = g_key_file_get_string(kf, sections[i],
 							keys[j], &error);
 					if (!sdi || !val || sr_parse_sizestring(val,
