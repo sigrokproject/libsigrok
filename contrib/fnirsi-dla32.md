@@ -50,6 +50,21 @@ acknowledged USB write is not an independent device-readiness measurement.
 Reconnection requires explicit Scan and device selection; there is no automatic
 acquisition retry.
 
+## Cleanup and diagnostics
+
+Worker log retention is bounded. Dropped/truncated debug messages are counted
+and reported separately; they do not stop acquisition or change its outcome.
+Transport results and failed worker notifications still determine failure.
+
+If driver cleanup cannot finish, the C API retains the context for a later
+`sr_exit()` retry. The C++ last-owner deleter likewise retains the complete
+owner without throwing from a destructor. `Context::retry_cleanup()` retries
+retirement and reports a continuing failure as a normal `Error`; `create()`
+also retries before initializing another context. Resources are released only
+after successful cleanup. Unfinished retirement can retain memory/handles
+until a successful retry or process exit; it does not fabricate a successful
+hardware STOP.
+
 ## Validation and limits
 
 The preceding Windows delivery was tested with bounded Buffer/Stream captures,

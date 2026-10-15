@@ -1608,9 +1608,13 @@ static int receive_worker_events(struct sr_dev_inst *sdi)
 			terminal.stop_end_us - terminal.stop_start_us, terminal.drain_bytes,
 			terminal.drain_reads, terminal.drain_empty, terminal.drain_quiet,
 			terminal.diagnostics_failed, devc->worker_unconsumed_bytes);
+		if (terminal.dropped_logs || terminal.truncated_logs)
+			sr_warn("WCH worker diagnostics: dropped %" PRIu64 ", truncated %" PRIu64
+				" messages; acquisition status uses transport/results, not log retention.",
+				terminal.dropped_logs, terminal.truncated_logs);
 		if (terminal.diagnostics_failed) {
-			sr_err("WCH worker diagnostic queue overflow/truncation; acquisition evidence incomplete.");
-			capture_set_failure(devc, "error", "Capture diagnostics were lost. The received samples have not been certified as intact.");
+			sr_err("WCH worker notification failed; acquisition evidence incomplete.");
+			capture_set_failure(devc, "error", "Worker notification failed. The received samples have not been certified as intact.");
 		}
 		/* A frontend logger may request stop recursively. The completed native
 		 * I/O result is authoritative after all such callbacks have returned. */

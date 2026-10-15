@@ -26,7 +26,7 @@ struct dla_worker_result {
 struct dla_worker_terminal {
 	gboolean stop_pending, diagnostics_failed, drain_quiet, device_disconnected;
 	int stop_status, drain_status;
-	uint64_t read_count, drain_bytes;
+	uint64_t read_count, drain_bytes, dropped_logs, truncated_logs;
 	unsigned int drain_reads, drain_empty;
 	int64_t stop_start_us, stop_end_us, drain_end_us;
 };
@@ -37,7 +37,7 @@ struct dla_wch_worker {
 	HANDLE ready; /* Borrowed; main removes its poll source before closing. */
 	GMutex mutex;
 	GCond condition;
-	uint64_t generation;
+	uint64_t generation, dropped_logs, truncated_logs;
 	gboolean stop_requested, terminal_ready, diagnostics_failed;
 	gboolean busy[DLA_WORKER_BUFFER_SLOTS];
 	unsigned int queue_head, queue_count, claimed_slot;
@@ -75,12 +75,13 @@ static void dla_worker_sink(void *context, int level, const char *message)
 	struct dla_worker_log *entry;
 
 	g_mutex_lock(&worker->mutex);
-	if (worker->log_count == DLA_WORKER_LOG_SLOTS ||
-			strlen(message) >= DLA_WORKER_LOG_LENGTH) {
-		worker->diagnostics_failed = TRUE;
-		worker->stop_requested = TRUE;
-		g_cond_signal(&worker->condition);
+	/* Optional log pressure must not stop I/O or invalidate received samples.
+	 * Transport/result state is published independently of diagnostic text. */
+	if (worker->log_count == DLA_WORKER_LOG_SLOTS) {
+		worker->dropped_logs++;
 	} else {
+		if (strlen(message) >= DLA_WORKER_LOG_LENGTH)
+			worker->truncated_logs++;
 		entry = &worker->logs[(worker->log_start + worker->log_count) % DLA_WORKER_LOG_SLOTS];
 		entry->level = level;
 		entry->original_us = g_get_monotonic_time();
@@ -106,12 +107,14 @@ static void dla_worker_logf(struct dla_wch_worker *worker, int level,
 	va_end(args);
 	if (written < 0 || (size_t)written >= sizeof(message)) {
 		g_mutex_lock(&worker->mutex);
-		worker->diagnostics_failed = TRUE;
-		worker->stop_requested = TRUE;
-		g_cond_signal(&worker->condition);
+		if (written < 0)
+			worker->dropped_logs++;
+		else
+			worker->truncated_logs++;
 		dla_worker_notify_locked(worker);
 		g_mutex_unlock(&worker->mutex);
-		return;
+		if (written < 0)
+			return;
 	}
 	dla_worker_sink(worker, level, message);
 }
@@ -239,6 +242,8 @@ publish_terminal:
 	terminal.drain_end_us = g_get_monotonic_time();
 	g_mutex_lock(&worker->mutex);
 	terminal.diagnostics_failed = worker->diagnostics_failed;
+	terminal.dropped_logs = worker->dropped_logs;
+	terminal.truncated_logs = worker->truncated_logs;
 	worker->terminal = terminal;
 	worker->terminal_ready = TRUE;
 	dla_worker_notify_locked(worker);
