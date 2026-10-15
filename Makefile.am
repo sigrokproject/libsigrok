@@ -879,6 +879,9 @@ EXTRA_DIST = \
 
 if HAVE_CHECK
 TESTS = tests/main
+if BINDINGS_CXX
+TESTS += tests/context_cxx
+endif
 check_PROGRAMS = ${TESTS}
 endif
 
@@ -916,6 +919,9 @@ UNINSTALL_EXTRA += libsigrok-uninstall
 if BINDINGS_CXX
 
 lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
+
+tests_context_cxx_SOURCES = tests/context_cxx.cpp
+tests_context_cxx_LDADD = bindings/cxx/libsigrokcxx.la libsigrok.la $(LIBSIGROKCXX_LIBS) $(SR_EXTRA_LIBS)
 
 bindings_cxx_libsigrokcxx_la_SOURCES = bindings/cxx/classes.cpp
 
