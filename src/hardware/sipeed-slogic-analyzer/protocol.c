@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <stdint.h>
 
 #include "protocol.h"
 
@@ -55,11 +56,16 @@ static void sink_trigger(void *user, uint64_t index)
 	std_session_send_df_trigger(user);
 }
 
+/*
+ * Session source key for this device's poll timer. libsigrok treats a key >= 0
+ * as a file descriptor (a HANDLE on Windows) to wait on, so the key must stay
+ * negative: deriving it by negating a truncated pointer turned positive
+ * whenever bit 31 of the address was set, and on Windows GLib then waited on
+ * an invalid handle every 5 ms ("WaitForMultipleObjectsEx failed").
+ */
 static int source_key(const struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc = sdi->driver->context;
-
-	return -1 * (int)(size_t)drvc->sr_ctx->libusb_ctx;
+	return -1 - (int)(((uintptr_t)sdi >> 4) & 0x3fffffff);
 }
 
 static int handle_events(int fd, int revents, void *cb_data)
