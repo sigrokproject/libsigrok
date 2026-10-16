@@ -107,7 +107,7 @@ static void hist_push(struct dev_context *devc, const uint8_t *s, size_t n)
 	if (!cap)
 		return;
 	if (n >= cap) {
-		memcpy(devc->hist, s + n - cap, cap);
+		memcpy(devc->hist, s + n - cap, (size_t)cap);
 		devc->hist_pos = 0;
 		devc->hist_len = cap;
 		return;
@@ -130,8 +130,8 @@ static uint64_t hist_copy(struct dev_context *devc, uint8_t *dst, uint64_t want)
 	uint64_t start = (devc->hist_pos + cap - n) % cap;
 	uint64_t first = MIN(n, cap - start);
 
-	memcpy(dst, devc->hist + start, first);
-	memcpy(dst + first, devc->hist, n - first);
+	memcpy(dst, devc->hist + start, (size_t)first);
+	memcpy(dst + first, devc->hist, (size_t)(n - first));
 	return n;
 }
 
@@ -173,7 +173,7 @@ static void start_capture(struct dev_context *devc, const uint8_t *s, size_t at)
 
 	if (want > from_buf)
 		from_hist = hist_copy(devc, devc->buf, want - from_buf);
-	memcpy(devc->buf + from_hist, s + at - from_buf, from_buf);
+	memcpy(devc->buf + from_hist, s + at - from_buf, (size_t)from_buf);
 	devc->buf_fill = from_hist + from_buf;
 	devc->trigger_pos = devc->buf_fill;
 	devc->state = HL_CAPTURING;
@@ -201,7 +201,7 @@ static void process(struct dev_context *devc, const uint8_t *s, size_t n)
 		 * ends post samples after the trigger */
 		uint64_t until_end = devc->trigger_pos + devc->post - devc->buf_fill;
 		uint64_t k = MIN(MIN(room, until_end), (uint64_t)(n - i));
-		memcpy(devc->buf + devc->buf_fill, s + i, k);
+		memcpy(devc->buf + devc->buf_fill, s + i, (size_t)k);
 		devc->buf_fill += k;
 		if (devc->buf_fill >= devc->trigger_pos + devc->post)
 			devc->state = HL_DONE;

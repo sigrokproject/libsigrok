@@ -302,8 +302,11 @@ static int config_set(uint32_t key, GVariant *data,
 		return set_samplerate(devc, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
 		v = g_variant_get_uint64(data);
-		if (!v)
+		if (!v || v > HSDAOH_LA_MAX_SAMPLES) {
+			sr_err("Sample count must be 1..%" PRIu64 ".",
+				(uint64_t)HSDAOH_LA_MAX_SAMPLES);
 			return SR_ERR_ARG;
+		}
 		devc->limit_samples = v;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
@@ -342,7 +345,7 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		/* one byte per sample in RAM on the PC */
-		*data = std_gvar_tuple_u64(1, 4000000000ULL);
+		*data = std_gvar_tuple_u64(1, HSDAOH_LA_MAX_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -371,12 +374,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->pre = devc->limit_samples - 1;
 	}
 
+	/* gsize is 32 bits in a 32-bit build: never let the size wrap */
+	if (devc->limit_samples > HSDAOH_LA_MAX_SAMPLES ||
+	    devc->pre + devc->post > G_MAXSIZE) {
+		sr_err("Sample count %" PRIu64 " is too large.", devc->limit_samples);
+		return SR_ERR_ARG;
+	}
+
 	g_free(devc->buf);
 	g_free(devc->hist);
 	devc->hist = NULL;
-	devc->buf = g_try_malloc(devc->pre + devc->post);
+	devc->buf = g_try_malloc((gsize)(devc->pre + devc->post));
 	if (devc->pre)
-		devc->hist = g_try_malloc(devc->pre);
+		devc->hist = g_try_malloc((gsize)devc->pre);
 	if (!devc->buf || (devc->pre && !devc->hist)) {
 		sr_err("Not enough memory for %" PRIu64 " samples.", devc->limit_samples);
 		g_free(devc->buf);

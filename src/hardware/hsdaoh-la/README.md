@@ -52,11 +52,49 @@ Close any terminal program on the Pico's COM port first.
    `--disable-hsdaoh-la` / `--enable-hsdaoh-la` work like for other drivers.
 3. Build PulseView / sigrok-cli against this libsigrok.
 
-For Windows, the sigrok cross build (sigrok-util, `cross-compile/mingw`)
-needs libhsdaoh (and its libusb/libuvc) added to its dependency list.
+## Windows build (sigrok's MinGW cross build)
 
-On Windows the MS2130 stick needs the WinUSB driver (Zadig), as for the
-hsdaoh command line tools.
+PulseView and sigrok-cli for Windows are built with
+[sigrok-util](https://github.com/sigrokproject/sigrok-util)
+`cross-compile/mingw/sigrok-cross-mingw` on Linux, with MXE. That build is
+static and 32-bit by default (`TARGET="i686"`; `x86_64` for 64-bit).
+
+1. Set up MXE as described in sigrok-util's `cross-compile/mingw/README`
+   (the MXE package list there already includes `libusb1`).
+2. Apply `sigrok-cross-mingw.patch` from this directory to sigrok-util:
+
+       cd sigrok-util
+       patch -p1 < .../sigrok-cross-mingw.patch
+
+   It makes the script clone this libsigrok branch (`hsdaoh-la` of
+   github.com/dovandung/libsigrok) and run `mxe-build-deps.sh` before
+   building libsigrok.
+3. Run `cross-compile/mingw/sigrok-cross-mingw` as usual.
+
+`mxe-build-deps.sh` builds, statically, into the sigrok prefix:
+
+- **libuvc** (github.com/libuvc/libuvc). Its CMake does not find libusb on
+  MinGW, so the script provides the `LibUSB::LibUSB` target from pkg-config.
+- **libhsdaoh** (github.com/dovandung/hsdaoh, branch `la`) with
+  `-DHSDAOH_BUILD_SHARED=OFF -DHSDAOH_BUILD_TOOLS=OFF`.
+
+libsigrok's configure then finds `libhsdaoh` through pkg-config, and the
+summary lists the driver as `hsdaoh-la`.
+
+The repositories and branches can be changed with the environment variables
+`LIBUVC_REPO`, `LIBUVC_BRANCH`, `HSDAOH_REPO`, `HSDAOH_BRANCH`.
+
+### 32-bit builds
+
+In a 32-bit (i686) build the sample count is limited to 400 M samples
+(64-bit: 4 G), because the capture is held in RAM twice (driver and
+PulseView) within the 2 GB address space of a 32-bit process.
+
+### Running it on Windows
+
+- The MS2130 stick needs the WinUSB driver (Zadig is shipped with PulseView).
+- The Pico's USB serial port (for setting the rate) is a normal COM port;
+  close any terminal program using it.
 
 ## sigrok-cli examples
 

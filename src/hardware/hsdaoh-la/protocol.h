@@ -51,6 +51,16 @@
 #define HSDAOH_LA_DEFAULT_SAMPLERATE	SR_MHZ(140)
 /* the la8 firmware's divider range */
 #define HSDAOH_LA_MAX_DIVIDER		65535
+/*
+ * Largest capture, 1 byte per sample in the driver plus PulseView's own
+ * copy. A 32-bit process (sigrok's default Windows build is i686) has
+ * 2 GB of address space at most, so it gets a much lower limit.
+ */
+#if GLIB_SIZEOF_VOID_P >= 8
+#define HSDAOH_LA_MAX_SAMPLES		4000000000ULL
+#else
+#define HSDAOH_LA_MAX_SAMPLES		400000000ULL
+#endif
 /* largest single logic packet sent to the session */
 #define HSDAOH_LA_SEND_CHUNK		(4 * 1024 * 1024)
 
