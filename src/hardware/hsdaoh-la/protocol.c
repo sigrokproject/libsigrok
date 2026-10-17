@@ -153,8 +153,12 @@ static size_t find_trigger(struct dev_context *devc, const uint8_t *s, size_t fr
 
 	if (from >= n)
 		return n;
-	/* without history the first sample cannot be an edge: use itself */
-	p = devc->have_prev ? devc->prev : s[from];
+	/* the sample before s[from]; without history the first sample cannot
+	 * be an edge: use itself */
+	if (from)
+		p = s[from - 1];
+	else
+		p = devc->have_prev ? devc->prev : s[0];
 	for (size_t j = from; j < n; j++) {
 		unsigned int c = s[j];
 		if (tbl[(p << 8) | c])
@@ -184,7 +188,22 @@ static void process(struct dev_context *devc, const uint8_t *s, size_t n)
 	size_t i = 0;
 
 	if (devc->state == HL_ARMED) {
-		size_t at = devc->have_trigger ? find_trigger(devc, s, 0, n) : 0;
+		size_t at = 0;
+		if (devc->have_trigger) {
+			/*
+			 * Like other logic analyzers: a trigger only counts once
+			 * the pre-trigger part is complete, i.e. at least 'pre'
+			 * samples were received (since Run, or since lost data).
+			 * Else a busy signal triggers at once with (almost) no
+			 * samples before the trigger.
+			 */
+			size_t from = 0;
+			if (devc->hist_len < devc->pre) {
+				uint64_t need = devc->pre - devc->hist_len;
+				from = need < n ? (size_t)need : n;
+			}
+			at = find_trigger(devc, s, from, n);
+		}
 		if (at >= n) {
 			hist_push(devc, s, n);
 			devc->prev = s[n - 1];
