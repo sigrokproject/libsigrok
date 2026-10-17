@@ -11,6 +11,12 @@
 ## (libusb_init -> hsdaoh_priv_libusb_init, ...) in all three libraries.
 ## Both libusb versions can then be linked into the same program.
 ##
+## HSDAOH_LIBUSB=mxe: no private copy; libuvc and libhsdaoh use the
+## toolchain's own libusb-1.0 (MXE package libusb1), shared with libsigrok.
+## Needs libusb >= 1.0.26 there (current MXE has 1.0.27; sigrok's
+## event-abstraction 1.0.20-rc3 is refused). Installs libhsdaoh.a and
+## libhsdaoh_uvc.a, and a libhsdaoh.pc that requires libusb-1.0.
+##
 ## Installed into $PREFIX:
 ##   lib/libhsdaoh.a, lib/libhsdaoh_uvc.a, lib/libhsdaoh_usb.a
 ##   include/hsdaoh.h, include/hsdaoh_export.h
@@ -22,6 +28,7 @@
 ##   CMAKE              default $TOOLCHAIN_TRIPLET-cmake (MXE's cmake wrapper)
 ##   PARALLEL, V        optional make flags
 ##   HSDAOH_SRC, LIBUVC_SRC, LIBUSB_SRC   local source trees (else git clone)
+##   HSDAOH_LIBUSB      private (default) or mxe (see above)
 ##
 ## Standalone example:
 ##   export PATH=$HOME/mxe/usr/bin:$PATH
@@ -48,6 +55,16 @@ HSDAOH_REPO=${HSDAOH_REPO:-https://github.com/dovandung/hsdaoh}
 HSDAOH_BRANCH=${HSDAOH_BRANCH:-la}
 
 SYMPFX=hsdaoh_priv_
+HSDAOH_LIBUSB=${HSDAOH_LIBUSB:-private}
+case $HSDAOH_LIBUSB in
+	private|mxe) ;;
+	*) echo "HSDAOH_LIBUSB must be private or mxe" >&2; exit 1 ;;
+esac
+if command -v "$TOOLCHAIN_TRIPLET-pkg-config" >/dev/null; then
+	PKGCONF=$TOOLCHAIN_TRIPLET-pkg-config
+else
+	PKGCONF=${PKG_CONFIG:-pkg-config}
+fi
 
 TOP=$(pwd)/hsdaoh-deps
 PRIV=$TOP/prefix		# private install, never seen by libsigrok
@@ -72,6 +89,25 @@ getsrc() {	# name src-dir repo branch
 	fi
 }
 
+if [ "$HSDAOH_LIBUSB" = mxe ]; then
+	v=$($PKGCONF --modversion libusb-1.0 2>/dev/null || echo none)
+	echo "using the toolchain's libusb-1.0 ($v)"
+	if ! $PKGCONF --atleast-version=1.0.26 libusb-1.0; then
+		echo "HSDAOH_LIBUSB=mxe needs libusb-1.0 >= 1.0.26 in the toolchain, found: $v" >&2
+		echo "(build MXE's libusb1 package, or use the default HSDAOH_LIBUSB=private)" >&2
+		exit 1
+	fi
+	cat > "$TOP/libusb-target.cmake" <<EOF
+list(INSERT CMAKE_FIND_ROOT_PATH 0 "$PRIV")
+if(NOT TARGET LibUSB::LibUSB)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(HSDAOH_LIBUSB REQUIRED IMPORTED_TARGET libusb-1.0)
+  add_library(LibUSB::LibUSB INTERFACE IMPORTED)
+  set_target_properties(LibUSB::LibUSB PROPERTIES
+    INTERFACE_LINK_LIBRARIES PkgConfig::HSDAOH_LIBUSB)
+endif()
+EOF
+else
 echo "component libusb (private copy for libhsdaoh) ..."
 getsrc libusb "$LIBUSB_SRC" "$LIBUSB_REPO" "$LIBUSB_BRANCH"
 cd libusb
@@ -97,6 +133,7 @@ if(NOT TARGET LibUSB::LibUSB)
     INTERFACE_INCLUDE_DIRECTORIES "$PRIV/include/libusb-1.0")
 endif()
 EOF
+fi
 
 echo "component libuvc ..."
 getsrc libuvc "$LIBUVC_SRC" "$LIBUVC_REPO" "$LIBUVC_BRANCH"
@@ -136,6 +173,31 @@ cd "$TOP"
 eval "export $PCVAR=\"\$OLD_PCPATH\""
 export PKG_CONFIG_PATH="$OLD_PKG_CONFIG_PATH"
 
+HSDAOH_VERSION=$(sed -n 's/^Version: *//p' "$PRIV/lib/pkgconfig/libhsdaoh.pc")
+mkdir -p "$PREFIX/lib/pkgconfig" "$PREFIX/include"
+cp "$PRIV/include/hsdaoh.h" "$PRIV/include/hsdaoh_export.h" "$PREFIX/include/"
+
+if [ "$HSDAOH_LIBUSB" = mxe ]; then
+	cp "$PRIV/lib/libhsdaoh.a" "$PREFIX/lib/libhsdaoh.a"
+	cp "$PRIV/lib/libuvc.a" "$PREFIX/lib/libhsdaoh_uvc.a"
+	rm -f "$PREFIX/lib/libhsdaoh_usb.a"
+	cat > "$PREFIX/lib/pkgconfig/libhsdaoh.pc" <<EOF
+prefix=$PREFIX
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: hsdaoh Library
+Description: hsdaoh (static, with libuvc; uses the toolchain's libusb-1.0)
+Version: ${HSDAOH_VERSION:-0.0.0}
+Requires: libusb-1.0
+Cflags: -I\${includedir} -Dhsdaoh_STATIC
+Libs: -L\${libdir} -lhsdaoh -lhsdaoh_uvc -lpthread
+EOF
+	cd "$TOP/.."
+	echo "libhsdaoh (with libuvc, toolchain libusb) installed to $PREFIX"
+	exit 0
+fi
+
 echo "renaming the private libusb's symbols ..."
 # Every external symbol libusb-1.0.a defines (code and data). On 32-bit
 # Windows C symbols carry a leading underscore, and GCC/clang may emit
@@ -147,11 +209,9 @@ n=$(wc -l < "$TOP/libusb.syms")
 [ "$n" -gt 50 ] || { echo "only $n libusb symbols found, giving up" >&2; exit 1; }
 echo "$n symbols"
 
-mkdir -p "$PREFIX/lib/pkgconfig" "$PREFIX/include"
 $OBJCOPY --redefine-syms="$TOP/libusb.syms" "$PRIV/lib/libusb-1.0.a" "$PREFIX/lib/libhsdaoh_usb.a"
 $OBJCOPY --redefine-syms="$TOP/libusb.syms" "$PRIV/lib/libuvc.a" "$PREFIX/lib/libhsdaoh_uvc.a"
 $OBJCOPY --redefine-syms="$TOP/libusb.syms" "$PRIV/lib/libhsdaoh.a" "$PREFIX/lib/libhsdaoh.a"
-cp "$PRIV/include/hsdaoh.h" "$PRIV/include/hsdaoh_export.h" "$PREFIX/include/"
 
 # Nothing may still refer to an unrenamed libusb symbol.
 left=$($NM -u "$PREFIX/lib/libhsdaoh.a" "$PREFIX/lib/libhsdaoh_uvc.a" 2>/dev/null |
@@ -162,7 +222,6 @@ if [ -n "$left" ]; then
 	exit 1
 fi
 
-HSDAOH_VERSION=$(sed -n 's/^Version: *//p' "$PRIV/lib/pkgconfig/libhsdaoh.pc")
 cat > "$PREFIX/lib/pkgconfig/libhsdaoh.pc" <<EOF
 prefix=$PREFIX
 libdir=\${prefix}/lib

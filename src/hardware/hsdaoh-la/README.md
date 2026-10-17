@@ -89,6 +89,12 @@ static and 32-bit by default (`TARGET="i686"`; `x86_64` for 64-bit).
 libsigrok's configure then finds `libhsdaoh` through pkg-config, and the
 summary lists the driver as `hsdaoh-la`.
 
+**`HSDAOH_LIBUSB=mxe`** skips the private copy: libuvc and libhsdaoh then use
+the toolchain's own libusb-1.0 (MXE package `libusb1`), the same one
+libsigrok uses. The script requires libusb >= 1.0.26 there and stops
+otherwise (sigrok's event-abstraction 1.0.20-rc3 is refused). Current MXE
+ships 1.0.27.
+
 The sources can be changed with `LIBUSB_REPO`/`LIBUSB_BRANCH`,
 `LIBUVC_REPO`/`LIBUVC_BRANCH`, `HSDAOH_REPO`/`HSDAOH_BRANCH`, or local
 source trees with `LIBUSB_SRC`, `LIBUVC_SRC`, `HSDAOH_SRC`.
