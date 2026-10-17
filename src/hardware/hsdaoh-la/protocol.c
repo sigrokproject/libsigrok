@@ -516,6 +516,6 @@ SR_PRIV int hsdaoh_la_pico_parse_status(struct dev_context *devc, const char *re
 	devc->sys_clock = (uint64_t)sys_mhz * 1000000;
 	devc->cur_div = div;
 	devc->min_div = min_div;
-	devc->samplerate = devc->sys_clock / div;
+	devc->samplerate = hsdaoh_la_rate(devc->sys_clock, div);
 	return SR_OK;
 }

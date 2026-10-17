@@ -78,7 +78,7 @@ static void build_samplerate_list(struct dev_context *devc)
 
 	list = g_malloc0(max * sizeof(uint64_t));
 	for (unsigned int d = devc->min_div; d < devc->min_div + 6 && d <= HSDAOH_LA_MAX_DIVIDER; d++)
-		list[n++] = devc->sys_clock / d;
+		list[n++] = hsdaoh_la_rate(devc->sys_clock, d);
 
 	for (uint64_t decade = 1000; decade <= devc->sys_clock && n < max; decade *= 10) {
 		for (unsigned int i = 0; i < G_N_ELEMENTS(steps) && n < max; i++) {
@@ -86,7 +86,7 @@ static void build_samplerate_list(struct dev_context *devc)
 			uint64_t d = (devc->sys_clock + target / 2) / target;
 			if (d < devc->min_div || d > HSDAOH_LA_MAX_DIVIDER)
 				continue;
-			list[n++] = devc->sys_clock / d;
+			list[n++] = hsdaoh_la_rate(devc->sys_clock, d);
 		}
 	}
 
@@ -117,6 +117,55 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
+/* USB IDs of the Pico SDK's USB serial port (stdio_usb) */
+#define PICO_USB_VID		0x2e8a
+#define PICO_USB_PID_RP2350	0x0009
+#define PICO_USB_PID_RP2040	0x000a
+
+/* ask the la8 firmware on 'port' for its status; TRUE if it answered */
+static gboolean probe_pico(struct dev_context *devc, const char *port, const char *serialcomm)
+{
+	char reply[1024];
+
+	devc->serial = sr_serial_dev_inst_new(port, serialcomm ? serialcomm : SERIALCOMM);
+	if (hsdaoh_la_pico_command(devc, "?", reply, sizeof(reply)) == SR_OK &&
+	    strstr(reply, "la8") && hsdaoh_la_pico_parse_status(devc, reply) == SR_OK) {
+		sr_info("la8 on %s: system clock %" PRIu64 " Hz, divider %u (minimum %u).",
+			port, devc->sys_clock, devc->cur_div, devc->min_div);
+		build_samplerate_list(devc);
+		return TRUE;
+	}
+	sr_serial_dev_inst_free(devc->serial);
+	devc->serial = NULL;
+	return FALSE;
+}
+
+/*
+ * No serial port given (e.g. PulseView's automatic scan at startup, or
+ * "Connect to Device" with USB): look for the Pico by its USB IDs, so the
+ * sample rate can still be changed.
+ */
+static char *find_pico(struct dev_context *devc, const char *serialcomm)
+{
+	static const uint16_t pids[] = { PICO_USB_PID_RP2350, PICO_USB_PID_RP2040 };
+	GSList *ports, *l;
+	char *found = NULL;
+
+	for (unsigned int k = 0; k < G_N_ELEMENTS(pids) && !found; k++) {
+		ports = sr_serial_find_usb(PICO_USB_VID, pids[k]);
+		for (l = ports; l && !found; l = l->next) {
+			sr_dbg("Trying Pico serial port %s.", (const char *)l->data);
+			if (probe_pico(devc, l->data, serialcomm))
+				found = g_strdup(l->data);
+		}
+		g_slist_free_full(ports, g_free);
+	}
+	if (!found)
+		sr_info("No la8 serial port found: the sample rate cannot be "
+			"changed (connect with the Pico's serial port to set it).");
+	return found;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config *src;
@@ -125,7 +174,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l, *devices = NULL;
 	const char *conn = NULL, *serialcomm = NULL;
 	uint32_t count;
-	char reply[1024];
+	char *port = NULL;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -152,18 +201,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->state = HL_IDLE;
 
 		/* the serial port belongs to the Pico on the first stick */
-		if (conn && i == 0) {
-			devc->serial = sr_serial_dev_inst_new(conn,
-				serialcomm ? serialcomm : SERIALCOMM);
-			if (hsdaoh_la_pico_command(devc, "?", reply, sizeof(reply)) == SR_OK &&
-			    hsdaoh_la_pico_parse_status(devc, reply) == SR_OK) {
-				sr_info("la8 on %s: system clock %" PRIu64 " Hz, divider %u (minimum %u).",
-					conn, devc->sys_clock, devc->cur_div, devc->min_div);
-				build_samplerate_list(devc);
+		if (i == 0) {
+			if (conn) {
+				if (probe_pico(devc, conn, serialcomm))
+					port = g_strdup(conn);
+				else
+					sr_warn("No la8 status from %s, the sample rate cannot be changed.", conn);
 			} else {
-				sr_warn("No la8 status from %s, the sample rate cannot be changed.", conn);
-				sr_serial_dev_inst_free(devc->serial);
-				devc->serial = NULL;
+				port = find_pico(devc, serialcomm);
 			}
 		}
 
@@ -173,7 +218,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->model = g_strdup("la8 (RP2350 + MS2130)");
 		sdi->inst_type = SR_INST_USER;
 		sdi->connection_id = devc->serial ?
-			g_strdup_printf("hsdaoh/%u + %s", i, conn) :
+			g_strdup_printf("hsdaoh/%u + %s", i, port) :
 			g_strdup_printf("hsdaoh/%u", i);
 		sdi->driver = &hsdaoh_la_driver_info;
 		sdi->priv = devc;
@@ -187,6 +232,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devices = g_slist_append(devices, sdi);
 	}
 
+	g_free(port);
 	return std_scan_complete(di, devices);
 }
 
@@ -249,7 +295,7 @@ static int set_samplerate(struct dev_context *devc, uint64_t rate)
 		return ret;
 	if (hsdaoh_la_pico_parse_status(devc, reply) != SR_OK) {
 		devc->cur_div = (unsigned int)div;
-		devc->samplerate = devc->sys_clock / div;
+		devc->samplerate = hsdaoh_la_rate(devc->sys_clock, div);
 	}
 	/* the stream may be running: ignore the next buffers, they can still
 	 * contain samples taken at the old rate */

@@ -124,6 +124,13 @@ struct dev_context {
 	size_t unpack_size;
 };
 
+/* rate for a divider, rounded like the la8 firmware does (it reports this
+ * value in the stream metadata) */
+static inline uint64_t hsdaoh_la_rate(uint64_t sys_clock, uint64_t div)
+{
+	return (sys_clock + div / 2) / div;
+}
+
 SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info);
 SR_PRIV int hsdaoh_la_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int hsdaoh_la_build_trigger(struct dev_context *devc, struct sr_trigger *trigger);
