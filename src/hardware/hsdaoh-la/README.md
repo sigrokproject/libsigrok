@@ -73,16 +73,30 @@ static and 32-bit by default (`TARGET="i686"`; `x86_64` for 64-bit).
 
 `mxe-build-deps.sh` builds, statically, into the sigrok prefix:
 
-- **libuvc** (github.com/libuvc/libuvc). Its CMake does not find libusb on
-  MinGW, so the script provides the `LibUSB::LibUSB` target from pkg-config.
-- **libhsdaoh** (github.com/dovandung/hsdaoh, branch `la`) with
-  `-DHSDAOH_BUILD_SHARED=OFF -DHSDAOH_BUILD_TOOLS=OFF`.
+- **libusb 1.0.30**, a private copy for libhsdaoh. sigrok's MXE ships an old
+  libusb fork (1.0.20-rc3 "event-abstraction") that libsigrok's own USB code
+  needs on Windows, but that has no WinUSB isochronous support (added in
+  1.0.24) and is not what libhsdaoh is tested with.
+- **libuvc** (github.com/libuvc/libuvc) and **libhsdaoh**
+  (github.com/dovandung/hsdaoh, branch `la`, library only), both built
+  against that libusb.
+- Then every symbol the private libusb defines is renamed
+  (`libusb_init` -> `hsdaoh_priv_libusb_init`, ...) in all three libraries,
+  installed as `libhsdaoh.a`, `libhsdaoh_uvc.a`, `libhsdaoh_usb.a`, so both
+  libusb versions link into the same program without clashing.
+- A `libhsdaoh.pc` that links all three.
 
 libsigrok's configure then finds `libhsdaoh` through pkg-config, and the
 summary lists the driver as `hsdaoh-la`.
 
-The repositories and branches can be changed with the environment variables
-`LIBUVC_REPO`, `LIBUVC_BRANCH`, `HSDAOH_REPO`, `HSDAOH_BRANCH`.
+The sources can be changed with `LIBUSB_REPO`/`LIBUSB_BRANCH`,
+`LIBUVC_REPO`/`LIBUVC_BRANCH`, `HSDAOH_REPO`/`HSDAOH_BRANCH`, or local
+source trees with `LIBUSB_SRC`, `LIBUVC_SRC`, `HSDAOH_SRC`.
+
+The script also works with the newer sigrok CI build
+(github.com/sigrokproject/sigrok-build, `ci/mxe`, Docker image
+`ghcr.io/sigrokproject/sigrok-mxe`): it takes `INSTALL_DIR` when `PREFIX`
+is not set.
 
 ### 32-bit builds
 

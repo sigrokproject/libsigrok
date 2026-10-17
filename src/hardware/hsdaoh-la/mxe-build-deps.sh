@@ -1,61 +1,104 @@
 #!/bin/sh
 ##
-## Build the hsdaoh-la driver's dependencies (libuvc and libhsdaoh, both
-## static) for sigrok's MinGW cross build:
-## sigrok-util/cross-compile/mingw/sigrok-cross-mingw (MXE, *.static.posix).
+## Build the hsdaoh-la driver's dependencies for sigrok's MinGW (MXE) cross
+## build: libusb 1.0.30, libuvc and libhsdaoh, all static.
 ##
-## Run it from sigrok-cross-mingw right before the libsigrok component,
-## inside its build directory. It uses these variables of that script:
+## Why a private libusb: sigrok's MXE uses an old libusb fork
+## (1.0.20-rc3 "event-abstraction"), which libsigrok's own USB code needs on
+## Windows, but which has no WinUSB isochronous support (added in 1.0.24) and
+## is not what libhsdaoh is tested with. So libuvc and libhsdaoh are built
+## against libusb 1.0.30, and every symbol that libusb defines is renamed
+## (libusb_init -> hsdaoh_priv_libusb_init, ...) in all three libraries.
+## Both libusb versions can then be linked into the same program.
 ##
+## Installed into $PREFIX:
+##   lib/libhsdaoh.a, lib/libhsdaoh_uvc.a, lib/libhsdaoh_usb.a
+##   include/hsdaoh.h, include/hsdaoh_export.h
+##   lib/pkgconfig/libhsdaoh.pc   (links all three, nothing else needed)
+##
+## Variables (the sigrok MXE scripts set them; export them for standalone use):
 ##   TOOLCHAIN_TRIPLET  e.g. i686-w64-mingw32.static.posix
-##   PREFIX             install prefix ($HOME/sr_mingw_release_32 etc.)
-##   CMAKE              $TOOLCHAIN_TRIPLET-cmake (MXE's cmake wrapper)
+##   PREFIX             install prefix (sigrok-build calls it INSTALL_DIR)
+##   CMAKE              default $TOOLCHAIN_TRIPLET-cmake (MXE's cmake wrapper)
 ##   PARALLEL, V        optional make flags
+##   HSDAOH_SRC, LIBUVC_SRC, LIBUSB_SRC   local source trees (else git clone)
 ##
-## and PKG_CONFIG_PATH_<triplet>, which that script sets so that MXE's
-## pkg-config finds libusb-1.0 (MXE package libusb1) and $PREFIX/lib/pkgconfig.
-##
-## Standalone use: export those yourself, e.g.
-##   export PATH=$HOME/mxe-git/usr/bin:$PATH
+## Standalone example:
+##   export PATH=$HOME/mxe/usr/bin:$PATH
 ##   export TOOLCHAIN_TRIPLET=i686-w64-mingw32.static.posix
-##   export PREFIX=$HOME/sr_mingw_release_32 CMAKE=$TOOLCHAIN_TRIPLET-cmake
-##   export PKG_CONFIG_PATH_i686_w64_mingw32_static_posix=$PREFIX/lib/pkgconfig:$HOME/mxe-git/usr/$TOOLCHAIN_TRIPLET/lib/pkgconfig
+##   export PREFIX=$HOME/sr_mingw_release_32
 ##   sh mxe-build-deps.sh
 ##
 
 set -e
 
 : "${TOOLCHAIN_TRIPLET:?set TOOLCHAIN_TRIPLET (see the top of this script)}"
+PREFIX=${PREFIX:-$INSTALL_DIR}
 : "${PREFIX:?set PREFIX (see the top of this script)}"
 CMAKE=${CMAKE:-$TOOLCHAIN_TRIPLET-cmake}
-PARALLEL=${PARALLEL:--j 2}
+PARALLEL=${PARALLEL:--j2}
+NM=${NM:-$TOOLCHAIN_TRIPLET-nm}
+OBJCOPY=${OBJCOPY:-$TOOLCHAIN_TRIPLET-objcopy}
 
+LIBUSB_REPO=${LIBUSB_REPO:-https://github.com/libusb/libusb}
+LIBUSB_BRANCH=${LIBUSB_BRANCH:-v1.0.30}
 LIBUVC_REPO=${LIBUVC_REPO:-https://github.com/libuvc/libuvc}
 LIBUVC_BRANCH=${LIBUVC_BRANCH:-master}
 HSDAOH_REPO=${HSDAOH_REPO:-https://github.com/dovandung/hsdaoh}
 HSDAOH_BRANCH=${HSDAOH_BRANCH:-la}
 
-TOP=$(pwd)
+SYMPFX=hsdaoh_priv_
 
-# libuvc's cmake/FindLibUSB.cmake returns without doing anything on MinGW,
-# so its LibUSB::LibUSB target would be missing. Define it from pkg-config.
-cat > "$TOP/hsdaoh-libusb-target.cmake" <<'EOF'
+TOP=$(pwd)/hsdaoh-deps
+PRIV=$TOP/prefix		# private install, never seen by libsigrok
+rm -rf "$TOP"
+mkdir -p "$TOP" "$PRIV"
+cd "$TOP"
+
+# The private prefix comes first for pkg-config, so libuvc and hsdaoh find
+# libusb 1.0.30 instead of MXE's libusb. (MXE's pkg-config wrapper reads
+# PKG_CONFIG_PATH_<triplet>; plain PKG_CONFIG_PATH covers other setups.)
+PCVAR=PKG_CONFIG_PATH_$(echo "$TOOLCHAIN_TRIPLET" | tr '.-' '__')
+eval "OLD_PCPATH=\${$PCVAR}"
+eval "export $PCVAR=\"$PRIV/lib/pkgconfig\""
+OLD_PKG_CONFIG_PATH=$PKG_CONFIG_PATH
+export PKG_CONFIG_PATH="$PRIV/lib/pkgconfig"
+
+getsrc() {	# name src-dir repo branch
+	if [ -n "$2" ]; then
+		cp -a "$2" "$1"
+	else
+		git clone --depth=1 -b "$4" "$3" "$1"
+	fi
+}
+
+echo "component libusb (private copy for libhsdaoh) ..."
+getsrc libusb "$LIBUSB_SRC" "$LIBUSB_REPO" "$LIBUSB_BRANCH"
+cd libusb
+[ -x configure ] || ./bootstrap.sh
+./configure --host="$TOOLCHAIN_TRIPLET" --prefix="$PRIV" \
+	--disable-shared --enable-static --disable-examples-build --disable-tests-build
+make $PARALLEL $V
+make install $V
+cd "$TOP"
+
+# libuvc's cmake/FindLibUSB.cmake does nothing on MinGW, so its
+# LibUSB::LibUSB target would be missing. Define it for the private libusb.
+cat > "$TOP/libusb-target.cmake" <<EOF
 if(NOT TARGET LibUSB::LibUSB)
-  find_package(PkgConfig REQUIRED)
-  pkg_check_modules(HSDAOH_LIBUSB REQUIRED IMPORTED_TARGET libusb-1.0)
-  add_library(LibUSB::LibUSB INTERFACE IMPORTED)
+  add_library(LibUSB::LibUSB STATIC IMPORTED)
   set_target_properties(LibUSB::LibUSB PROPERTIES
-    INTERFACE_LINK_LIBRARIES PkgConfig::HSDAOH_LIBUSB)
+    IMPORTED_LOCATION "$PRIV/lib/libusb-1.0.a"
+    INTERFACE_INCLUDE_DIRECTORIES "$PRIV/include/libusb-1.0")
 endif()
 EOF
 
 echo "component libuvc ..."
-rm -rf libuvc
-git clone --depth=1 -b "$LIBUVC_BRANCH" "$LIBUVC_REPO" libuvc
+getsrc libuvc "$LIBUVC_SRC" "$LIBUVC_REPO" "$LIBUVC_BRANCH"
 mkdir -p libuvc/build
 cd libuvc/build
 $CMAKE \
-	-DCMAKE_INSTALL_PREFIX:PATH="$PREFIX" \
+	-DCMAKE_INSTALL_PREFIX:PATH="$PRIV" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_BUILD_TARGET=Static \
 	-DBUILD_EXAMPLE=OFF \
@@ -63,19 +106,18 @@ $CMAKE \
 	-DBUILD_TESTING=OFF \
 	-DDISABLE_JPEG=ON \
 	-DENABLE_WARNINGS=OFF \
-	-DCMAKE_PROJECT_INCLUDE="$TOP/hsdaoh-libusb-target.cmake" \
+	-DCMAKE_PROJECT_INCLUDE="$TOP/libusb-target.cmake" \
 	..
 make $PARALLEL $V
 make install $V
 cd "$TOP"
 
 echo "component libhsdaoh ..."
-rm -rf hsdaoh
-git clone --depth=1 -b "$HSDAOH_BRANCH" "$HSDAOH_REPO" hsdaoh
+getsrc hsdaoh "$HSDAOH_SRC" "$HSDAOH_REPO" "$HSDAOH_BRANCH"
 mkdir -p hsdaoh/build
 cd hsdaoh/build
 $CMAKE \
-	-DCMAKE_INSTALL_PREFIX:PATH="$PREFIX" \
+	-DCMAKE_INSTALL_PREFIX:PATH="$PRIV" \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DHSDAOH_BUILD_SHARED=OFF \
 	-DHSDAOH_BUILD_TOOLS=OFF \
@@ -85,4 +127,47 @@ make $PARALLEL $V
 make install $V
 cd "$TOP"
 
-echo "libuvc and libhsdaoh installed to $PREFIX"
+eval "export $PCVAR=\"\$OLD_PCPATH\""
+export PKG_CONFIG_PATH="$OLD_PKG_CONFIG_PATH"
+
+echo "renaming the private libusb's symbols ..."
+# Every external symbol libusb-1.0.a defines (code and data). On 32-bit
+# Windows C symbols carry a leading underscore, and GCC/clang may emit
+# .refptr.<symbol> helpers: the prefix goes after both.
+$NM -g --defined-only "$PRIV/lib/libusb-1.0.a" |
+	awk 'NF == 3 { print $3 }' | sort -u |
+	sed -E "s/^(\.refptr\.)?(_?)(.*)$/\1\2\3 \1\2$SYMPFX\3/" > "$TOP/libusb.syms"
+n=$(wc -l < "$TOP/libusb.syms")
+[ "$n" -gt 50 ] || { echo "only $n libusb symbols found, giving up" >&2; exit 1; }
+echo "$n symbols"
+
+mkdir -p "$PREFIX/lib/pkgconfig" "$PREFIX/include"
+$OBJCOPY --redefine-syms="$TOP/libusb.syms" "$PRIV/lib/libusb-1.0.a" "$PREFIX/lib/libhsdaoh_usb.a"
+$OBJCOPY --redefine-syms="$TOP/libusb.syms" "$PRIV/lib/libuvc.a" "$PREFIX/lib/libhsdaoh_uvc.a"
+$OBJCOPY --redefine-syms="$TOP/libusb.syms" "$PRIV/lib/libhsdaoh.a" "$PREFIX/lib/libhsdaoh.a"
+cp "$PRIV/include/hsdaoh.h" "$PRIV/include/hsdaoh_export.h" "$PREFIX/include/"
+
+# Nothing may still refer to an unrenamed libusb symbol.
+left=$($NM -u "$PREFIX/lib/libhsdaoh.a" "$PREFIX/lib/libhsdaoh_uvc.a" 2>/dev/null |
+	awk '{ print $NF }' | grep -E '^_?libusb_' || true)
+if [ -n "$left" ]; then
+	echo "unrenamed libusb references left:" >&2
+	echo "$left" >&2
+	exit 1
+fi
+
+HSDAOH_VERSION=$(sed -n 's/^Version: *//p' "$PRIV/lib/pkgconfig/libhsdaoh.pc")
+cat > "$PREFIX/lib/pkgconfig/libhsdaoh.pc" <<EOF
+prefix=$PREFIX
+libdir=\${prefix}/lib
+includedir=\${prefix}/include
+
+Name: hsdaoh Library
+Description: hsdaoh (static, with private libuvc and libusb 1.0.30)
+Version: ${HSDAOH_VERSION:-0.0.0}
+Cflags: -I\${includedir} -Dhsdaoh_STATIC
+Libs: -L\${libdir} -lhsdaoh -lhsdaoh_uvc -lhsdaoh_usb -lpthread
+EOF
+
+cd "$TOP/.."
+echo "libhsdaoh (with private libuvc and libusb) installed to $PREFIX"
