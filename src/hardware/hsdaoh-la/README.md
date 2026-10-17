@@ -76,7 +76,7 @@ static and 32-bit by default (`TARGET="i686"`; `x86_64` for 64-bit).
 - **libusb 1.0.30**, a private copy for libhsdaoh. sigrok's MXE ships an old
   libusb fork (1.0.20-rc3 "event-abstraction") that libsigrok's own USB code
   needs on Windows, but that has no WinUSB isochronous support (added in
-  1.0.24) and is not what libhsdaoh is tested with.
+  1.0.23) and is not what libhsdaoh is tested with.
 - **libuvc** (github.com/libuvc/libuvc) and **libhsdaoh**
   (github.com/dovandung/hsdaoh, branch `la`, library only), both built
   against that libusb.

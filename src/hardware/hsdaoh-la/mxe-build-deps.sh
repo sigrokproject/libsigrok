@@ -5,7 +5,7 @@
 ##
 ## Why a private libusb: sigrok's MXE uses an old libusb fork
 ## (1.0.20-rc3 "event-abstraction"), which libsigrok's own USB code needs on
-## Windows, but which has no WinUSB isochronous support (added in 1.0.24) and
+## Windows, but which has no WinUSB isochronous support (added in 1.0.23) and
 ## is not what libhsdaoh is tested with. So libuvc and libhsdaoh are built
 ## against libusb 1.0.30, and every symbol that libusb defines is renamed
 ## (libusb_init -> hsdaoh_priv_libusb_init, ...) in all three libraries.
