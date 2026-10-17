@@ -360,8 +360,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_trigger *trigger;
 	int ret;
 
-	if (!devc->hsdaoh)
+	/* a failed reopen in an earlier start left no handle: try again */
+	if (!devc->hsdaoh && hsdaoh_open(&devc->hsdaoh, devc->hsdaoh_index) < 0) {
+		devc->hsdaoh = NULL;
+		sr_err("Failed to open hsdaoh device #%u.", devc->hsdaoh_index);
 		return SR_ERR_DEV_CLOSED;
+	}
 
 	trigger = sr_session_trigger_get(sdi->session);
 	if ((ret = hsdaoh_la_build_trigger(devc, trigger)) != SR_OK)
@@ -403,8 +407,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_session_source_add(sdi->session, -1, 0, 50,
 		hsdaoh_la_receive_data, (void *)sdi);
 
-	if (hsdaoh_start_stream(devc->hsdaoh, hsdaoh_la_data_cb, (void *)sdi, 0) < 0) {
-		sr_err("Failed to start the hsdaoh stream.");
+	ret = hsdaoh_start_stream(devc->hsdaoh, hsdaoh_la_data_cb, (void *)sdi, 0);
+	if (ret < 0) {
+		/*
+		 * libhsdaoh before e7509c2 (Oct 2026) cannot start a stream
+		 * again on a handle whose stream was stopped (returns -2):
+		 * the second Run in PulseView failed. Reopen the device and
+		 * try once more; this also recovers from other start errors.
+		 */
+		sr_warn("Starting the hsdaoh stream failed (%d), reopening the device.", ret);
+		hsdaoh_close(devc->hsdaoh);
+		devc->hsdaoh = NULL;
+		if (hsdaoh_open(&devc->hsdaoh, devc->hsdaoh_index) < 0) {
+			devc->hsdaoh = NULL;
+			ret = -1;
+		} else {
+			ret = hsdaoh_start_stream(devc->hsdaoh, hsdaoh_la_data_cb, (void *)sdi, 0);
+		}
+	}
+	if (ret < 0) {
+		sr_err("Failed to start the hsdaoh stream (%d).", ret);
 		devc->state = HL_FAILED;
 		hsdaoh_la_end_acquisition(sdi, FALSE);
 		return SR_ERR;
