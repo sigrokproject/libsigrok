@@ -207,6 +207,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	if (devc->hsdaoh) {
+		if (devc->streaming)
+			hsdaoh_stop_stream(devc->hsdaoh);
+		devc->streaming = FALSE;
 		hsdaoh_close(devc->hsdaoh);
 		devc->hsdaoh = NULL;
 	}
@@ -248,6 +251,11 @@ static int set_samplerate(struct dev_context *devc, uint64_t rate)
 		devc->cur_div = (unsigned int)div;
 		devc->samplerate = devc->sys_clock / div;
 	}
+	/* the stream may be running: ignore the next buffers, they can still
+	 * contain samples taken at the old rate */
+	g_mutex_lock(&devc->mutex);
+	devc->skip_bufs = 3;
+	g_mutex_unlock(&devc->mutex);
 	sr_info("Sample rate %" PRIu64 " Hz (divider %u).", devc->samplerate, devc->cur_div);
 	return SR_OK;
 }
@@ -407,6 +415,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_session_source_add(sdi->session, -1, 0, 50,
 		hsdaoh_la_receive_data, (void *)sdi);
 
+	/* the stream keeps running between acquisitions; restart it only
+	 * if libhsdaoh reported an error since */
+	if (devc->streaming && devc->stream_error) {
+		sr_warn("The HDMI stream had an error, restarting it.");
+		hsdaoh_stop_stream(devc->hsdaoh);
+		devc->streaming = FALSE;
+	}
+	if (devc->streaming) {
+		sr_info("Waiting for %s, then %" PRIu64 " + %" PRIu64 " samples.",
+			devc->have_trigger ? "the trigger" : "data", devc->pre, devc->post);
+		return SR_OK;
+	}
+
+	devc->stream_error = FALSE;
 	ret = hsdaoh_start_stream(devc->hsdaoh, hsdaoh_la_data_cb, (void *)sdi, 0);
 	if (ret < 0) {
 		/*
@@ -431,6 +453,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		hsdaoh_la_end_acquisition(sdi, FALSE);
 		return SR_ERR;
 	}
+	devc->streaming = TRUE;
 
 	sr_info("Waiting for %s, then %" PRIu64 " + %" PRIu64 " samples.",
 		devc->have_trigger ? "the trigger" : "data", devc->pre, devc->post);

@@ -226,8 +226,15 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 	g_mutex_lock(&devc->mutex);
 
 	if (info->device_error) {
+		devc->stream_error = TRUE;
 		if (devc->state == HL_ARMED || devc->state == HL_CAPTURING)
 			devc->state = HL_FAILED;
+		goto out;
+	}
+	/* just after a sample rate change: these may still hold old-rate samples */
+	if (devc->skip_bufs > 0) {
+		devc->skip_bufs--;
+		devc->cnt_valid = FALSE;
 		goto out;
 	}
 	if (devc->state != HL_ARMED && devc->state != HL_CAPTURING)
@@ -340,29 +347,34 @@ SR_PRIV void hsdaoh_la_send_capture(const struct sr_dev_inst *sdi, gboolean comp
 }
 
 /*
- * End the acquisition: stop the stream (no more libhsdaoh callbacks after
- * that), send what was captured if send is set, close the data feed.
- * Also used by dev_acquisition_stop() when the user presses Stop.
+ * End the acquisition: send what was captured if send is set, close the
+ * data feed. The HDMI stream keeps running (it is stopped in dev_close());
+ * once the state is HL_IDLE the libhsdaoh thread no longer touches the
+ * capture buffers. Also used by dev_acquisition_stop() (Stop button).
  */
 SR_PRIV void hsdaoh_la_end_acquisition(const struct sr_dev_inst *sdi, gboolean send)
 {
 	struct dev_context *devc = sdi->priv;
 	gboolean complete;
+	int state;
 
 	sr_session_source_remove(sdi->session, -1);
-	if (devc->hsdaoh)
-		hsdaoh_stop_stream(devc->hsdaoh);
 
-	complete = (devc->state == HL_DONE);
-	if (send && (complete || devc->state == HL_CAPTURING))
+	g_mutex_lock(&devc->mutex);
+	state = devc->state;
+	devc->state = HL_IDLE;
+	g_mutex_unlock(&devc->mutex);
+
+	complete = (state == HL_DONE);
+	if (send && (complete || state == HL_CAPTURING))
 		hsdaoh_la_send_capture(sdi, complete);
 	if (devc->gaps)
 		sr_info("%" PRIu64 " gap(s) in the HDMI stream during the acquisition.",
 			devc->gaps);
 
-	devc->state = HL_IDLE;
 	std_session_send_df_end(sdi);
 
+	g_mutex_lock(&devc->mutex);
 	g_free(devc->buf);
 	devc->buf = NULL;
 	g_free(devc->hist);
@@ -370,6 +382,7 @@ SR_PRIV void hsdaoh_la_end_acquisition(const struct sr_dev_inst *sdi, gboolean s
 	g_free(devc->unpack);
 	devc->unpack = NULL;
 	devc->unpack_size = 0;
+	g_mutex_unlock(&devc->mutex);
 }
 
 /*

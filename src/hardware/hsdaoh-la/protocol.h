@@ -76,6 +76,15 @@ struct dev_context {
 	/* device */
 	uint32_t hsdaoh_index;
 	hsdaoh_dev_t *hsdaoh;
+	/*
+	 * The HDMI stream is started by the first acquisition and kept
+	 * running until the device is closed: no new synchronization (and
+	 * no lost first frames) for every Run. Between acquisitions the data
+	 * callback ignores the data.
+	 */
+	gboolean streaming;
+	volatile gboolean stream_error;	/* libhsdaoh reported a device error */
+	int skip_bufs;			/* buffers to ignore after a rate change */
 
 	/* optional Pico USB serial port for setting the sample rate */
 	struct sr_serial_dev_inst *serial;
