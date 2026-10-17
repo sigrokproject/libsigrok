@@ -140,29 +140,79 @@ static gboolean probe_pico(struct dev_context *devc, const char *port, const cha
 	return FALSE;
 }
 
+static gboolean in_list(GSList *l, const char *name)
+{
+	for (; l; l = l->next)
+		if (!g_ascii_strcasecmp(l->data, name))
+			return TRUE;
+	return FALSE;
+}
+
+/* the Windows name of a generic USB CDC serial port, e.g. a Pico's */
+static gboolean generic_usb_cdc(const struct sr_serial_port *p)
+{
+	return (p->description && strstr(p->description, "USB Serial Device")) ||
+		(p->name && strstr(p->name, "ttyACM"));
+}
+
 /*
  * No serial port given (e.g. PulseView's automatic scan at startup, or
- * "Connect to Device" with USB): look for the Pico by its USB IDs, so the
- * sample rate can still be changed.
+ * "Connect to Device" with USB): look for the Pico's serial port, so the
+ * sample rate can still be changed. Tried in this order:
+ *  1. HSDAOH_LA_PORT environment variable (e.g. COM21)
+ *  2. ports with the Pico SDK's USB IDs
+ *  3. other generic USB CDC ports ("USB Serial Device (COMx)" on Windows,
+ *     /dev/ttyACMx on Linux), for when the USB IDs cannot be read
+ * Only the la8 status command "?" is sent.
  */
 static char *find_pico(struct dev_context *devc, const char *serialcomm)
 {
 	static const uint16_t pids[] = { PICO_USB_PID_RP2350, PICO_USB_PID_RP2040 };
-	GSList *ports, *l;
+	GSList *tried = NULL, *ports, *l;
+	const char *env;
 	char *found = NULL;
+
+	env = g_getenv("HSDAOH_LA_PORT");
+	if (env && *env) {
+		sr_info("Trying %s (HSDAOH_LA_PORT).", env);
+		if (probe_pico(devc, env, serialcomm))
+			found = g_strdup(env);
+		tried = g_slist_append(tried, g_strdup(env));
+	}
 
 	for (unsigned int k = 0; k < G_N_ELEMENTS(pids) && !found; k++) {
 		ports = sr_serial_find_usb(PICO_USB_VID, pids[k]);
 		for (l = ports; l && !found; l = l->next) {
-			sr_dbg("Trying Pico serial port %s.", (const char *)l->data);
+			if (in_list(tried, l->data))
+				continue;
+			sr_info("Trying Pico serial port %s.", (const char *)l->data);
 			if (probe_pico(devc, l->data, serialcomm))
 				found = g_strdup(l->data);
+			tried = g_slist_append(tried, g_strdup(l->data));
 		}
 		g_slist_free_full(ports, g_free);
 	}
+
+	if (!found) {
+		ports = sr_serial_list(NULL);
+		for (l = ports; l && !found; l = l->next) {
+			struct sr_serial_port *p = l->data;
+			if (!generic_usb_cdc(p) || in_list(tried, p->name))
+				continue;
+			sr_info("Trying USB serial port %s (%s).", p->name,
+				p->description ? p->description : "");
+			if (probe_pico(devc, p->name, serialcomm))
+				found = g_strdup(p->name);
+			tried = g_slist_append(tried, g_strdup(p->name));
+		}
+		g_slist_free_full(ports, (GDestroyNotify)sr_serial_free);
+	}
+
 	if (!found)
-		sr_info("No la8 serial port found: the sample rate cannot be "
-			"changed (connect with the Pico's serial port to set it).");
+		sr_warn("No la8 serial port found (tried %u). The sample rate cannot "
+			"be changed: close other programs using the Pico's COM port, "
+			"or connect with the Pico's serial port.", g_slist_length(tried));
+	g_slist_free_full(tried, g_free);
 	return found;
 }
 
