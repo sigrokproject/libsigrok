@@ -75,16 +75,21 @@ getsrc() {	# name src-dir repo branch
 echo "component libusb (private copy for libhsdaoh) ..."
 getsrc libusb "$LIBUSB_SRC" "$LIBUSB_REPO" "$LIBUSB_BRANCH"
 cd libusb
-[ -x configure ] || ./bootstrap.sh
+[ -f configure ] || sh ./bootstrap.sh
 ./configure --host="$TOOLCHAIN_TRIPLET" --prefix="$PRIV" \
 	--disable-shared --enable-static --disable-examples-build --disable-tests-build
 make $PARALLEL $V
 make install $V
 cd "$TOP"
 
-# libuvc's cmake/FindLibUSB.cmake does nothing on MinGW, so its
-# LibUSB::LibUSB target would be missing. Define it for the private libusb.
+# Included into the libuvc and hsdaoh CMake projects:
+# - The cross toolchain only searches its own root for libraries, so add the
+#   private prefix (else pkg_check_modules would resolve libusb/libuvc to
+#   MXE's libraries, or to nothing).
+# - libuvc's cmake/FindLibUSB.cmake does nothing on MinGW, so its
+#   LibUSB::LibUSB target would be missing. Define it for the private libusb.
 cat > "$TOP/libusb-target.cmake" <<EOF
+list(INSERT CMAKE_FIND_ROOT_PATH 0 "$PRIV")
 if(NOT TARGET LibUSB::LibUSB)
   add_library(LibUSB::LibUSB STATIC IMPORTED)
   set_target_properties(LibUSB::LibUSB PROPERTIES
@@ -122,6 +127,7 @@ $CMAKE \
 	-DHSDAOH_BUILD_SHARED=OFF \
 	-DHSDAOH_BUILD_TOOLS=OFF \
 	-DINSTALL_UDEV_RULES=OFF \
+	-DCMAKE_PROJECT_INCLUDE="$TOP/libusb-target.cmake" \
 	..
 make $PARALLEL $V
 make install $V
