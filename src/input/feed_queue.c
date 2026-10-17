@@ -63,17 +63,16 @@ SR_API int feed_queue_logic_submit_one(struct feed_queue_logic *q,
 	uint8_t *wrptr;
 	int ret;
 
-	wrptr = &q->data_bytes[q->fill_count * q->unit_size];
 	while (repeat_count--) {
-		memcpy(wrptr, data, q->unit_size);
-		wrptr += q->unit_size;
-		q->fill_count++;
+		/* Flush a full queue BEFORE writing, not after. */
 		if (q->fill_count == q->alloc_count) {
 			ret = feed_queue_logic_flush(q);
 			if (ret != SR_OK)
 				return ret;
-			wrptr = &q->data_bytes[0];
 		}
+		wrptr = &q->data_bytes[q->fill_count * q->unit_size];
+		memcpy(wrptr, data, q->unit_size);
+		q->fill_count++;
 	}
 
 	return SR_OK;
