@@ -46,6 +46,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -269,6 +270,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->limit_frames);
+		break;
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
@@ -316,6 +320,9 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_LIMIT_FRAMES:
+		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		ratio = g_variant_get_uint64(data);
@@ -442,6 +449,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 	devc->acq_running = TRUE;
+	devc->frames_done = 0;
 	sr_dbg("Acquisition armed.");
 
 	std_session_send_df_header(sdi);

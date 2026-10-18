@@ -110,6 +110,7 @@ struct dev_context {
 	/* User settings. */
 	const struct logicport_rate *rate;
 	uint64_t limit_samples;
+	uint64_t limit_frames;
 	uint64_t capture_ratio;
 	double threshold;
 	gboolean rle;
@@ -119,6 +120,7 @@ struct dev_context {
 
 	/* Acquisition state. */
 	gboolean acq_running;
+	uint64_t frames_done;
 	/* RLE only: time limits for the pre-/post-trigger fill phases. */
 	gint64 acq_start;
 	gint64 trigger_seen;

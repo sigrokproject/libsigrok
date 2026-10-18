@@ -1536,6 +1536,7 @@ SR_PRIV int logicport_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	uint8_t status;
+	int ret;
 
 	(void)fd;
 	(void)revents;
@@ -1564,8 +1565,28 @@ SR_PRIV int logicport_receive_data(int fd, int revents, void *cb_data)
 	sr_dbg("Acquisition done, status 0x%02x.", status);
 	devc->acq_running = FALSE;
 
-	if (read_samples(sdi, status) != SR_OK)
+	/* With a frame limit, each capture is a frame, then re-arm. */
+	if (devc->limit_frames)
+		std_session_send_df_frame_begin(sdi);
+	ret = read_samples(sdi, status);
+	if (devc->limit_frames)
+		std_session_send_df_frame_end(sdi);
+	if (ret != SR_OK) {
 		sr_err("Failed to read sample memory.");
+		sr_dev_acquisition_stop(sdi);
+		return TRUE;
+	}
+
+	devc->frames_done++;
+	if (devc->frames_done < devc->limit_frames) {
+		if (logicport_start(devc) != SR_OK) {
+			sr_err("Failed to re-arm for the next frame.");
+			sr_dev_acquisition_stop(sdi);
+			return TRUE;
+		}
+		devc->acq_running = TRUE;
+		return TRUE;
+	}
 	sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
