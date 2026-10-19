@@ -1139,8 +1139,12 @@ SR_PRIV int logicport_program(struct dev_context *devc)
 
 	queue_reg(&q, REG_CLOCK_MODE, 1, mode);
 	queue_reg(&q, REG_COMPRESSION, 1, 0);
-	/* All channels are always captured, this only steers compression. */
-	queue_reg(&q, REG_COMPRESSION_MASK, 5, LOGICPORT_ALL_CHANNELS);
+	/*
+	 * All channels are always captured, this only steers compression:
+	 * changes on channels outside the mask don't start a new RLE entry,
+	 * so disabled (e.g. floating) inputs don't fill the sample memory.
+	 */
+	queue_reg(&q, REG_COMPRESSION_MASK, 5, devc->compression_mask);
 	queue_reg(&q, REG_INVERT_MASK, 5, 0);
 	queue_reg(&q, REG_COMPRESSION, 1, devc->rle ? 1 : 0);
 	queue_reg(&q, REG_CHANNEL_CFG, 1, 0);

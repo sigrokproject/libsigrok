@@ -120,6 +120,8 @@ struct dev_context {
 
 	/* Acquisition state. */
 	gboolean acq_running;
+	/* Channels RLE compression watches: the enabled ones. */
+	uint64_t compression_mask;
 	uint64_t frames_done;
 	/* RLE only: time limits for the pre-/post-trigger fill phases. */
 	gint64 acq_start;

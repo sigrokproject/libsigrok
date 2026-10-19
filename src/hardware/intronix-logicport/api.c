@@ -416,12 +416,30 @@ static int prepare(const struct sr_dev_inst *sdi)
 	return logicport_program(devc);
 }
 
+/* Bit k set for each enabled channel k; all channels if none is enabled. */
+static uint64_t enabled_channels_mask(const struct sr_dev_inst *sdi)
+{
+	const struct sr_channel *ch;
+	const GSList *l;
+	uint64_t mask;
+
+	mask = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->enabled && ch->index < LOGICPORT_NUM_CHANNELS)
+			mask |= UINT64_C(1) << ch->index;
+	}
+
+	return mask ? mask : LOGICPORT_ALL_CHANNELS;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
 
 	devc = sdi->priv;
+	devc->compression_mask = enabled_channels_mask(sdi);
 
 	if (devc->rle && !devc->external_clock &&
 	    devc->rate->samplerate > LOGICPORT_RLE_MAX_RATE) {
