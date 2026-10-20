@@ -53,8 +53,11 @@ SR_PRIV int hsdaoh_la_build_trigger(struct dev_context *devc, struct sr_trigger 
 		match = l->data;
 		if (!match->channel->enabled)
 			continue;
-		if (match->channel->index < 0 || match->channel->index >= HSDAOH_LA_NUM_CHANNELS)
-			continue;
+		if (match->channel->index < 0 || match->channel->index >= (int)devc->channels) {
+			sr_err("Trigger on D%d, but the device has %u channels.",
+				match->channel->index, devc->channels);
+			return SR_ERR_ARG;
+		}
 		uint8_t m = 1 << match->channel->index;
 		switch (match->match) {
 		case SR_TRIGGER_ZERO:    must_zero |= m; break;
@@ -236,7 +239,7 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 {
 	struct sr_dev_inst *sdi = info->ctx;
 	struct dev_context *devc = sdi->priv;
-	size_t words, n;
+	size_t words, n, spw;
 	uint64_t cnt;
 
 	if (info->stream_id != 0)
@@ -266,6 +269,12 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 	if (!words)
 		goto out;
 
+#if HSDAOH_LA_HAVE_FORMAT
+	spw = info->format == HSDAOH_FORMAT_PIO_4BIT ? 4 : 2;
+#else
+	spw = 2;
+#endif
+
 	/* lost data: the device's word counter does not continue */
 	cnt = info->data_cnt;
 	if (devc->cnt_valid && cnt != devc->next_cnt) {
@@ -283,7 +292,7 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 	devc->next_cnt = cnt + words;
 	devc->cnt_valid = TRUE;
 
-	n = words * 2;
+	n = words * spw;
 	if (n > devc->unpack_size) {
 		g_free(devc->unpack);
 		devc->unpack = g_try_malloc(n);
@@ -293,9 +302,21 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 			goto out;
 		}
 	}
-	for (size_t w = 0; w < words; w++) {
-		devc->unpack[2 * w] = info->buf[2 * w + 1];
-		devc->unpack[2 * w + 1] = info->buf[2 * w];
+	if (spw == 2) {
+		/* la8: high byte is the earlier sample */
+		for (size_t w = 0; w < words; w++) {
+			devc->unpack[2 * w] = info->buf[2 * w + 1];
+			devc->unpack[2 * w + 1] = info->buf[2 * w];
+		}
+	} else {
+		/* la4: bits 15:12 are the earliest sample, 3:0 the latest */
+		for (size_t w = 0; w < words; w++) {
+			uint8_t hi = info->buf[2 * w + 1], lo = info->buf[2 * w];
+			devc->unpack[4 * w] = hi >> 4;
+			devc->unpack[4 * w + 1] = hi & 0x0f;
+			devc->unpack[4 * w + 2] = lo >> 4;
+			devc->unpack[4 * w + 3] = lo & 0x0f;
+		}
 	}
 	process(devc, devc->unpack, n);
 
@@ -488,7 +509,7 @@ SR_PRIV int hsdaoh_la_pico_command(struct dev_context *devc, const char *cmd,
 	}
 	reply[len] = 0;
 	if (!len)
-		sr_err("No answer from the Pico on %s (is la8 running?).", serial->port);
+		sr_err("No answer from the Pico on %s (is la8 or la4 running?).", serial->port);
 	else
 		sr_dbg("Pico answer to '%s': %s", cmd, reply);
 
@@ -498,8 +519,9 @@ out:
 }
 
 /*
- * Parse the la8 status line, e.g.
+ * Parse the la8 / la4 status line, e.g.
  * "la8: GP0..GP7, 140.000 MS/s (sys 280 MHz / 2), minimum divider 2, HDMI 384 MHz (USB PLL)"
+ * "la4: GP0..GP3, 280.000 MS/s (sys 280 MHz / 1), minimum divider 1, HDMI 384 MHz (USB PLL)"
  */
 SR_PRIV int hsdaoh_la_pico_parse_status(struct dev_context *devc, const char *reply)
 {

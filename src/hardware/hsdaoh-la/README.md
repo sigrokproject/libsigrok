@@ -1,15 +1,24 @@
-# hsdaoh-la: libsigrok driver for the hsdaoh la8 logic analyzer
+# hsdaoh-la: libsigrok driver for the hsdaoh la8 / la4 logic analyzer
 
-8 channel logic analyzer made of
+Logic analyzer made of
 
-- a Raspberry Pi Pico 2 (RP2350) running the **la8** app of
-  [hsdaoh-rp2350](https://github.com/dovandung/hsdaoh-rp2350) (branch `la8`):
-  it samples GP0..GP7 continuously and streams every sample over HDMI
+- a Raspberry Pi Pico 2 (RP2350) running an app of
+  [hsdaoh-rp2350](https://github.com/dovandung/hsdaoh-rp2350):
+  - **la8** (branch `la8`): 8 channels GP0..GP7, up to 140 MS/s
+    (280 MHz / divider 2), 2 samples per 16-bit HDMI word
+  - **la4** (branch `la4`): 4 channels GP0..GP3, up to 280 MS/s
+    (280 MHz / divider 1, one sample per system clock), 4 samples per word
+  
+  Both stream every sample over HDMI at the same link rate (HDMI clock
+  384 MHz), down to about 4.3 kS/s (divider 65535).
 - an **MS2130** USB3 HDMI capture stick, read on the PC by
   [libhsdaoh](https://github.com/dovandung/hsdaoh) (branch `la`)
 
-Up to 140 MS/s (preset 140: system clock 280 MHz / divider 2, HDMI clock
-384 MHz) down to about 4.3 kS/s (divider 65535).
+The driver reads the Pico's status line at scan time ("la8: ..." or
+"la4: ...") and creates 8 or 4 channels; each received buffer is unpacked by
+the stream format the device sends (PIO_8BIT or PIO_4BIT). libhsdaoh must be
+recent enough to report the format (hsdaoh `la` 25951fc or later);
+with an older libhsdaoh every stream is treated as la8.
 
 ## How it works
 

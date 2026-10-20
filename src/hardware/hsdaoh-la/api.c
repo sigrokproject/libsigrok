@@ -122,16 +122,19 @@ static int dev_clear(const struct sr_dev_driver *di)
 #define PICO_USB_PID_RP2350	0x0009
 #define PICO_USB_PID_RP2040	0x000a
 
-/* ask the la8 firmware on 'port' for its status; TRUE if it answered */
+/* ask the la8 / la4 firmware on 'port' for its status; TRUE if it answered */
 static gboolean probe_pico(struct dev_context *devc, const char *port, const char *serialcomm)
 {
 	char reply[1024];
 
 	devc->serial = sr_serial_dev_inst_new(port, serialcomm ? serialcomm : SERIALCOMM);
 	if (hsdaoh_la_pico_command(devc, "?", reply, sizeof(reply)) == SR_OK &&
-	    strstr(reply, "la8") && hsdaoh_la_pico_parse_status(devc, reply) == SR_OK) {
-		sr_info("la8 on %s: system clock %" PRIu64 " Hz, divider %u (minimum %u).",
-			port, devc->sys_clock, devc->cur_div, devc->min_div);
+	    (strstr(reply, "la8:") || strstr(reply, "la4:")) &&
+	    hsdaoh_la_pico_parse_status(devc, reply) == SR_OK) {
+		devc->channels = strstr(reply, "la4:") ? HSDAOH_LA_LA4_CHANNELS : HSDAOH_LA_NUM_CHANNELS;
+		sr_info("%s on %s: %u channels, system clock %" PRIu64 " Hz, divider %u (minimum %u).",
+			devc->channels == HSDAOH_LA_LA4_CHANNELS ? "la4" : "la8", port,
+			devc->channels, devc->sys_clock, devc->cur_div, devc->min_div);
 		build_samplerate_list(devc);
 		return TRUE;
 	}
@@ -163,7 +166,7 @@ static gboolean generic_usb_cdc(const struct sr_serial_port *p)
  *  2. ports with the Pico SDK's USB IDs
  *  3. other generic USB CDC ports ("USB Serial Device (COMx)" on Windows,
  *     /dev/ttyACMx on Linux), for when the USB IDs cannot be read
- * Only the la8 status command "?" is sent.
+ * Only the status command "?" is sent.
  */
 static char *find_pico(struct dev_context *devc, const char *serialcomm)
 {
@@ -209,7 +212,7 @@ static char *find_pico(struct dev_context *devc, const char *serialcomm)
 	}
 
 	if (!found)
-		sr_warn("No la8 serial port found (tried %u). The sample rate cannot "
+		sr_warn("No la8/la4 serial port found (tried %u). The sample rate cannot "
 			"be changed: close other programs using the Pico's COM port, "
 			"or connect with the Pico's serial port.", g_slist_length(tried));
 	g_slist_free_full(tried, g_free);
@@ -249,6 +252,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->limit_samples = SR_MHZ(1);
 		devc->capture_ratio = 10;
 		devc->state = HL_IDLE;
+		devc->channels = HSDAOH_LA_NUM_CHANNELS;	/* la4 found by its status line */
 
 		/* the serial port belongs to the Pico on the first stick */
 		if (i == 0) {
@@ -256,7 +260,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				if (probe_pico(devc, conn, serialcomm))
 					port = g_strdup(conn);
 				else
-					sr_warn("No la8 status from %s, the sample rate cannot be changed.", conn);
+					sr_warn("No la8/la4 status from %s, the sample rate cannot be changed.", conn);
 			} else {
 				port = find_pico(devc, serialcomm);
 			}
@@ -265,7 +269,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("hsdaoh");
-		sdi->model = g_strdup("la8 (RP2350 + MS2130)");
+		sdi->model = g_strdup(devc->channels == HSDAOH_LA_LA4_CHANNELS ?
+			"la4 (RP2350 + MS2130)" : "la8 (RP2350 + MS2130)");
 		sdi->inst_type = SR_INST_USER;
 		sdi->connection_id = devc->serial ?
 			g_strdup_printf("hsdaoh/%u + %s", i, port) :
@@ -273,7 +278,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->driver = &hsdaoh_la_driver_info;
 		sdi->priv = devc;
 
-		for (int ch = 0; ch < HSDAOH_LA_NUM_CHANNELS; ch++) {
+		for (int ch = 0; ch < (int)devc->channels; ch++) {
 			char name[8];
 			snprintf(name, sizeof(name), "D%d", ch);
 			sr_channel_new(sdi, ch, SR_CHANNEL_LOGIC, TRUE, name);
@@ -338,7 +343,7 @@ static int set_samplerate(struct dev_context *devc, uint64_t rate)
 	snprintf(cmd, sizeof(cmd), "div %u", (unsigned int)div);
 	ret = hsdaoh_la_pico_command(devc, cmd, reply, sizeof(reply));
 	if (ret == SR_ERR_ARG) {
-		sr_err("la8 refused '%s': %s", cmd, reply);
+		sr_err("The Pico refused '%s': %s", cmd, reply);
 		return SR_ERR_ARG;
 	}
 	if (ret != SR_OK)
@@ -568,7 +573,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver hsdaoh_la_driver_info = {
 	.name = "hsdaoh-la",
-	.longname = "hsdaoh la8 (RP2350 + MS2130 HDMI capture)",
+	.longname = "hsdaoh la8/la4 (RP2350 + MS2130 HDMI capture)",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,

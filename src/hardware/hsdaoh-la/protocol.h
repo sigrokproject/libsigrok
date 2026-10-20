@@ -18,10 +18,13 @@
  */
 
 /*
- * hsdaoh-la: 8 channel logic analyzer made of a Raspberry Pi Pico 2 (RP2350)
- * running the hsdaoh-rp2350 "la8" firmware and an MS2130 USB3 HDMI capture
- * stick. The Pico samples GP0..GP7 continuously and streams every sample
- * over HDMI; libhsdaoh receives the stream on the PC.
+ * hsdaoh-la: logic analyzer made of a Raspberry Pi Pico 2 (RP2350) running
+ * the hsdaoh-rp2350 "la8" firmware (8 channels GP0..GP7, up to 140 MS/s) or
+ * "la4" firmware (4 channels GP0..GP3, up to 280 MS/s) and an MS2130 USB3
+ * HDMI capture stick. The Pico samples continuously and streams every sample
+ * over HDMI; libhsdaoh receives the stream on the PC. The channel count comes
+ * from the Pico's status line; each buffer is unpacked by its stream format
+ * (PIO_8BIT: 2 samples per 16-bit word, PIO_4BIT: 4 samples per word).
  *
  * Acquisition model (kept simple on purpose):
  *   - the stream is scanned on the PC for the trigger condition
@@ -46,7 +49,16 @@
 
 #define LOG_PREFIX "hsdaoh-la"
 
+/* channels: la8 firmware 8 (GP0..GP7), la4 firmware 4 (GP0..GP3) */
 #define HSDAOH_LA_NUM_CHANNELS		8
+#define HSDAOH_LA_LA4_CHANNELS		4
+/* stream formats (from libhsdaoh's hsdaoh.h; older headers have no
+ * format in the callback data, la8 is assumed then) */
+#ifdef HSDAOH_FORMAT_PIO_4BIT
+#define HSDAOH_LA_HAVE_FORMAT		1
+#else
+#define HSDAOH_LA_HAVE_FORMAT		0
+#endif
 /* used until the device has reported its rate in the stream metadata */
 #define HSDAOH_LA_DEFAULT_SAMPLERATE	SR_MHZ(140)
 /* the la8 firmware's divider range */
@@ -76,6 +88,7 @@ struct dev_context {
 	/* device */
 	uint32_t hsdaoh_index;
 	hsdaoh_dev_t *hsdaoh;
+	unsigned int channels;		/* 8 (la8) or 4 (la4; from the Pico's status) */
 	/*
 	 * The HDMI stream is started by the first acquisition and kept
 	 * running until the device is closed: no new synchronization (and
