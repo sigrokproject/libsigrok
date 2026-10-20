@@ -14,6 +14,13 @@ Logic analyzer made of
 - an **MS2130** USB3 HDMI capture stick, read on the PC by
   [libhsdaoh](https://github.com/dovandung/hsdaoh) (branch `la`)
 
+  - **la48** (branch `la4`): one firmware for both, switched at runtime
+    (`ch 8` / `ch 4` on its USB serial port). The driver picks the mode
+    at Run: rates above the 8 channel maximum (140 MS/s) use 4 channel
+    mode and need D4..D7 disabled in PulseView's channel menu (else Run
+    stops with an error saying so); otherwise any enabled D4..D7 selects
+    8 channel mode. The Pico's serial port is needed for this.
+
 The driver reads the Pico's status line at scan time ("la8: ..." or
 "la4: ...") and creates 8 or 4 channels; each received buffer is unpacked by
 the stream format the device sends (PIO_8BIT or PIO_4BIT). libhsdaoh must be

@@ -102,8 +102,14 @@ struct dev_context {
 	/* optional Pico USB serial port for setting the sample rate */
 	struct sr_serial_dev_inst *serial;
 	uint64_t sys_clock;		/* Pico system clock in Hz (0 = unknown) */
-	unsigned int min_div;		/* smallest divider the firmware accepts */
+	unsigned int min_div;		/* smallest divider the firmware accepts
+					 * (la48: in its fastest, 4 channel mode) */
 	unsigned int cur_div;
+	/* la48 firmware: 8 or 4 channels, switched with "ch 8" / "ch 4" */
+	gboolean switchable;
+	unsigned int fw_channels;	/* mode the Pico is in now */
+	unsigned int min_div8, min_div4;	/* smallest divider per mode */
+	unsigned int want_div;		/* divider for the next acquisition (0 = cur_div) */
 	uint64_t *samplerate_list;
 	unsigned int num_samplerates;
 

@@ -121,7 +121,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 #define PICO_USB_PID_RP2350	0x0009
 #define PICO_USB_PID_RP2040	0x000a
 
-/* ask the la8 / la4 firmware on 'port' for its status; TRUE if it answered */
+/* ask the la8 / la4 / la48 firmware on 'port' for its status; TRUE if it answered */
 static gboolean probe_pico(struct dev_context *devc, const char *port, const char *serialcomm)
 {
 	char reply[1024];
@@ -130,10 +130,18 @@ static gboolean probe_pico(struct dev_context *devc, const char *port, const cha
 	if (hsdaoh_la_pico_command(devc, "?", reply, sizeof(reply)) == SR_OK &&
 	    (strstr(reply, "la8:") || strstr(reply, "la4:")) &&
 	    hsdaoh_la_pico_parse_status(devc, reply) == SR_OK) {
-		devc->channels = strstr(reply, "la4:") ? HSDAOH_LA_LA4_CHANNELS : HSDAOH_LA_NUM_CHANNELS;
-		sr_info("%s on %s: %u channels, system clock %" PRIu64 " Hz, divider %u (minimum %u).",
-			devc->channels == HSDAOH_LA_LA4_CHANNELS ? "la4" : "la8", port,
-			devc->channels, devc->sys_clock, devc->cur_div, devc->min_div);
+		if (devc->switchable) {
+			/* la48: all 8 channels; 4 channel mode chosen at Run */
+			devc->channels = HSDAOH_LA_NUM_CHANNELS;
+			sr_info("la48 on %s, now %u channels: system clock %" PRIu64 " Hz, divider %u "
+				"(minimum %u with 8 channels, %u with 4).", port, devc->fw_channels,
+				devc->sys_clock, devc->cur_div, devc->min_div8, devc->min_div4);
+		} else {
+			devc->channels = strstr(reply, "la4:") ? HSDAOH_LA_LA4_CHANNELS : HSDAOH_LA_NUM_CHANNELS;
+			sr_info("%s on %s: %u channels, system clock %" PRIu64 " Hz, divider %u (minimum %u).",
+				devc->channels == HSDAOH_LA_LA4_CHANNELS ? "la4" : "la8", port,
+				devc->channels, devc->sys_clock, devc->cur_div, devc->min_div);
+		}
 		build_samplerate_list(devc);
 		return TRUE;
 	}
@@ -268,7 +276,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("hsdaoh");
-		sdi->model = g_strdup(devc->channels == HSDAOH_LA_LA4_CHANNELS ?
+		sdi->model = g_strdup(devc->switchable ? "la48 (RP2350 + MS2130)" :
+			devc->channels == HSDAOH_LA_LA4_CHANNELS ?
 			"la4 (RP2350 + MS2130)" : "la8 (RP2350 + MS2130)");
 		sdi->inst_type = SR_INST_USER;
 		sdi->connection_id = devc->serial ?
@@ -338,6 +347,17 @@ static int set_samplerate(struct dev_context *devc, uint64_t rate)
 		div = devc->min_div;
 	if (div > HSDAOH_LA_MAX_DIVIDER)
 		div = HSDAOH_LA_MAX_DIVIDER;
+
+	if (devc->switchable) {
+		devc->want_div = (unsigned int)div;
+		if (div < (devc->fw_channels == 4 ? devc->min_div4 : devc->min_div8)) {
+			/* needs the other mode: switched at the next Run */
+			devc->samplerate = hsdaoh_la_rate(devc->sys_clock, div);
+			sr_info("Sample rate %" PRIu64 " Hz (divider %" PRIu64 "): needs the 4 channel "
+				"mode, set at Run.", devc->samplerate, div);
+			return SR_OK;
+		}
+	}
 
 	snprintf(cmd, sizeof(cmd), "div %u", (unsigned int)div);
 	ret = hsdaoh_la_pico_command(devc, cmd, reply, sizeof(reply));
@@ -462,6 +482,86 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
+/* send one command to la48 and take over its status; skip the next buffers */
+static int la48_command(struct dev_context *devc, const char *cmd)
+{
+	char reply[1024];
+	int ret = hsdaoh_la_pico_command(devc, cmd, reply, sizeof(reply));
+
+	if (ret == SR_ERR_ARG)
+		sr_err("The Pico refused '%s': %s", cmd, reply);
+	if (ret != SR_OK)
+		return ret;
+	hsdaoh_la_pico_parse_status(devc, reply);
+	/* the stream keeps running: ignore the buffers around the change */
+	g_mutex_lock(&devc->mutex);
+	devc->skip_bufs = 3;
+	g_mutex_unlock(&devc->mutex);
+	return SR_OK;
+}
+
+/*
+ * la48 firmware: choose the mode for this acquisition from the rate and
+ * the enabled channels, then set mode and divider on the Pico.
+ *   rate needs 4 channels (divider below the 8 channel minimum) -> 4,
+ *     refused if any of D4..D7 is enabled
+ *   else any of D4..D7 enabled -> 8
+ *   else keep the current mode (no switch needed)
+ */
+static int la48_configure(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	unsigned int div, want;
+	gboolean need8 = FALSE;
+	char cmd[16];
+	int ret;
+
+	if (!devc->switchable || !devc->serial)
+		return SR_OK;
+
+	for (GSList *l = sdi->channels; l; l = l->next) {
+		struct sr_channel *ch = l->data;
+		if (ch->enabled && ch->index >= HSDAOH_LA_LA4_CHANNELS)
+			need8 = TRUE;
+	}
+	div = devc->want_div ? devc->want_div : devc->cur_div;
+
+	if (div < devc->min_div8)
+		want = 4;
+	else if (need8)
+		want = 8;
+	else
+		want = devc->fw_channels;
+
+	if (want == 4 && need8) {
+		char *r = sr_samplerate_string(hsdaoh_la_rate(devc->sys_clock, div));
+		char *r8 = sr_samplerate_string(hsdaoh_la_rate(devc->sys_clock, devc->min_div8));
+		sr_err("%s needs the 4 channel mode: disable D4..D7, or choose %s or less.",
+			r, r8);
+		g_free(r);
+		g_free(r8);
+		return SR_ERR_ARG;
+	}
+
+	if (want != devc->fw_channels) {
+		snprintf(cmd, sizeof(cmd), "ch %u", want);
+		if ((ret = la48_command(devc, cmd)) != SR_OK)
+			return ret;
+		if (devc->fw_channels != want) {
+			sr_err("The Pico did not switch to %u channels.", want);
+			return SR_ERR;
+		}
+		sr_info("la48 now in %u channel mode.", want);
+	}
+	if (devc->cur_div != div) {
+		snprintf(cmd, sizeof(cmd), "div %u", div);
+		if ((ret = la48_command(devc, cmd)) != SR_OK)
+			return ret;
+	}
+	devc->samplerate = hsdaoh_la_rate(devc->sys_clock, devc->cur_div);
+	return SR_OK;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
@@ -474,6 +574,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		sr_err("Failed to open hsdaoh device #%u.", devc->hsdaoh_index);
 		return SR_ERR_DEV_CLOSED;
 	}
+
+	if ((ret = la48_configure(sdi)) != SR_OK)
+		return ret;
 
 	trigger = sr_session_trigger_get(sdi->session);
 	if ((ret = hsdaoh_la_build_trigger(devc, trigger)) != SR_OK)

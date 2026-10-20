@@ -614,6 +614,10 @@ SR_PRIV int hsdaoh_la_pico_command(struct dev_context *devc, const char *cmd,
 			ret = SR_ERR_ARG;
 			break;
 		}
+		if (strstr(reply, "channels must be") && strchr(strstr(reply, "channels must be"), '\n')) {
+			ret = SR_ERR_ARG;
+			break;
+		}
 	}
 	reply[len] = 0;
 	if (!len)
@@ -627,9 +631,11 @@ out:
 }
 
 /*
- * Parse the la8 / la4 status line, e.g.
+ * Parse the la8 / la4 / la48 status, e.g.
  * "la8: GP0..GP7, 140.000 MS/s (sys 280 MHz / 2), minimum divider 2, HDMI 384 MHz (USB PLL)"
  * "la4: GP0..GP3, 280.000 MS/s (sys 280 MHz / 1), minimum divider 1, HDMI 384 MHz (USB PLL)"
+ * la48 prints one of these for its current mode, then
+ * "la48 switchable: ch 8 (GP0..GP7, minimum divider 2) or ch 4 (GP0..GP3, minimum divider 1)"
  */
 SR_PRIV int hsdaoh_la_pico_parse_status(struct dev_context *devc, const char *reply)
 {
@@ -646,6 +652,23 @@ SR_PRIV int hsdaoh_la_pico_parse_status(struct dev_context *devc, const char *re
 	devc->sys_clock = (uint64_t)sys_mhz * 1000000;
 	devc->cur_div = div;
 	devc->min_div = min_div;
+	devc->fw_channels = strstr(reply, "la4:") ? 4 : 8;
+
+	/* la48: "la48 switchable: ch 8 (GP0..GP7, minimum divider 2) or
+	 * ch 4 (GP0..GP3, minimum divider 1)" */
+	p = strstr(reply, "la48 switchable:");
+	if (p) {
+		unsigned int m8, m4;
+		const char *p8 = strstr(p, "ch 8 ("), *p4 = strstr(p, "ch 4 (");
+		if (p8 && p4 && (p8 = strstr(p8, "minimum divider ")) && (p4 = strstr(p4, "minimum divider ")) &&
+		    sscanf(p8, "minimum divider %u", &m8) == 1 && sscanf(p4, "minimum divider %u", &m4) == 1 &&
+		    m8 && m4) {
+			devc->switchable = TRUE;
+			devc->min_div8 = m8;
+			devc->min_div4 = m4;
+			devc->min_div = MIN(m8, m4);	/* rates down from the 4 channel maximum */
+		}
+	}
 	devc->samplerate = hsdaoh_la_rate(devc->sys_clock, div);
 	return SR_OK;
 }
