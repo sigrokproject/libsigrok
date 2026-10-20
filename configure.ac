@@ -113,6 +113,9 @@ SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
+# hsdaoh (MS213x HDMI capture sticks as data acquisition), used by hsdaoh-la
+SR_ARG_OPT_PKG([libhsdaoh], [LIBHSDAOH], , [libhsdaoh])
+
 # pkg-config file names: MinGW/MacOSX: hidapi; Linux: hidapi-hidraw/-libusb
 SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
 	[hidapi >= 0.8.0], [hidapi-hidraw >= 0.8.0], [hidapi-libusb >= 0.8.0])
@@ -344,6 +347,7 @@ SR_DRIVER([Hantek DSO], [hantek-dso], [libusb])
 SR_DRIVER([HP 3457A], [hp-3457a])
 SR_DRIVER([HP 3478A], [hp-3478a], [libgpib])
 SR_DRIVER([hp-59306a], [hp-59306a])
+SR_DRIVER([hsdaoh la8], [hsdaoh-la], [libhsdaoh serial_comm])
 SR_DRIVER([Hung-Chang DSO-2100], [hung-chang-dso-2100], [libieee1284])
 SR_DRIVER([ICStation USBRelay], [icstation-usbrelay], [serial_comm])
 SR_DRIVER([Ikalogic Scanalogic-2], [ikalogic-scanalogic2], [libusb])
