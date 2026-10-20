@@ -105,7 +105,6 @@ static void clear_helper(struct dev_context *devc)
 	if (devc->serial)
 		sr_serial_dev_inst_free(devc->serial);
 	g_free(devc->samplerate_list);
-	g_free(devc->trig_tbl);
 	g_free(devc->buf);
 	g_free(devc->hist);
 	g_free(devc->unpack);

@@ -38,8 +38,6 @@ SR_PRIV int hsdaoh_la_build_trigger(struct dev_context *devc, struct sr_trigger 
 	uint8_t must_zero = 0, must_one = 0, rising = 0, falling = 0, edge = 0;
 	GSList *l;
 
-	g_free(devc->trig_tbl);
-	devc->trig_tbl = NULL;
 	devc->have_trigger = FALSE;
 
 	if (!trigger || !trigger->stages)
@@ -74,26 +72,18 @@ SR_PRIV int hsdaoh_la_build_trigger(struct dev_context *devc, struct sr_trigger 
 	if (!(must_zero | must_one | rising | falling | edge))
 		return SR_OK;		/* nothing to wait for */
 
-	devc->trig_tbl = g_try_malloc(65536);
-	if (!devc->trig_tbl)
-		return SR_ERR_MALLOC;
-
-	for (unsigned int p = 0; p < 256; p++) {
-		for (unsigned int c = 0; c < 256; c++) {
-			gboolean ok = TRUE;
-			ok &= (c & must_zero) == 0;
-			ok &= (c & must_one) == must_one;
-			ok &= ((~p & c) & rising) == rising;
-			ok &= ((p & ~c) & falling) == falling;
-			ok &= ((p ^ c) & edge) == edge;
-			devc->trig_tbl[(p << 8) | c] = ok ? 1 : 0;
-		}
-	}
+	devc->trig_zero = must_zero;
+	devc->trig_one = must_one;
+	devc->trig_rise = rising;
+	devc->trig_fall = falling;
+	devc->trig_edge = edge;
 	devc->have_trigger = TRUE;
 	return SR_OK;
 }
 
 /* ------------------------------------------------------------- capture */
+
+static void nibble_tbl_init(void);
 
 /* forget the pre-trigger history (after a gap in the stream) */
 static void hist_reset(struct dev_context *devc)
@@ -146,13 +136,50 @@ SR_PRIV void hsdaoh_la_reset_capture(struct dev_context *devc)
 	devc->cnt_valid = FALSE;
 	devc->gaps = 0;
 	devc->state = HL_ARMED;
+	nibble_tbl_init();
 }
 
-/* index of the first sample in s[from..n) that meets the trigger, or n */
+/*
+ * Bits of a sample 'c' (after 'p') that violate the trigger; 0 = match.
+ * Works on one byte or, bytewise, on 8 samples packed in a uint64_t.
+ */
+#define TRIG_BAD(c, p, z, o, r, f, e) \
+	(((c) & (z)) | ((o) & ~(c)) | ((r) & ((p) | ~(c))) | \
+	 ((f) & (~(p) | (c))) | ((e) & ~((p) ^ (c))))
+
+#define BYTES8(x)	((uint64_t)(x) * UINT64_C(0x0101010101010101))
+
+static inline uint64_t load_u64(const uint8_t *p)
+{
+	uint64_t v;
+	memcpy(&v, p, sizeof(v));	/* unaligned load, one instruction on x86 */
+	return v;
+}
+
+static inline unsigned int ctz64(uint64_t v)
+{
+#if defined(__GNUC__) || defined(__clang__)
+	return (unsigned int)__builtin_ctzll(v);
+#else
+	unsigned int n = 0;
+	while (!(v & 1)) { v >>= 1; n++; }
+	return n;
+#endif
+}
+
+/*
+ * Index of the first sample in s[from..n) that meets the trigger, or n.
+ * 8 samples are tested at once (bytewise logic on 64-bit words, no SIMD
+ * instructions needed): a sample matches when its 'bad' byte is 0, and the
+ * lowest zero byte of a word is found with the usual (v - 0x01..) & ~v &
+ * 0x80.. test, exact for the lowest byte (= earliest sample, little endian).
+ */
 static size_t find_trigger(struct dev_context *devc, const uint8_t *s, size_t from, size_t n)
 {
-	const uint8_t *tbl = devc->trig_tbl;
+	const unsigned int z = devc->trig_zero, o = devc->trig_one, r = devc->trig_rise,
+		f = devc->trig_fall, e = devc->trig_edge;
 	unsigned int p;
+	size_t j;
 
 	if (from >= n)
 		return n;
@@ -162,13 +189,83 @@ static size_t find_trigger(struct dev_context *devc, const uint8_t *s, size_t fr
 		p = s[from - 1];
 	else
 		p = devc->have_prev ? devc->prev : s[0];
-	for (size_t j = from; j < n; j++) {
-		unsigned int c = s[j];
-		if (tbl[(p << 8) | c])
-			return j;
-		p = c;
+	j = from;
+	if (!(TRIG_BAD((unsigned int)s[j], p, z, o, r, f, e) & 0xff))
+		return j;
+	j++;
+
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+	{
+		const uint64_t Z = BYTES8(z), O = BYTES8(o), R = BYTES8(r),
+			F = BYTES8(f), E = BYTES8(e);
+		const uint64_t ONES = BYTES8(0x01), HIGHS = BYTES8(0x80);
+
+		/* s[j - 1] exists from here on */
+		for (; j + 8 <= n; j += 8) {
+			uint64_t c = load_u64(s + j), pv = load_u64(s + j - 1);
+			uint64_t bad = TRIG_BAD(c, pv, Z, O, R, F, E);
+			uint64_t hit = (bad - ONES) & ~bad & HIGHS;
+			if (hit)
+				return j + (ctz64(hit) >> 3);
+		}
 	}
+#endif
+	for (; j < n; j++)
+		if (!(TRIG_BAD((unsigned int)s[j], (unsigned int)s[j - 1], z, o, r, f, e) & 0xff))
+			return j;
 	return n;
+}
+
+/* la4 unpacking: byte -> its two nibbles, high nibble (earlier sample) first */
+static uint16_t nibble_tbl[256];
+
+static void nibble_tbl_init(void)
+{
+	if (nibble_tbl[0x10])
+		return;
+	for (unsigned int b = 0; b < 256; b++)
+		nibble_tbl[b] = (uint16_t)((b >> 4) | ((b & 0x0f) << 8));	/* little endian */
+}
+
+/*
+ * Unpack 'words' 16-bit link words (little endian) to one byte per sample:
+ * spw 2 (la8): high byte = earlier sample; spw 4 (la4): bits 15:12 first.
+ */
+static void unpack_words(uint8_t *dst, const uint8_t *src, size_t words, size_t spw)
+{
+	size_t w = 0;
+
+	if (spw == 4) {
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+		/* 2 table lookups and one 32-bit store per word */
+		for (; w < words; w++) {
+			uint32_t v = (uint32_t)nibble_tbl[src[2 * w + 1]] |
+				((uint32_t)nibble_tbl[src[2 * w]] << 16);
+			memcpy(dst + 4 * w, &v, 4);
+		}
+#else
+		for (; w < words; w++) {
+			uint8_t hi = src[2 * w + 1], lo = src[2 * w];
+			dst[4 * w] = hi >> 4;
+			dst[4 * w + 1] = hi & 0x0f;
+			dst[4 * w + 2] = lo >> 4;
+			dst[4 * w + 3] = lo & 0x0f;
+		}
+#endif
+		return;
+	}
+	/* la8: swap the two bytes of every word, 4 words at a time (the swap
+	 * within 16-bit lanes does not depend on the byte order) */
+	for (; w + 4 <= words; w += 4) {
+		uint64_t v = load_u64(src + 2 * w);
+		v = ((v >> 8) & UINT64_C(0x00ff00ff00ff00ff)) |
+		    ((v << 8) & UINT64_C(0xff00ff00ff00ff00));
+		memcpy(dst + 2 * w, &v, 8);
+	}
+	for (; w < words; w++) {
+		dst[2 * w] = src[2 * w + 1];
+		dst[2 * w + 1] = src[2 * w];
+	}
 }
 
 static void start_capture(struct dev_context *devc, const uint8_t *s, size_t at)
@@ -292,6 +389,32 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 	devc->next_cnt = cnt + words;
 	devc->cnt_valid = TRUE;
 
+	/*
+	 * Capturing (after the trigger): unpack straight into the capture
+	 * buffer, no intermediate copy. Whole words only; a last partial word
+	 * goes through the scratch buffer below.
+	 */
+	if (devc->state == HL_CAPTURING) {
+		uint64_t need = devc->trigger_pos + devc->post - devc->buf_fill;
+		size_t direct = (size_t)MIN((uint64_t)words, need / spw);
+		unpack_words(devc->buf + devc->buf_fill, info->buf, direct, spw);
+		devc->buf_fill += (uint64_t)direct * spw;
+		if (devc->buf_fill >= devc->trigger_pos + devc->post) {
+			devc->state = HL_DONE;
+			goto out;
+		}
+		if (direct == words)
+			goto out;
+		/* the capture ends inside the next word */
+		uint8_t last[4];
+		unpack_words(last, info->buf + 2 * direct, 1, spw);
+		need = devc->trigger_pos + devc->post - devc->buf_fill;
+		memcpy(devc->buf + devc->buf_fill, last, (size_t)need);
+		devc->buf_fill += need;
+		devc->state = HL_DONE;
+		goto out;
+	}
+
 	n = words * spw;
 	if (n > devc->unpack_size) {
 		g_free(devc->unpack);
@@ -302,22 +425,7 @@ SR_PRIV void hsdaoh_la_data_cb(hsdaoh_data_info_t *info)
 			goto out;
 		}
 	}
-	if (spw == 2) {
-		/* la8: high byte is the earlier sample */
-		for (size_t w = 0; w < words; w++) {
-			devc->unpack[2 * w] = info->buf[2 * w + 1];
-			devc->unpack[2 * w + 1] = info->buf[2 * w];
-		}
-	} else {
-		/* la4: bits 15:12 are the earliest sample, 3:0 the latest */
-		for (size_t w = 0; w < words; w++) {
-			uint8_t hi = info->buf[2 * w + 1], lo = info->buf[2 * w];
-			devc->unpack[4 * w] = hi >> 4;
-			devc->unpack[4 * w + 1] = hi & 0x0f;
-			devc->unpack[4 * w + 2] = lo >> 4;
-			devc->unpack[4 * w + 3] = lo & 0x0f;
-		}
-	}
+	unpack_words(devc->unpack, info->buf, words, spw);
 	process(devc, devc->unpack, n);
 
 out:

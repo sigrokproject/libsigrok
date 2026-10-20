@@ -112,9 +112,11 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t capture_ratio;		/* percent of samples before the trigger */
 
-	/* trigger: tbl[(prev << 8) | cur] != 0 where the condition is met */
+	/* trigger (first stage): a sample 'cur' after 'prev' matches when for
+	 * every channel bit: zero -> 0, one -> 1, rise -> 0 then 1, fall ->
+	 * 1 then 0, edge -> changed */
 	gboolean have_trigger;
-	uint8_t *trig_tbl;
+	uint8_t trig_zero, trig_one, trig_rise, trig_fall, trig_edge;
 
 	/* capture (written by the libhsdaoh thread, read by the session thread
 	 * once state is HL_DONE / HL_FAILED) */
