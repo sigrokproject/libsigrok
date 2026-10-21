@@ -74,9 +74,17 @@ typedef guint pyg_flags_type;
      */
     if (!GLib) {
         fprintf(stderr, "Import of gi.repository.GLib failed.\n");
+#if SWIG_VERSION >= 0x040400
+        return -1;
+#else
         return nullptr;
+#endif
     }
+#if SWIG_VERSION >= 0x040400
+    import_array1(-1);
+#else
     import_array();
+#endif
 %}
 
 %include "../../../swig/templates.i"
