@@ -74,9 +74,17 @@ typedef guint pyg_flags_type;
      */
     if (!GLib) {
         fprintf(stderr, "Import of gi.repository.GLib failed.\n");
+#if SWIG_VERSION >= 0x040400
+        return -1;
+#else
         return nullptr;
+#endif
     }
+#if SWIG_VERSION >= 0x040400
+    import_array1(-1);
+#else
     import_array();
+#endif
 %}
 
 %include "../../../swig/templates.i"
@@ -323,8 +331,6 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
 {
     enum sr_datatype type = (enum sr_datatype) key->data_type()->id();
 
-    if (type == SR_T_UINT64 && PyInt_Check(input))
-        return Glib::Variant<guint64>::create(PyInt_AsLong(input));
     if (type == SR_T_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
     else if (type == SR_T_STRING && PyUnicode_Check(input))
@@ -333,26 +339,26 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == SR_T_FLOAT && PyFloat_Check(input))
         return Glib::Variant<double>::create(PyFloat_AsDouble(input));
-    else if (type == SR_T_INT32 && PyInt_Check(input))
-        return Glib::Variant<gint32>::create(PyInt_AsLong(input));
-    else if (type == SR_T_UINT32 && PyInt_Check(input))
-        return Glib::Variant<guint32>::create(PyInt_AsLong(input));
+    else if (type == SR_T_INT32 && PyLong_Check(input))
+        return Glib::Variant<gint32>::create(PyLong_AsLong(input));
+    else if (type == SR_T_UINT32 && PyLong_Check(input))
+        return Glib::Variant<guint32>::create(PyLong_AsLong(input));
     else if ((type == SR_T_RATIONAL_VOLT) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
         PyObject *numObj = PyTuple_GetItem(input, 0);
         PyObject *denomObj = PyTuple_GetItem(input, 1);
-        if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
-          const std::vector<guint64> v = {(guint64)PyInt_AsLong(numObj), (guint64)PyInt_AsLong(denomObj)};
+        if (PyLong_Check(numObj) && PyLong_Check(denomObj)) {
+          const std::vector<guint64> v = {(guint64)PyLong_AsLong(numObj), (guint64)PyLong_AsLong(denomObj)};
           return Glib::Variant< std::vector<guint64> >::create(v);
         }
     }
     else if ((type == SR_T_MQ) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
         PyObject *numObj = PyTuple_GetItem(input, 0);
         PyObject *denomObj = PyTuple_GetItem(input, 1);
-        if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
+        if (PyLong_Check(numObj) && PyLong_Check(denomObj)) {
             return Glib::Variant<std::tuple<guint32, guint64>>::create(
                 std::make_tuple(
-                    (guint32)PyInt_AsLong(numObj),
-                    (guint64)PyInt_AsLong(denomObj)
+                    (guint32)PyLong_AsLong(numObj),
+                    (guint64)PyLong_AsLong(denomObj)
                 )
             );
         }
@@ -366,8 +372,6 @@ Glib::VariantBase python_to_variant_by_option(PyObject *input,
 {
     GVariantType *type = option->default_value().get_type().gobj();
 
-    if (type == G_VARIANT_TYPE_UINT64 && PyInt_Check(input))
-        return Glib::Variant<guint64>::create(PyInt_AsLong(input));
     if (type == G_VARIANT_TYPE_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
     else if (type == G_VARIANT_TYPE_STRING && PyUnicode_Check(input))
@@ -376,10 +380,10 @@ Glib::VariantBase python_to_variant_by_option(PyObject *input,
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == G_VARIANT_TYPE_DOUBLE && PyFloat_Check(input))
         return Glib::Variant<double>::create(PyFloat_AsDouble(input));
-    else if (type == G_VARIANT_TYPE_INT32 && PyInt_Check(input))
-        return Glib::Variant<gint32>::create(PyInt_AsLong(input));
-    else if (type == G_VARIANT_TYPE_UINT32 && PyInt_Check(input))
-        return Glib::Variant<guint32>::create(PyInt_AsLong(input));
+    else if (type == G_VARIANT_TYPE_INT32 && PyLong_Check(input))
+        return Glib::Variant<gint32>::create(PyLong_AsLong(input));
+    else if (type == G_VARIANT_TYPE_UINT32 && PyLong_Check(input))
+        return Glib::Variant<guint32>::create(PyLong_AsLong(input));
     else
         throw sigrok::Error(SR_ERR_ARG);
 }
