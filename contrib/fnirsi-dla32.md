@@ -20,8 +20,18 @@ It does not redistribute the DLL, change Windows USB bindings or update device
 firmware. Device association is intentionally restricted rather than guessing
 which of several WCH devices belongs to the requested USB identity.
 
-Linux/libusb support is present but has not received the equivalent hardware
-qualification. Acceptance of the Windows transport dependency is requested for
+Linux/libusb discovery checks interface 0 for the expected bulk endpoints and
+confirms the DLA-32 model with an identification request before listing a device.
+The shared WCH VID/PID (`1a86:5537`) alone does not identify an analyzer. A busy
+interface is skipped without detaching its driver. Install the supplied
+`contrib/60-libsigrok.rules` using the distribution's libsigrok udev procedure
+and reconnect the device if ordinary users lack USB access. The rule matches
+the shared WCH VID/PID; the model check is performed by the driver.
+
+An explicit connection such as `fnirsi-dla32:conn=1.49` selects a bus/address
+without the discovery transaction. USB addresses can change after reconnection.
+Linux/libusb acquisition has not received the equivalent hardware qualification.
+Acceptance of the Windows transport dependency is requested for
 maintainer review. This contribution does not establish vendor-independent
 transport support on all platforms.
 
@@ -29,6 +39,9 @@ Build with the usual libsigrok configuration and `--enable-fnirsi-dla32`.
 No private compile-time worker switch is needed. A physical USB 3 connection
 is required for Stream. Rate/depth availability depends on mode and enabled
 channels; query the driver rather than assuming all rates fit all masks.
+In Buffer mode, 1-8 enabled channels allow up to 1 GS/s, 9-16 up to 500 MS/s,
+and 17-32 up to 250 MS/s. USB 2 limits download throughput, not these internal
+Buffer sampling rates. Stream remains restricted to USB 3.
 
 The optional `FNIRSI_DLA32_WIRE_TRACE` absolute destination is a diagnostic raw
 USB trace. An explicitly requested trace is created exclusively; trace-write

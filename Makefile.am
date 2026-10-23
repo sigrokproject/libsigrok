@@ -375,6 +375,7 @@ if HW_FNIRSI_DLA32
 src_libdrivers_la_SOURCES += \
 	src/hardware/fnirsi-dla32/api.c \
 	src/hardware/fnirsi-dla32/capture-status.h \
+	src/hardware/fnirsi-dla32/discovery.h \
 	src/hardware/fnirsi-dla32/protocol.h \
 	src/hardware/fnirsi-dla32/stream-settle-policy.h \
 	src/hardware/fnirsi-dla32/transport-wch.h \
@@ -903,7 +904,8 @@ tests_main_SOURCES = \
 	tests/trigger.c \
 	tests/analog.c \
 	tests/conv.c \
-	tests/fnirsi_dla32.c
+	tests/fnirsi_dla32.c \
+	tests/fnirsi_dla32_discovery.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 

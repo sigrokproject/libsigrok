@@ -55,5 +55,6 @@ Suite *suite_trigger(void);
 Suite *suite_analog(void);
 Suite *suite_conv(void);
 Suite *suite_fnirsi_dla32(void);
+Suite *suite_fnirsi_dla32_discovery(void);
 
 #endif

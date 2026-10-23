@@ -23,6 +23,7 @@
 #endif
 #include "libsigrok-internal.h"
 #include "protocol.h"
+#include "discovery.h"
 
 #define LOG_PREFIX "fnirsi-dla32"
 #define NUM_TRANSFERS 8
@@ -488,6 +489,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	char bus_addr[32], name[8];
 	ssize_t count, i;
 	unsigned int ch;
+	int ret;
 
 #ifdef _WIN32
 	devices = scan_wch(di, options);
@@ -499,9 +501,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (cfg->key == SR_CONF_CONN)
 			conn = g_variant_get_string(cfg->data, NULL);
 	}
-	/* The WCH VID/PID is shared; require an explicit bus/address. */
-	if (!conn || !*conn)
-		return NULL;
 	count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &list);
 	if (count < 0)
 		return NULL;
@@ -511,8 +510,22 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 		g_snprintf(bus_addr, sizeof(bus_addr), "%u.%u",
 			libusb_get_bus_number(list[i]), libusb_get_device_address(list[i]));
-		if (strcmp(conn, bus_addr))
+		if (conn && *conn && strcmp(conn, bus_addr))
 			continue;
+		/* Explicit connections retain descriptor-only enumeration. Automatic
+		 * scans must confirm DL32 before publishing a shared WCH device. */
+		if (!conn || !*conn) {
+			ret = dla_libusb_probe(list[i]);
+			if (ret != LIBUSB_SUCCESS) {
+				if (ret == LIBUSB_ERROR_ACCESS)
+					sr_warn("Cannot identify WCH device at %s: USB access denied; "
+						"check libsigrok udev permissions.", bus_addr);
+				else
+					sr_dbg("Skipping WCH device at %s: %s.",
+						bus_addr, libusb_error_name(ret));
+				continue;
+			}
+		}
 		sdi = g_malloc0(sizeof(*sdi));
 		sdi->vendor = g_strdup("FNIRSI");
 		sdi->model = g_strdup("DLA-32 (experimental)");
