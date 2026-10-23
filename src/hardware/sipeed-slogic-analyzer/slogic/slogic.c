@@ -534,9 +534,12 @@ int slogic_run(const slogic_model *m, const slogic_transport *t,
 	if (!m || !t || !c)
 		return SLOGIC_ERR_ARG;
 	if (m->proto == SLOGIC_PROTO_COMBO8) {
+		/* Byte 3 carries the pattern mode (SLOGIC_PATTERN_*). Firmware
+		 * without pattern support ignores it (it was never used). */
 		uint16_t mhz = (uint16_t)(c->samplerate_hz / UINT64_C(1000000));
 		uint8_t cmd[4] = { (uint8_t)mhz, (uint8_t)(mhz >> 8),
-				   (uint8_t)c->channel_count, 0 };
+				   (uint8_t)c->channel_count,
+				   (uint8_t)c->pattern_mode };
 		int r = t->control_write(t->ctx, COMBO8_CMD_START, 0, 0, cmd,
 					 (uint16_t)sizeof(cmd), CTRL_TIMEOUT_MS);
 		return (r < 0) ? SLOGIC_ERR_IO : SLOGIC_OK;
