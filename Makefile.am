@@ -478,6 +478,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/ikalogic-scanaplus/protocol.c \
 	src/hardware/ikalogic-scanaplus/api.c
 endif
+if HW_INTRONIX_LOGICPORT
+src_libdrivers_la_SOURCES += \
+	src/hardware/intronix-logicport/protocol.h \
+	src/hardware/intronix-logicport/protocol.c \
+	src/hardware/intronix-logicport/api.c
+endif
 if HW_IPDBG_LA
 src_libdrivers_la_SOURCES += \
 	src/hardware/ipdbg-la/protocol.h \

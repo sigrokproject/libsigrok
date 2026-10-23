@@ -63,6 +63,11 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Windows drivers using a tool
    from our 'sigrok-util' repository/project.
 
+ - intronix-logicport: The Intronix LogicPort LA1034 needs the vendor's
+   FPGA bitstream file LogicPort.ccf, unmodified, installed as
+   intronix-logicport.ccf. A tool in our 'sigrok-util' repository/project
+   gets it from the vendor's Windows software or installer.
+
  - kingst-la2016: The Kingst LA series of logic analyzers needs MCU firmware
    and FPGA netlists. The 'sigrok-util' repository contains a script to
    extract these files from the vendor software.

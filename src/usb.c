@@ -405,7 +405,12 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		sr_err("Invalid input, or neither VID:PID nor bus.address specified.");
 		return NULL;
 	}
-	if (!(vid && pid) && !(bus && addr)) {
+	/*
+	 * USB device addresses start at 1, but bus numbers can be 0 (seen
+	 * with libusb on macOS), so only the address tells if bus.address
+	 * was specified.
+	 */
+	if (!(vid && pid) && !addr) {
 		sr_err("Could neither determine VID:PID nor bus.address numbers.");
 		return NULL;
 	}
@@ -425,7 +430,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 
 		b = libusb_get_bus_number(devlist[i]);
 		a = libusb_get_device_address(devlist[i]);
-		if (bus && addr && (b != bus || a != addr))
+		if (addr && (b != bus || a != addr))
 			continue;
 
 		sr_dbg("Found USB device (VID:PID = %04x:%04x, bus.address = "

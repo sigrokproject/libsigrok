@@ -175,6 +175,9 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", ENV{ID_SIGROK}="1"
 # ftdi-la (TIAO USB Multi Protocol Adapter (TUMPA))
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8a98", ENV{ID_SIGROK}="1"
 
+# Intronix LogicPort LA1034
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="dc48", ENV{ID_SIGROK}="1"
+
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", ENV{ID_SIGROK}="1"
 
