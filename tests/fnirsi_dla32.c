@@ -9,6 +9,9 @@
 #include <check.h>
 #include "lib.h"
 #include "../src/hardware/fnirsi-dla32/protocol.h"
+/* Exercise the non-WCH capability profile on every host. */
+#define DLA_WCH_WORKER 0
+#include "../src/hardware/fnirsi-dla32/capabilities.h"
 
 #define CHECK(expr) ck_assert(expr)
 
@@ -111,6 +114,24 @@ START_TEST(test_protocol)
 }
 END_TEST
 
+START_TEST(test_portable_controls)
+{
+	unsigned int i;
+	uint32_t writable = SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST;
+	gboolean ratio = FALSE, duration = FALSE, generator = FALSE;
+
+	for (i = 0; i < ARRAY_SIZE(logic_drvopts); i++)
+		generator |= logic_drvopts[i] == SR_CONF_SIGNAL_GENERATOR;
+	for (i = 0; i < ARRAY_SIZE(logic_devopts); i++) {
+		ratio |= logic_devopts[i] == (SR_CONF_CAPTURE_RATIO | writable);
+		duration |= logic_devopts[i] == (SR_CONF_LIMIT_MSEC | writable);
+	}
+	CHECK(generator);
+	CHECK(ratio);
+	CHECK(duration);
+}
+END_TEST
+
 Suite *suite_fnirsi_dla32(void)
 {
 	Suite *s;
@@ -119,6 +140,7 @@ Suite *suite_fnirsi_dla32(void)
 	s = suite_create("fnirsi-dla32");
 	tc = tcase_create("protocol");
 	tcase_add_test(tc, test_protocol);
+	tcase_add_test(tc, test_portable_controls);
 	suite_add_tcase(s, tc);
 	return s;
 }

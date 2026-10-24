@@ -376,6 +376,7 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/fnirsi-dla32/api.c \
 	src/hardware/fnirsi-dla32/capture-status.h \
 	src/hardware/fnirsi-dla32/discovery.h \
+	src/hardware/fnirsi-dla32/capabilities.h \
 	src/hardware/fnirsi-dla32/protocol.h \
 	src/hardware/fnirsi-dla32/stream-settle-policy.h \
 	src/hardware/fnirsi-dla32/transport-wch.h \

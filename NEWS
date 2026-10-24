@@ -8,6 +8,7 @@
  * Session metadata:
    - Proposed host capture outcome/error keys and saved-session replay.
  * Fixes:
+   - Expose DLA-32 PWM groups and finite trigger/duration controls on libusb.
    - Confirm DLA-32 identity during automatic libusb discovery and add its udev entry.
    - Retire pending stop checks after failed session start.
    - Preserve shared context when driver cleanup fails.

@@ -31,6 +31,11 @@ the shared WCH VID/PID; the model check is performed by the driver.
 An explicit connection such as `fnirsi-dla32:conn=1.49` selects a bus/address
 without the discovery transaction. USB addresses can change after reconnection.
 Linux/libusb acquisition has not received the equivalent hardware qualification.
+An external tester has confirmed automatic discovery, a bounded Buffer transfer,
+clean binary export with the companion CLI fix and automatic rate refresh on
+Linux/USB 2. PWM and trigger-position operation were also reported after local
+capability changes; the portable capability follow-up still needs retesting on
+that system. These reports do not qualify high-rate integrity or long captures.
 Acceptance of the Windows transport dependency is requested for
 maintainer review. This contribution does not establish vendor-independent
 transport support on all platforms.
@@ -42,6 +47,21 @@ channels; query the driver rather than assuming all rates fit all masks.
 In Buffer mode, 1-8 enabled channels allow up to 1 GS/s, 9-16 up to 500 MS/s,
 and 17-32 up to 250 MS/s. USB 2 limits download throughput, not these internal
 Buffer sampling rates. Stream remains restricted to USB 3.
+
+## PWM and trigger controls
+
+Both transports publish four PWM groups without additional analog input
+channels. In PulseView, stop acquisition and open the **Channels** popup, then
+find the PWM0-PWM3 groups. Set output frequency and duty cycle before enabling
+the required output. Controls are 1 Hz-20 MHz and 1-99%; hardware duty/frequency
+accuracy remains subject to the recorded qualification scope. On Linux these
+commands use libusb directly and do not require the FNIRSI application.
+
+The device configuration popup offers the Buffer pre-trigger capture ratio
+(1-90%) and finite duration limit on either transport. The ratio is a hardware
+setting; it does not establish an exact calibrated trigger sample index.
+Continuous acquisition remains advertised only for the qualified WCH worker
+path. USB 2 continues to offer Buffer mode only.
 
 The optional `FNIRSI_DLA32_WIRE_TRACE` absolute destination is a diagnostic raw
 USB trace. An explicitly requested trace is created exclusively; trace-write

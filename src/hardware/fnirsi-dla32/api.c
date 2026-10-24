@@ -43,6 +43,7 @@
 
 #include "transport-wch.h"
 #include "worker-wch.h"
+#include "capabilities.h"
 
 struct pwm_setting {
 	uint32_t frequency;
@@ -266,9 +267,6 @@ static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_SIGNAL_GENERATOR,
 };
-static const uint32_t logic_drvopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-};
 static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -276,23 +274,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_DEVICE_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CONTINUOUS | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
-	SR_CONF_CONN | SR_CONF_GET,
-	SR_CONF_CAPTURE_STATUS | SR_CONF_GET,
-	SR_CONF_CAPTURE_ERROR | SR_CONF_GET,
-};
-static const uint32_t logic_devopts[] = {
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-#if DLA_WCH_WORKER
-	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-#endif
-	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-#if DLA_WCH_WORKER
-	SR_CONF_CONTINUOUS | SR_CONF_GET | SR_CONF_SET,
-#endif
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_CAPTURE_STATUS | SR_CONF_GET,
@@ -483,8 +464,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	libusb_device **list;
 	GSList *devices = NULL, *l;
 	const char *conn = NULL;
-	struct sr_channel_group *cg;
-	struct sr_channel *channel;
 	struct sr_config *cfg;
 	char bus_addr[32], name[8];
 	ssize_t count, i;
@@ -550,14 +529,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			g_snprintf(name, sizeof(name), "D%u", ch);
 			sr_channel_new(sdi, ch, SR_CHANNEL_LOGIC, TRUE, name);
 		}
-		if (!devc->logic_only) {
-			for (ch = 0; ch < ARRAY_SIZE(devc->pwm); ch++) {
-				g_snprintf(name, sizeof(name), "PWM%u", ch);
-				cg = sr_channel_group_new(sdi, name, NULL);
-				channel = sr_channel_new(sdi, DLA_CHANNELS + ch,
-					SR_CHANNEL_ANALOG, FALSE, name);
-				cg->channels = g_slist_append(cg->channels, channel);
-			}
+		for (ch = 0; ch < ARRAY_SIZE(devc->pwm); ch++) {
+			g_snprintf(name, sizeof(name), "PWM%u", ch);
+			sr_channel_group_new(sdi, name, NULL);
 		}
 		devices = g_slist_append(devices, sdi);
 	}
