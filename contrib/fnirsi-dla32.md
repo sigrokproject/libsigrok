@@ -58,8 +58,18 @@ accuracy remains subject to the recorded qualification scope. On Linux these
 commands use libusb directly and do not require the FNIRSI application.
 
 The device configuration popup offers the Buffer pre-trigger capture ratio
-(1-90%) and finite duration limit on either transport. The ratio is a hardware
-setting; it does not establish an exact calibrated trigger sample index.
+(1-90%) on either transport. The ratio is a hardware setting; it does not
+establish an exact calibrated trigger sample index.
+
+The driver also exposes a finite duration limit through libsigrok, but PulseView
+does not provide a separate time-limit control. Its toolbar sets the sample
+count; sampled duration is sample count divided by sample rate. For example,
+5 million samples at 50 MS/s cover 100 ms. Hover over the sample-count or
+sample-rate selector to see "Total sampling time". This describes the sampled
+signal span, not time spent waiting for a trigger or downloading the capture.
+The CLI can select a time-limited capture with `--time`; a `limit_time` readback
+of zero means that time limit is inactive when a sample-count limit is used.
+
 Continuous acquisition remains advertised only for the qualified WCH worker
 path. USB 2 continues to offer Buffer mode only.
 
