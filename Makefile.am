@@ -115,6 +115,7 @@ libsigrok_la_SOURCES += \
 	src/output/hex.c \
 	src/output/ols.c \
 	src/output/srzip.c \
+	src/output/srzip-capture-status.h \
 	src/output/vcd.c \
 	src/output/wavedrom.c \
 	src/output/null.c
@@ -369,6 +370,17 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/fluke-190.c \
 	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
+endif
+if HW_FNIRSI_DLA32
+src_libdrivers_la_SOURCES += \
+	src/hardware/fnirsi-dla32/api.c \
+	src/hardware/fnirsi-dla32/capture-status.h \
+	src/hardware/fnirsi-dla32/discovery.h \
+	src/hardware/fnirsi-dla32/capabilities.h \
+	src/hardware/fnirsi-dla32/protocol.h \
+	src/hardware/fnirsi-dla32/stream-settle-policy.h \
+	src/hardware/fnirsi-dla32/transport-wch.h \
+	src/hardware/fnirsi-dla32/worker-wch.h
 endif
 if HW_FTDI_LA
 src_libdrivers_la_SOURCES += \
@@ -831,6 +843,7 @@ mimeiconscalabledir = $(datadir)/icons/hicolor/scalable/mimetypes
 mimeiconscalable_DATA = contrib/libsigrok.svg
 
 EXTRA_DIST = \
+	contrib/fnirsi-dla32.md \
 	Doxyfile \
 	HACKING \
 	README.devices \
@@ -868,6 +881,9 @@ EXTRA_DIST = \
 
 if HAVE_CHECK
 TESTS = tests/main
+if BINDINGS_CXX
+TESTS += tests/context_cxx
+endif
 check_PROGRAMS = ${TESTS}
 endif
 
@@ -888,7 +904,9 @@ tests_main_SOURCES = \
 	tests/device.c \
 	tests/trigger.c \
 	tests/analog.c \
-	tests/conv.c
+	tests/conv.c \
+	tests/fnirsi_dla32.c \
+	tests/fnirsi_dla32_discovery.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 
@@ -904,6 +922,9 @@ UNINSTALL_EXTRA += libsigrok-uninstall
 if BINDINGS_CXX
 
 lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
+
+tests_context_cxx_SOURCES = tests/context_cxx.cpp
+tests_context_cxx_LDADD = bindings/cxx/libsigrokcxx.la libsigrok.la $(LIBSIGROKCXX_LIBS) $(SR_EXTRA_LIBS)
 
 bindings_cxx_libsigrokcxx_la_SOURCES = bindings/cxx/classes.cpp
 

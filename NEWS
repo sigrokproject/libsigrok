@@ -1,3 +1,21 @@
+0.6.0 (unreleased)
+------------------
+
+ * New supported hardware:
+   - FNIRSI DLA-32 Plus logic analyzer, with Buffer/Stream acquisition,
+     supported basic triggers, threshold presets and four PWM outputs.
+     Windows x64/WCH transport is qualified; Linux/libusb requires validation.
+ * Session metadata:
+   - Proposed host capture outcome/error keys and saved-session replay.
+ * Fixes:
+   - Expose DLA-32 PWM groups and finite trigger/duration controls on libusb.
+   - Confirm DLA-32 identity during automatic libusb discovery and add its udev entry.
+   - Retire pending stop checks after failed session start.
+   - Preserve shared context when driver cleanup fails.
+   - Keep failed C++ context retirement non-throwing and retryable.
+   - Separate optional worker log loss from acquisition failure.
+   - Use C-locale formatting with MinGW UCRT, including length/truncation.
+
 0.5.0 (2017-06-12)
 ------------------
 

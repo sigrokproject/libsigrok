@@ -76,7 +76,8 @@ SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
  * This function can be used to simplify most driver's cleanup() API callback.
  *
  * Free all device instances by calling sr_dev_clear() and then release any
- * resources allocated by std_init().
+ * resources allocated by std_init(). If clearing fails, the driver context
+ * remains valid so the caller can finish stopping acquisition and retry.
  *
  * @param[in] di The driver instance to use. Must not be NULL.
  *
@@ -94,9 +95,11 @@ SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
 	}
 
 	ret = sr_dev_clear(di);
+	if (ret != SR_OK)
+		return ret;
 	g_free(di->context);
 
-	return ret;
+	return SR_OK;
 }
 
 /**

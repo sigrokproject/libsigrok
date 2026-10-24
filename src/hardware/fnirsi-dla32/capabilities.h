@@ -1,0 +1,28 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+#ifndef LIBSIGROK_FNIRSI_DLA32_CAPABILITIES_H
+#define LIBSIGROK_FNIRSI_DLA32_CAPABILITIES_H
+
+/* Finite acquisition and generator controls use the same protocol on WCH and
+ * libusb. Only the qualified continuous worker path is transport-specific. */
+static const uint32_t logic_drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SIGNAL_GENERATOR,
+};
+
+static const uint32_t logic_devopts[] = {
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+#if DLA_WCH_WORKER
+	SR_CONF_CONTINUOUS | SR_CONF_GET | SR_CONF_SET,
+#endif
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_CAPTURE_STATUS | SR_CONF_GET,
+	SR_CONF_CAPTURE_ERROR | SR_CONF_GET,
+};
+
+#endif
