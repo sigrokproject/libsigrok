@@ -1958,6 +1958,7 @@ SR_PRIV GVariant *std_gvar_array_str(const char *a[], unsigned int n);
 SR_PRIV GVariant *std_gvar_thresholds(const double a[][2], unsigned int n);
 
 SR_PRIV int std_str_idx(GVariant *data, const char *a[], unsigned int n);
+SR_PRIV int std_i32_idx(GVariant *data, const int32_t a[], unsigned int n);
 SR_PRIV int std_u64_idx(GVariant *data, const uint64_t a[], unsigned int n);
 SR_PRIV int std_u8_idx(GVariant *data, const uint8_t a[], unsigned int n);
 

@@ -307,6 +307,19 @@ ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", ENV{ID_SIGROK}="1"
 # sigrok usb-c-grok
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608f", ENV{ID_SIGROK}="1"
 
+
+# Sipeed(359f) SLogic series
+# BEGIN SLogic
+# SLogic8 U2 (old firmware)
+ATTRS{idVendor}=="359f", ATTRS{idProduct}=="0300", ENV{ID_SIGROK}="1"
+# SLogic8 U2
+ATTRS{idVendor}=="359f", ATTRS{idProduct}=="3000", ENV{ID_SIGROK}="1"
+# SLogic16 U3
+ATTRS{idVendor}=="359f", ATTRS{idProduct}=="3031", ENV{ID_SIGROK}="1"
+# SLogic32 U3
+ATTRS{idVendor}=="359f", ATTRS{idProduct}=="3032", ENV{ID_SIGROK}="1"
+# END SLogic
+
 # SiLabs CP210x (USB CDC) UART bridge, used (among others) in:
 # CEM DT-8852
 # Manson HCS-3202

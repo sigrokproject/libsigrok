@@ -787,8 +787,10 @@ static int find_in_array(GVariant *data, const GVariantType *type,
 	const char *s;
 	const uint64_t *u64arr;
 	const uint8_t *u8arr;
+	const int32_t *i32arr;
 	uint64_t u64;
 	uint8_t u8;
+	int32_t i32;
 	unsigned int i;
 
 	if (!g_variant_is_of_type(data, type))
@@ -801,6 +803,14 @@ static int find_in_array(GVariant *data, const GVariantType *type,
 
 		for (i = 0; i < n; i++)
 			if (!strcmp(s, sarr[i]))
+				return i;
+		break;
+	case G_VARIANT_CLASS_INT32:
+		i32 = g_variant_get_int32(data);
+		i32arr = arr;
+
+		for (i = 0; i < n; i++)
+			if (i32 == i32arr[i])
 				return i;
 		break;
 	case G_VARIANT_CLASS_UINT64:
@@ -828,6 +838,11 @@ static int find_in_array(GVariant *data, const GVariantType *type,
 SR_PRIV int std_str_idx(GVariant *data, const char *a[], unsigned int n)
 {
 	return find_in_array(data, G_VARIANT_TYPE_STRING, a, n);
+}
+
+SR_PRIV int std_i32_idx(GVariant *data, const int32_t a[], unsigned int n)
+{
+	return find_in_array(data, G_VARIANT_TYPE_INT32, a, n);
 }
 
 SR_PRIV int std_u64_idx(GVariant *data, const uint64_t a[], unsigned int n)

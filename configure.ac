@@ -198,6 +198,9 @@ AS_CASE([$host_os], [mingw*], [SR_PREPEND([SR_EXTRA_LIBS], [-lws2_32])])
 
 # libm (the standard math library) is always needed.
 SR_SEARCH_LIBS([SR_EXTRA_LIBS], [pow], [m])
+# libslogic's capture engine (sipeed-slogic-analyzer) uses POSIX threads;
+# glib on Windows does not pull in winpthreads by itself.
+SR_SEARCH_LIBS([SR_EXTRA_LIBS], [pthread_create], [pthread])
 
 # RPC is only needed for VXI support.
 AC_CACHE_CHECK([for SunRPC support], [sr_cv_have_sunrpc],
@@ -385,6 +388,7 @@ SR_DRIVER([serial DMM], [serial-dmm], [serial_comm])
 SR_DRIVER([serial LCR], [serial-lcr], [serial_comm])
 SR_DRIVER([SIGLENT SDL10x0], [siglent-sdl10x0])
 SR_DRIVER([Siglent SDS], [siglent-sds])
+SR_DRIVER([Sipeed Slogic Analyzer], [sipeed-slogic-analyzer], [libusb])
 SR_DRIVER([Sysclk LWLA], [sysclk-lwla], [libusb])
 SR_DRIVER([Sysclk SLA5032], [sysclk-sla5032], [libusb])
 SR_DRIVER([Teleinfo], [teleinfo], [serial_comm])
