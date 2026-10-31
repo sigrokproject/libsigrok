@@ -328,6 +328,13 @@ SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *forma
 		sr_spew("delay %dms", 100);
 		g_usleep(100 * 1000);
 		return SR_OK;
+	} else if (devc->model->series->protocol == PROTOCOL_V6) {
+		/*
+		 * The DHO800/DHO900 series always answers *OPC? with 0 (seen
+		 * with firmware 00.01.04). Commands are executed in order, so
+		 * a subsequent query synchronizes anyway.
+		 */
+		return SR_OK;
 	} else {
 		return sr_scpi_get_opc(sdi->conn);
 	}
@@ -385,6 +392,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	case PROTOCOL_V3:
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
+	case PROTOCOL_V6:
 		if (first_frame && rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
 			return SR_ERR;
 		if (devc->data_source == DATA_SOURCE_LIVE) {
@@ -421,7 +429,14 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 					 * can be chosen from the menu and also varies with number
 					 * of active channels. Retrieve the actual number with the
 					 * ACQ:MDEP command. */
-					sr_scpi_get_int(sdi->conn, "ACQ:MDEP?", &buffer_samples);
+					/* The DHO series reports the depth in floating
+					 * point notation, e.g. "1.0000E+06". */
+					double mdep = 0;
+					if (sr_scpi_get_double(sdi->conn, "ACQ:MDEP?", &mdep) != SR_OK) {
+						sr_err("Cannot get memory depth (ACQ:MDEP? failed).");
+						return SR_ERR;
+					}
+					buffer_samples = (int)llround(mdep);
 					devc->analog_frame_size = devc->digital_frame_size =
 							buffer_samples;
 				}
@@ -499,6 +514,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
+	case PROTOCOL_V6:
 		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
 					ch->index + 1) != SR_OK)

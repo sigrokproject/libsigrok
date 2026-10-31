@@ -69,6 +69,7 @@ static const uint64_t timebases[][2] = {
 	{ 20, 1000000000 },
 	{ 50, 1000000000 },
 	{ 100, 1000000000 },
+	{ 200, 1000000000 },
 	{ 500, 1000000000 },
 	/* microseconds */
 	{ 1, 1000000 },
@@ -105,6 +106,7 @@ static const uint64_t timebases[][2] = {
 
 static const uint64_t vdivs[][2] = {
 	/* microvolts */
+	{ 200, 1000000 },
 	{ 500, 1000000 },
 	/* millivolts */
 	{ 1, 1000 },
@@ -185,6 +187,8 @@ enum series {
 	DS4000,
 	MSO5000,
 	MSO7000A,
+	DHO800,
+	DHO900,
 };
 
 /* short name, full name */
@@ -217,6 +221,10 @@ static const struct rigol_ds_series supported_series[] = {
 		{1000, 1}, {500, 1000000}, 10, 1000, 0},
 	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 10, 1000, 8000000},
+	[DHO800] = {VENDOR(RIGOL), "DHO800", PROTOCOL_V6, FORMAT_IEEE488_2,
+		{500, 1}, {500, 1000000}, 10, 1000, 0},
+	[DHO900] = {VENDOR(RIGOL), "DHO900", PROTOCOL_V6, FORMAT_IEEE488_2,
+		{500, 1}, {200, 1000000}, 10, 1000, 0},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -291,6 +299,15 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(MSO5000), "MSO5354", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	/* TODO: Digital channels are not yet supported on MSO7000A. */
 	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
+	{SERIES(DHO800), "DHO802", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO800), "DHO804", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO800), "DHO812", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO800), "DHO814", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	/* TODO: Digital channels (PLA2216 probe) are not yet supported on DHO900. */
+	{SERIES(DHO900), "DHO914", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO914S", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO924", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO924S", {2, 1000000000}, CH_INFO(4, false), std_cmd},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
@@ -772,6 +789,7 @@ static int config_set(uint32_t key, GVariant *data,
 			&& !strcmp(tmp_str, "Memory"))
 			devc->data_source = DATA_SOURCE_MEMORY;
 		else if (devc->model->series->protocol >= PROTOCOL_V3
+			 && devc->model->series->protocol != PROTOCOL_V6
 			 && !strcmp(tmp_str, "Segmented"))
 			devc->data_source = DATA_SOURCE_SEGMENTED;
 		else {
@@ -854,6 +872,12 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 2);
 			break;
 		case PROTOCOL_V2:
+		/*
+		 * The DHO800/DHO900 (firmware 00.01.04) record frames and
+		 * accept :REC:WREP:FCUR, but :WAV:DATA? keeps returning the
+		 * same data for every frame, so segmented data can't be read.
+		 */
+		case PROTOCOL_V6:
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		default:
@@ -1009,21 +1033,38 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 			return SR_ERR;
 
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
-			rigol_ds_receive, (void *)sdi);
-
-	std_session_send_df_header(sdi);
-
-	devc->channel_entry = devc->enabled_channels;
-
-	if (devc->data_source == DATA_SOURCE_LIVE) {
+	/*
+	 * Determine the samplerate before the session is started, so that
+	 * a failure doesn't leave the SCPI source registered.
+	 */
+	if (devc->data_source == DATA_SOURCE_LIVE && protocol < PROTOCOL_V6) {
 		devc->sample_rate = analog_frame_size(sdi) /
 			(devc->timebase * devc->model->series->num_horizontal_divs);
 	} else {
 		float xinc;
-		if (devc->model->series->protocol < PROTOCOL_V3) {
+		if (protocol < PROTOCOL_V3) {
 			sr_err("Cannot get samplerate (below V3).");
 			return SR_ERR;
+		}
+		/*
+		 * XINC depends on the waveform source and mode, which
+		 * channel_start() sets only later. Make sure it refers to the
+		 * data we will read, a previously selected source may be
+		 * disabled by now. For live data on V6 this also picks up
+		 * timebase changes made on the front panel since the device
+		 * was opened.
+		 */
+		if (protocol >= PROTOCOL_V4) {
+			ch = devc->enabled_channels->data;
+			if (rigol_ds_config_set(sdi, ch->type == SR_CHANNEL_ANALOG ?
+					":WAV:SOUR CHAN%d" : ":WAV:SOUR D%d",
+					ch->type == SR_CHANNEL_ANALOG ?
+						ch->index + 1 : ch->index) != SR_OK)
+				return SR_ERR;
+			if (rigol_ds_config_set(sdi,
+					devc->data_source == DATA_SOURCE_LIVE ?
+						":WAV:MODE NORM" : ":WAV:MODE RAW") != SR_OK)
+				return SR_ERR;
 		}
 		ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
 		if (ret != SR_OK) {
@@ -1036,6 +1077,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 		devc->sample_rate = 1. / xinc;
 	}
+
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+			rigol_ds_receive, (void *)sdi);
+
+	std_session_send_df_header(sdi);
+
+	devc->channel_entry = devc->enabled_channels;
+
+	/*
+	 * Frontends may have read SR_CONF_SAMPLERATE before the acquisition
+	 * was started, i.e. a stale value from the previous run. Announce
+	 * the rate that applies to this acquisition.
+	 */
+	sr_session_send_meta(sdi, SR_CONF_SAMPLERATE,
+		g_variant_new_uint64((uint64_t)llroundf(devc->sample_rate)));
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;

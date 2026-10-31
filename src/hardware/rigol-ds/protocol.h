@@ -43,6 +43,7 @@ enum protocol_version {
 	PROTOCOL_V3, /* DS2000, DSO1000 */
 	PROTOCOL_V4, /* DS1000Z */
 	PROTOCOL_V5, /* MSO5000 */
+	PROTOCOL_V6, /* DHO800, DHO900 */
 };
 
 enum data_format {
