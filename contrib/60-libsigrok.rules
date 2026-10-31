@@ -126,6 +126,9 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed72", ENV{ID_SIGROK}="1"
 # HAMEG HO730
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed73", ENV{ID_SIGROK}="1"
 
+# Hantek 2D42 / 2D72 / 2C42 (all report "HT2xxLxx")
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="2d42", ENV{ID_SIGROK}="1"
+
 # Hantek DSO-2090
 # lsusb: "04b4:2090 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2090 ROHM LSI Systems USA, LLC"
