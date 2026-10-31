@@ -60,6 +60,28 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const uint32_t devopts_cg_awg[] = {
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_PHASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DUTY_CYCLE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+/*
+ * Signal generator limits (min, max, step) as reported by a DHO914S. The
+ * device clamps values that are out of range, e.g. the offset is limited
+ * to |offset| + amplitude / 2 <= 5 V.
+ */
+static const double awg_frequency_min = 2.0e-3;
+static const double awg_frequency_step = 1.0e-3;
+static const double awg_amplitude_range[] = { 2.0e-3, 10.0, 1.0e-3 };
+static const double awg_offset_range[] = { -5.0, 5.0, 1.0e-3 };
+static const double awg_phase_range[] = { 0.0, 360.0, 0.1 };
+static const double awg_duty_cycle_range[] = { 1.0, 99.0, 0.1 };
+
 static const uint64_t timebases[][2] = {
 	/* nanoseconds */
 	{ 1, 1000000000 },
@@ -69,6 +91,7 @@ static const uint64_t timebases[][2] = {
 	{ 20, 1000000000 },
 	{ 50, 1000000000 },
 	{ 100, 1000000000 },
+	{ 200, 1000000000 },
 	{ 500, 1000000000 },
 	/* microseconds */
 	{ 1, 1000000 },
@@ -105,6 +128,7 @@ static const uint64_t timebases[][2] = {
 
 static const uint64_t vdivs[][2] = {
 	/* microvolts */
+	{ 200, 1000000 },
 	{ 500, 1000000 },
 	/* millivolts */
 	{ 1, 1000 },
@@ -185,6 +209,8 @@ enum series {
 	DS4000,
 	MSO5000,
 	MSO7000A,
+	DHO800,
+	DHO900,
 };
 
 /* short name, full name */
@@ -217,6 +243,10 @@ static const struct rigol_ds_series supported_series[] = {
 		{1000, 1}, {500, 1000000}, 10, 1000, 0},
 	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 10, 1000, 8000000},
+	[DHO800] = {VENDOR(RIGOL), "DHO800", PROTOCOL_V6, FORMAT_IEEE488_2,
+		{500, 1}, {500, 1000000}, 10, 1000, 0},
+	[DHO900] = {VENDOR(RIGOL), "DHO900", PROTOCOL_V6, FORMAT_IEEE488_2,
+		{500, 1}, {200, 1000000}, 10, 1000, 0},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -291,6 +321,20 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(MSO5000), "MSO5354", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	/* TODO: Digital channels are not yet supported on MSO7000A. */
 	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
+	{SERIES(DHO800), "DHO802", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO800), "DHO804", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO800), "DHO812", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO800), "DHO814", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	/* TODO: Digital channels (PLA2216 probe) are not yet supported on DHO900. */
+	{SERIES(DHO900), "DHO914", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO914S", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO924", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO924S", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+};
+
+/* Models with a built-in signal generator. */
+static const char *awg_models[] = {
+	"DHO914S", "DHO924S",
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
@@ -412,6 +456,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		}
 	}
 
+	for (i = 0; i < ARRAY_SIZE(awg_models); i++) {
+		if (!strcmp(model->name, awg_models[i])) {
+			devc->awg_group = sr_channel_group_new(sdi, "AWG", NULL);
+			break;
+		}
+	}
+
 	for (i = 0; i < ARRAY_SIZE(timebases); i++) {
 		if (!memcmp(&devc->model->min_timebase, &timebases[i], sizeof(uint64_t[2])))
 			devc->timebases = &timebases[i];
@@ -519,6 +570,182 @@ static int digital_frame_size(const struct sr_dev_inst *sdi)
 	}
 }
 
+static int awg_config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	const struct rigol_ds_awg_state *awg = &devc->awg;
+
+	/* The state couldn't be read when the device was opened. */
+	if (!awg->valid)
+		return SR_ERR_NA;
+
+	switch (key) {
+	case SR_CONF_ENABLED:
+		*data = g_variant_new_boolean(awg->enabled);
+		break;
+	case SR_CONF_PATTERN_MODE:
+		if (awg->waveform < 0)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(rigol_ds_awg_waveforms[awg->waveform].name);
+		break;
+	case SR_CONF_OUTPUT_FREQUENCY:
+		*data = g_variant_new_double(awg->frequency);
+		break;
+	case SR_CONF_AMPLITUDE:
+		*data = g_variant_new_double(awg->amplitude);
+		break;
+	case SR_CONF_OFFSET:
+		*data = g_variant_new_double(awg->offset);
+		break;
+	case SR_CONF_PHASE:
+		*data = g_variant_new_double(awg->phase);
+		break;
+	case SR_CONF_DUTY_CYCLE:
+		*data = g_variant_new_double(awg->duty_cycle);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
+/* Send a numeric signal generator setting, cache it on success. */
+static int awg_set_double(const struct sr_dev_inst *sdi, const char *cmd,
+	GVariant *data, double *cached)
+{
+	char buffer[G_ASCII_DTOSTR_BUF_SIZE];
+	int ret;
+
+	g_ascii_dtostr(buffer, sizeof(buffer), g_variant_get_double(data));
+	ret = rigol_ds_config_set(sdi, cmd, buffer);
+	if (ret == SR_OK)
+		*cached = g_variant_get_double(data);
+
+	return ret;
+}
+
+static int awg_config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	struct rigol_ds_awg_state *awg = &devc->awg;
+	const char *mode;
+	unsigned int i;
+	int ret;
+
+	switch (key) {
+	case SR_CONF_ENABLED:
+		ret = rigol_ds_config_set(sdi, ":SOUR:OUTP:STAT %s",
+			g_variant_get_boolean(data) ? "ON" : "OFF");
+		if (ret == SR_OK)
+			awg->enabled = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_PATTERN_MODE:
+		mode = g_variant_get_string(data, NULL);
+		for (i = 0; i < rigol_ds_num_awg_waveforms; i++)
+			if (!g_ascii_strcasecmp(mode, rigol_ds_awg_waveforms[i].name))
+				break;
+		if (i == rigol_ds_num_awg_waveforms) {
+			sr_err("Unknown signal generator waveform '%s'.", mode);
+			return SR_ERR_ARG;
+		}
+		ret = rigol_ds_config_set(sdi, ":SOUR:FUNC %s",
+			rigol_ds_awg_waveforms[i].scpi_name);
+		if (ret == SR_OK)
+			awg->waveform = i;
+		break;
+	case SR_CONF_OUTPUT_FREQUENCY:
+		ret = awg_set_double(sdi, ":SOUR:FREQ %s", data, &awg->frequency);
+		break;
+	case SR_CONF_AMPLITUDE:
+		ret = awg_set_double(sdi, ":SOUR:VOLT:AMPL %s", data, &awg->amplitude);
+		break;
+	case SR_CONF_OFFSET:
+		ret = awg_set_double(sdi, ":SOUR:VOLT:OFFS %s", data, &awg->offset);
+		break;
+	case SR_CONF_PHASE:
+		ret = awg_set_double(sdi, ":SOUR:PHAS %s", data, &awg->phase);
+		break;
+	case SR_CONF_DUTY_CYCLE:
+		ret = awg_set_double(sdi, ":SOUR:FUNC:SQU:DUTY %s", data,
+			&awg->duty_cycle);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Pick up values the device has clamped or adjusted. Not while an
+	 * acquisition is running: the replies would end up in the middle of
+	 * waveform data. Until the next update the cache holds the
+	 * requested value.
+	 */
+	if (devc->acquiring)
+		return SR_OK;
+
+	/*
+	 * The command itself was accepted, a failed read-back only means
+	 * the cache keeps the requested value.
+	 */
+	if (rigol_ds_get_awg_cfg(sdi) != SR_OK)
+		sr_warn("Failed to read back the signal generator state.");
+
+	return SR_OK;
+}
+
+static int awg_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi)
+{
+	GVariantBuilder b;
+	struct dev_context *devc = sdi->priv;
+	double range[3];
+	unsigned int i;
+	int wf;
+
+	switch (key) {
+	case SR_CONF_DEVICE_OPTIONS:
+		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_awg));
+		break;
+	case SR_CONF_PATTERN_MODE:
+		g_variant_builder_init(&b, G_VARIANT_TYPE_STRING_ARRAY);
+		for (i = 0; i < rigol_ds_num_awg_waveforms; i++)
+			g_variant_builder_add(&b, "s", rigol_ds_awg_waveforms[i].name);
+		*data = g_variant_builder_end(&b);
+		break;
+	case SR_CONF_OUTPUT_FREQUENCY:
+		/* The maximum depends on the current waveform. */
+		wf = devc->awg.waveform;
+		range[0] = awg_frequency_min;
+		range[1] = rigol_ds_awg_waveforms[0].freq_max;
+		if (wf >= 0 && rigol_ds_awg_waveforms[wf].freq_max > 0)
+			range[1] = rigol_ds_awg_waveforms[wf].freq_max;
+		range[2] = awg_frequency_step;
+		*data = std_gvar_min_max_step_array(range);
+		break;
+	case SR_CONF_AMPLITUDE:
+		*data = std_gvar_min_max_step_array(awg_amplitude_range);
+		break;
+	case SR_CONF_OFFSET:
+		*data = std_gvar_min_max_step_array(awg_offset_range);
+		break;
+	case SR_CONF_PHASE:
+		*data = std_gvar_min_max_step_array(awg_phase_range);
+		break;
+	case SR_CONF_DUTY_CYCLE:
+		*data = std_gvar_min_max_step_array(awg_duty_cycle_range);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -540,6 +767,9 @@ static int config_get(uint32_t key, GVariant **data,
 		sr_err("Invalid channel group specified.");
 		return SR_ERR;
 	}
+
+	if (cg && cg == devc->awg_group)
+		return awg_config_get(key, data, sdi);
 
 	if (cg) {
 		ch = g_slist_nth_data(cg->channels, 0);
@@ -676,6 +906,9 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR;
 	}
 
+	if (cg && cg == devc->awg_group)
+		return awg_config_set(key, data, sdi);
+
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = g_variant_get_uint64(data);
@@ -772,6 +1005,7 @@ static int config_set(uint32_t key, GVariant *data,
 			&& !strcmp(tmp_str, "Memory"))
 			devc->data_source = DATA_SOURCE_MEMORY;
 		else if (devc->model->series->protocol >= PROTOCOL_V3
+			 && devc->model->series->protocol != PROTOCOL_V6
 			 && !strcmp(tmp_str, "Segmented"))
 			devc->data_source = DATA_SOURCE_SEGMENTED;
 		else {
@@ -792,6 +1026,9 @@ static int config_list(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 
 	devc = (sdi) ? sdi->priv : NULL;
+
+	if (cg && devc && cg == devc->awg_group)
+		return awg_config_list(key, data, sdi);
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -854,6 +1091,12 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 2);
 			break;
 		case PROTOCOL_V2:
+		/*
+		 * The DHO800/DHO900 (firmware 00.01.04) record frames and
+		 * accept :REC:WREP:FCUR, but :WAV:DATA? keeps returning the
+		 * same data for every frame, so segmented data can't be read.
+		 */
+		case PROTOCOL_V6:
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		default:
@@ -1009,21 +1252,38 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 			return SR_ERR;
 
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
-			rigol_ds_receive, (void *)sdi);
-
-	std_session_send_df_header(sdi);
-
-	devc->channel_entry = devc->enabled_channels;
-
-	if (devc->data_source == DATA_SOURCE_LIVE) {
+	/*
+	 * Determine the samplerate before the session is started, so that
+	 * a failure doesn't leave the SCPI source registered.
+	 */
+	if (devc->data_source == DATA_SOURCE_LIVE && protocol < PROTOCOL_V6) {
 		devc->sample_rate = analog_frame_size(sdi) /
 			(devc->timebase * devc->model->series->num_horizontal_divs);
 	} else {
 		float xinc;
-		if (devc->model->series->protocol < PROTOCOL_V3) {
+		if (protocol < PROTOCOL_V3) {
 			sr_err("Cannot get samplerate (below V3).");
 			return SR_ERR;
+		}
+		/*
+		 * XINC depends on the waveform source and mode, which
+		 * channel_start() sets only later. Make sure it refers to the
+		 * data we will read, a previously selected source may be
+		 * disabled by now. For live data on V6 this also picks up
+		 * timebase changes made on the front panel since the device
+		 * was opened.
+		 */
+		if (protocol >= PROTOCOL_V4) {
+			ch = devc->enabled_channels->data;
+			if (rigol_ds_config_set(sdi, ch->type == SR_CHANNEL_ANALOG ?
+					":WAV:SOUR CHAN%d" : ":WAV:SOUR D%d",
+					ch->type == SR_CHANNEL_ANALOG ?
+						ch->index + 1 : ch->index) != SR_OK)
+				return SR_ERR;
+			if (rigol_ds_config_set(sdi,
+					devc->data_source == DATA_SOURCE_LIVE ?
+						":WAV:MODE NORM" : ":WAV:MODE RAW") != SR_OK)
+				return SR_ERR;
 		}
 		ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
 		if (ret != SR_OK) {
@@ -1036,6 +1296,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 		devc->sample_rate = 1. / xinc;
 	}
+
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+			rigol_ds_receive, (void *)sdi);
+
+	std_session_send_df_header(sdi);
+	devc->acquiring = TRUE;
+
+	devc->channel_entry = devc->enabled_channels;
+
+	/*
+	 * Frontends may have read SR_CONF_SAMPLERATE before the acquisition
+	 * was started, i.e. a stale value from the previous run. Announce
+	 * the rate that applies to this acquisition.
+	 */
+	sr_session_send_meta(sdi, SR_CONF_SAMPLERATE,
+		g_variant_new_uint64((uint64_t)llroundf(devc->sample_rate)));
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;
@@ -1054,6 +1330,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	std_session_send_df_end(sdi);
+	devc->acquiring = FALSE;
 
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
