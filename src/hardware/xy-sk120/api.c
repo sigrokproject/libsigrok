@@ -40,15 +40,35 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
-	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_POWER | SR_CONF_GET,
+	SR_CONF_REGULATION | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_REGULATION | SR_CONF_GET,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	
+	/* TODO optional additional features
+	
+	SR_CONF_POWER_TARGET | SR_CONF_GET | SR_CONF_SET, // Limited usefulness since constant power mode is not properly supported. (SR_CONF_REGULATION has no mode for it)
+    SR_CONF_OVER_POWER_PROTECTION_ENABLED, //(always on -> is it useful?)
+	
+	SR_CONF_OVER_POWER_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_POWER_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	
+	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET, 
+	SR_CONF_OVER_TEMPERATURE_PROTECTION | SR_CONF_GET | SR_CONF_SET,
+	
+	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE | SR_CONF_GET,
+	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_UNDER_VOLTAGE_CONDITION, //?
+	
+	SR_CONF_THERMOMETER, //Is this one supposed to be used for this purpose?
+	*/
+
 };
 
 static const uint32_t devopts_w_range[] = {
@@ -69,99 +89,38 @@ static const uint32_t devopts_w_range[] = {
 };
 
 /* Range name, max current/voltage/power, current/voltage digits. */
-static const struct rdtech_dps_range ranges_dps3005[] = {
-	{  "5A",  5, 30,  160, 3, 2 }
-};
-
-static const struct rdtech_dps_range ranges_dps5005[] = {
-	{  "5A",  5, 50,  250, 3, 2 }
-};
-
-static const struct rdtech_dps_range ranges_dps5015[] = {
-	{ "15A", 15, 50,  750, 2, 2 }
-};
-
-static const struct rdtech_dps_range ranges_dps5020[] = {
-	{ "20A", 20, 50, 1000, 2, 2 }
-};
-
-static const struct rdtech_dps_range ranges_dps8005[] = {
-	{  "5A",  5, 80,  408, 3, 2 }
-};
-
-static const struct rdtech_dps_range ranges_rd6006[] = {
-	{  "6A",  6, 60,  360, 3, 2 }
-};
-
-static const struct rdtech_dps_range ranges_rd6006p[] = {
-	{  "6A",  6, 60,  360, 4, 3 }
-};
-
-static const struct rdtech_dps_range ranges_rd6012[] = {
-	{ "12A", 12, 60,  720, 2, 2 }
-};
-
-/*
- * RD6012P supports multiple current ranges with differing resolution.
- * Up to 6A with 4 digits (when RTU reg 20 == 0), up to 12A with 3 digits
- * (when RTU reg 20 == 1).
- */
-static const struct rdtech_dps_range ranges_rd6012p[] = {
-	{  "6A",  6, 60,  360, 4, 3 },
-	{ "12A", 12, 60,  720, 3, 3 }
-};
-
-static const struct rdtech_dps_range ranges_rd6018[] = {
-	{ "18A", 18, 60, 1080, 2, 2 }
-};
-
-static const struct rdtech_dps_range ranges_rd6024[] = {
-	{ "24A", 24, 60, 1440, 2, 2 }
+static const struct xy_sk120_range ranges_xy_sk120[] = {
+	{"120W",
+		6.1,
+		36.5,  
+		125, 
+		3,
+		2 }
 };
 
 /* Model ID, model name, model dependent ranges. */
-static const struct rdtech_dps_model supported_models[] = {
-	{ MODEL_DPS, 3005, "DPS3005", ARRAY_AND_SIZE(ranges_dps3005), },
-	{ MODEL_DPS, 5005, "DPS5005", ARRAY_AND_SIZE(ranges_dps5005), },
-	{ MODEL_DPS, 5205, "DPH5005", ARRAY_AND_SIZE(ranges_dps5005), },
-	{ MODEL_DPS, 5015, "DPS5015", ARRAY_AND_SIZE(ranges_dps5015), },
-	{ MODEL_DPS, 5020, "DPS5020", ARRAY_AND_SIZE(ranges_dps5020), },
-	{ MODEL_DPS, 8005, "DPS8005", ARRAY_AND_SIZE(ranges_dps8005), },
-	/*
-	 * Specs for models RD60nn taken from the 2020.12.2 instruction manual,
-	 * specs for RD6006P from the 2021.2.26 (english) manual,
-	 * specs for RD6012P from the 2021.10.26 (english) manual,
-	 * and specs for RD6024P from the 2021.1.7 (english) manual.
-	 */
-	{ MODEL_RD, 60061, "RD6006" , ARRAY_AND_SIZE(ranges_rd6006),  },
-	{ MODEL_RD, 60062, "RD6006" , ARRAY_AND_SIZE(ranges_rd6006),  },
-	{ MODEL_RD, 60065, "RD6006P", ARRAY_AND_SIZE(ranges_rd6006p), },
-	{ MODEL_RD, 60121, "RD6012" , ARRAY_AND_SIZE(ranges_rd6012),  },
-	{ MODEL_RD, 60125, "RD6012P", ARRAY_AND_SIZE(ranges_rd6012p), },
-	{ MODEL_RD, 60181, "RD6018" , ARRAY_AND_SIZE(ranges_rd6018),  },
-	{ MODEL_RD, 60241, "RD6024" , ARRAY_AND_SIZE(ranges_rd6024),  },
+static const struct xy_sk120_model supported_models[] = {
+	{ MODEL_XY_SK, 22873, "XY-SK120", ARRAY_AND_SIZE(ranges_xy_sk120), },
 };
 
-static struct sr_dev_driver rdtech_dps_driver_info;
-static struct sr_dev_driver rdtech_rd_driver_info;
+static struct sr_dev_driver xy_sk120_driver_info;
 
 static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus,
-	enum rdtech_dps_model_type model_type)
+	enum xy_sk120_model_type model_type)
 {
 	static const char *type_prefix[] = {
-		[MODEL_DPS] = "DPS",
-		[MODEL_RD]  = "RD",
+		[MODEL_XY_SK] = "XY-SK",
 	};
 
 	uint16_t id, version;
 	uint32_t serno;
 	int ret;
-	const struct rdtech_dps_model *model, *supported;
+	const struct xy_sk120_model *model, *supported;
 	size_t i;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
-	ret = rdtech_dps_get_model_version(modbus,
+	ret = xy_sk120_get_model_version(modbus,
 		model_type, &id, &version, &serno);
 	sr_dbg("probe: ret %d, type %s, model %u, vers %u, snr %u.",
 		ret, type_prefix[model_type], id, version, serno);
@@ -178,59 +137,53 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus,
 		break;
 	}
 	if (!model) {
-		sr_err("Unknown model: %s%u.", type_prefix[model_type], id);
+		sr_err("Unknown model id for %s device: %u", type_prefix[model_type], id);
 		return NULL;
 	}
 
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup("RDTech");
+	sdi->vendor = g_strdup("XY-SK");
 	switch (model_type) {
-	case MODEL_DPS:
+	case MODEL_XY_SK:
 		sdi->model = g_strdup(model->name);
-		sdi->version = g_strdup_printf("v%u", version);
-		sdi->driver = &rdtech_dps_driver_info;
-		break;
-	case MODEL_RD:
-		sdi->model = g_strdup(model->name);
-		sdi->version = g_strdup_printf("v%u.%u",
-			version / 100, version % 100);
-		if (serno)
-			sdi->serial_num = g_strdup_printf("%u", serno);
-		sdi->driver = &rdtech_rd_driver_info;
+		sdi->version = g_strdup_printf("v%u.%u.%u", version/100, version/10%10, version%10); //TODO do the decoding of the version number elsewhere in the code?
+		sdi->driver = &xy_sk120_driver_info;
 		break;
 	default:
-		sr_err("Programming error, unhandled DPS/DPH/RD device type.");
+		sr_err("Programming error, unhandled XY-SK device type.");
 		g_free(sdi->vendor);
 		g_free(sdi);
 		return NULL;
 	}
+
 	sdi->conn = modbus;
 	sdi->inst_type = SR_INST_MODBUS;
 
+	//TODO maybe subdivide channels into two groups (Output, Internal). sr_channel_group_new(sdi, "Output", NULL);
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
 	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
 	sr_channel_new(sdi, 2, SR_CHANNEL_ANALOG, TRUE, "P");
+	sr_channel_new(sdi, 3, SR_CHANNEL_ANALOG, TRUE, "Q"); /* Electric Charge */
+	sr_channel_new(sdi, 4, SR_CHANNEL_ANALOG, TRUE, "E"); /* Energy */
+	sr_channel_new(sdi, 5, SR_CHANNEL_ANALOG, TRUE, "V_source"); /* Voltage which powers the device itself*/
+	sr_channel_new(sdi, 6, SR_CHANNEL_ANALOG, TRUE, "T_internal"); /* Internal Temperature */
+
 
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
 	sr_sw_limits_init(&devc->limits);
 	devc->model = model;
-	ret = rdtech_dps_update_range(sdi);
+	xy_sk120_update_multipliers(sdi);
 	if (ret != SR_OK)
 		return NULL;
 
 	return sdi;
 }
 
-static struct sr_dev_inst *probe_device_dps(struct sr_modbus_dev_inst *modbus)
+static struct sr_dev_inst *probe_device_xy_sk120(struct sr_modbus_dev_inst *modbus)
 {
-	return probe_device(modbus, MODEL_DPS);
-}
-
-static struct sr_dev_inst *probe_device_rd(struct sr_modbus_dev_inst *modbus)
-{
-	return probe_device(modbus, MODEL_RD);
+	return probe_device(modbus, MODEL_XY_SK);
 }
 
 static int config_compare(gconstpointer a, gconstpointer b)
@@ -240,10 +193,9 @@ static int config_compare(gconstpointer a, gconstpointer b)
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options,
-	enum rdtech_dps_model_type model_type)
+	enum xy_sk120_model_type model_type)
 {
-	static const char *default_serialcomm_dps = "9600/8n1";
-	static const char *default_serialcomm_rd = "115200/8n1";
+	static const char *default_serialcomm_xy = "115200/8n1";
 
 	struct sr_config default_serialcomm = {
 		.key = SR_CONF_SERIALCOMM,
@@ -260,13 +212,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options,
 	/* TODO See why di->context isn't available yet at this time. */
 	serialcomm = NULL;
 	probe_func = NULL;
-	if (di->context == &rdtech_dps_driver_info || model_type == MODEL_DPS) {
-		serialcomm = default_serialcomm_dps;
-		probe_func = probe_device_dps;
-	}
-	if (di->context == &rdtech_rd_driver_info || model_type == MODEL_RD) {
-		serialcomm = default_serialcomm_rd;
-		probe_func = probe_device_rd;
+	if (di->context == &xy_sk120_driver_info || model_type == MODEL_XY_SK) {
+		serialcomm = default_serialcomm_xy;
+		probe_func = probe_device_xy_sk120;
 	}
 	if (!probe_func)
 		return NULL;
@@ -289,32 +237,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options,
 	return devices;
 }
 
-static GSList *scan_dps(struct sr_dev_driver *di, GSList *options)
+static GSList *scan_xy(struct sr_dev_driver *di, GSList *options)
 {
-	return scan(di, options, MODEL_DPS);
-}
-
-static GSList *scan_rd(struct sr_dev_driver *di, GSList *options)
-{
-	return scan(di, options, MODEL_RD);
+	return scan(di, options, MODEL_XY_SK);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_modbus_dev_inst *modbus;
-	struct rdtech_dps_state state;
+	struct xy_sk120_state state;
 	int ret;
 
 	modbus = sdi->conn;
 	if (sr_modbus_open(modbus) < 0)
 		return SR_ERR;
-
-	memset(&state, 0, sizeof(state));
-	state.lock = TRUE;
-	state.mask |= STATE_LOCK;
-	ret = rdtech_dps_set_state(sdi, &state);
-	if (ret != SR_OK)
-		return ret;
 
 	return SR_OK;
 }
@@ -322,16 +258,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_modbus_dev_inst *modbus;
-	struct rdtech_dps_state state;
+	struct xy_sk120_state state;
 
 	modbus = sdi->conn;
 	if (!modbus)
 		return SR_ERR_BUG;
-
-	memset(&state, 0, sizeof(state));
-	state.lock = FALSE;
-	state.mask |= STATE_LOCK;
-	(void)rdtech_dps_set_state(sdi, &state);
 
 	return sr_modbus_close(modbus);
 }
@@ -340,7 +271,7 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct rdtech_dps_state state;
+	struct xy_sk120_state state;
 	int ret;
 	const char *cc_text, *range_text;
 
@@ -355,7 +286,7 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
 	case SR_CONF_ENABLED:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_OUTPUT_ENABLED))
@@ -363,16 +294,16 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.output_enabled);
 		break;
 	case SR_CONF_REGULATION:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_REGULATION_CC))
 			return SR_ERR_DATA;
-		cc_text = state.regulation_cc ? "CC" : "CV";
+		cc_text = state.regulation_cc ? "CC" : "CV"; //TODO minor improvement: return "" if the output is off?
 		*data = g_variant_new_string(cc_text);
 		break;
 	case SR_CONF_VOLTAGE:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_VOLTAGE))
@@ -380,7 +311,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.voltage);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_VOLTAGE_TARGET))
@@ -388,7 +319,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.voltage_target);
 		break;
 	case SR_CONF_CURRENT:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_CURRENT))
@@ -396,15 +327,25 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.current);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_CURRENT_LIMIT))
 			return SR_ERR_DATA;
 		*data = g_variant_new_double(state.current_limit);
 		break;
+	case SR_CONF_POWER:
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
+		if (ret != SR_OK)
+			return ret;
+		/* TODO actually implement ?
+		if (!(state.mask & STATE_POWER))
+			return SR_ERR_DATA;
+		*/
+		*data = g_variant_new_double(state.power);
+		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_ENABLED))
@@ -412,7 +353,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_enabled);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_OVP))
@@ -420,7 +361,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_ovp);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_OUTPUT_ENABLED))
@@ -428,7 +369,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.ovp_threshold);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_ENABLED))
@@ -436,7 +377,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_enabled);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_OCP))
@@ -444,7 +385,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_ocp);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_OCP_THRESHOLD))
@@ -452,7 +393,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.ocp_threshold);
 		break;
 	case SR_CONF_RANGE:
-		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
+		ret = xy_sk120_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_RANGE))
@@ -471,9 +412,9 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct rdtech_dps_state state;
+	struct xy_sk120_state state;
 	const char *range_str;
-	const struct rdtech_dps_range *range;
+	const struct xy_sk120_range *range;
 	size_t i;
 
 	(void)cg;
@@ -488,23 +429,23 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_ENABLED:
 		state.output_enabled = g_variant_get_boolean(data);
 		state.mask |= STATE_OUTPUT_ENABLED;
-		return rdtech_dps_set_state(sdi, &state);
+		return xy_sk120_set_state(sdi, &state);
 	case SR_CONF_VOLTAGE_TARGET:
 		state.voltage_target = g_variant_get_double(data);
 		state.mask |= STATE_VOLTAGE_TARGET;
-		return rdtech_dps_set_state(sdi, &state);
+		return xy_sk120_set_state(sdi, &state);
 	case SR_CONF_CURRENT_LIMIT:
 		state.current_limit = g_variant_get_double(data);
 		state.mask |= STATE_CURRENT_LIMIT;
-		return rdtech_dps_set_state(sdi, &state);
+		return xy_sk120_set_state(sdi, &state);
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		state.ovp_threshold = g_variant_get_double(data);
 		state.mask |= STATE_OVP_THRESHOLD;
-		return rdtech_dps_set_state(sdi, &state);
+		return xy_sk120_set_state(sdi, &state);
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		state.ocp_threshold = g_variant_get_double(data);
 		state.mask |= STATE_OCP_THRESHOLD;
-		return rdtech_dps_set_state(sdi, &state);
+		return xy_sk120_set_state(sdi, &state);
 	case SR_CONF_RANGE:
 		range_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < devc->model->n_ranges; i++) {
@@ -513,7 +454,7 @@ static int config_set(uint32_t key, GVariant *data,
 				continue;
 			state.range = i;
 			state.mask |= STATE_RANGE;
-			return rdtech_dps_set_state(sdi, &state);
+			return xy_sk120_set_state(sdi, &state);
 		}
 		return SR_ERR_NA;
 	default:
@@ -527,7 +468,7 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	const struct rdtech_dps_range *range;
+	const struct xy_sk120_range *range;
 	GVariantBuilder gvb;
 	size_t i;
 	const char *s;
@@ -545,13 +486,13 @@ static int config_list(uint32_t key, GVariant **data,
 				scanopts, drvopts, devopts);
 		}
 	case SR_CONF_VOLTAGE_TARGET:
-		rdtech_dps_update_range(sdi);
+		xy_sk120_update_range(sdi);
 		range = &devc->model->ranges[devc->curr_range];
 		*data = std_gvar_min_max_step(0.0, range->max_voltage,
 			1 / devc->voltage_multiplier);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		rdtech_dps_update_range(sdi);
+		xy_sk120_update_range(sdi);
 		range = &devc->model->ranges[devc->curr_range];
 		*data = std_gvar_min_max_step(0.0, range->max_current,
 			1 / devc->current_multiplier);
@@ -583,7 +524,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->acquisition_started = TRUE;
 
 	/* Seed internal state from current data. */
-	ret = rdtech_dps_seed_receive(sdi);
+	ret = xy_sk120_seed_receive(sdi);
 	if (ret != SR_OK) {
 		devc->acquisition_started = FALSE;
 		return ret;
@@ -591,7 +532,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Register the periodic data reception callback. */
 	ret = sr_modbus_source_add(sdi->session, modbus, G_IO_IN, 10,
-			rdtech_dps_receive_data, (void *)sdi);
+			xy_sk120_receive_data, (void *)sdi);
 	if (ret != SR_OK) {
 		devc->acquisition_started = FALSE;
 		return ret;
@@ -619,13 +560,13 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static struct sr_dev_driver rdtech_dps_driver_info = {
-	.name = "rdtech-dps",
-	.longname = "RDTech DPS/DPH series power supply",
+static struct sr_dev_driver xy_sk120_driver_info = {
+	.name = "xy-sk120",
+	.longname = "XY-SK120 power supply",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
-	.scan = scan_dps,
+	.scan = scan_xy,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
 	.config_get = config_get,
@@ -637,24 +578,5 @@ static struct sr_dev_driver rdtech_dps_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
-SR_REGISTER_DEV_DRIVER(rdtech_dps_driver_info);
+SR_REGISTER_DEV_DRIVER(xy_sk120_driver_info);
 
-static struct sr_dev_driver rdtech_rd_driver_info = {
-	.name = "rdtech-rd",
-	.longname = "RDTech RD series power supply",
-	.api_version = 1,
-	.init = std_init,
-	.cleanup = std_cleanup,
-	.scan = scan_rd,
-	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
-	.config_get = config_get,
-	.config_set = config_set,
-	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
-	.context = NULL,
-};
-SR_REGISTER_DEV_DRIVER(rdtech_rd_driver_info);

@@ -164,6 +164,7 @@ The following drivers/devices do not need any firmware upload:
  - tondaj-sl-814
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
+ - xy-sk120
  - yokogawa-dlm
  - zeroplus-logic-cube
  - zketech-ebd-usb

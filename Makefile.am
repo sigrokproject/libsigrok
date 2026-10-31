@@ -753,6 +753,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/uni-t-ut32x/protocol.c \
 	src/hardware/uni-t-ut32x/api.c
 endif
+if HW_XY_SK120
+src_libdrivers_la_SOURCES += \
+	src/hardware/xy-sk120/protocol.h \
+	src/hardware/xy-sk120/protocol.c \
+	src/hardware/xy-sk120/api.c
+endif
 if HW_YOKOGAWA_DLM
 src_libdrivers_la_SOURCES += \
 	src/hardware/yokogawa-dlm/protocol.h \

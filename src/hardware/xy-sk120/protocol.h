@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_RDTECH_DPS_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_RDTECH_DPS_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_XY_SK120_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_XY_SK120_PROTOCOL_H
 
 #include "config.h"
 
@@ -30,15 +30,14 @@
 
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "rdtech-dps"
+#define LOG_PREFIX "xy-sk120"
 
-enum rdtech_dps_model_type {
+enum xy_sk120_model_type {
 	MODEL_NONE,
-	MODEL_DPS,
-	MODEL_RD,
+	MODEL_XY_SK,
 };
 
-struct rdtech_dps_range {
+struct xy_sk120_range {
 	const char *range_str;
 	unsigned int max_current;
 	unsigned int max_voltage;
@@ -47,16 +46,16 @@ struct rdtech_dps_range {
 	unsigned int voltage_digits;
 };
 
-struct rdtech_dps_model {
-	enum rdtech_dps_model_type model_type;
+struct xy_sk120_model {
+	enum xy_sk120_model_type model_type;
 	unsigned int id;
 	const char *name;
-	const struct rdtech_dps_range *ranges;
+	const struct xy_sk120_range *ranges;
 	size_t n_ranges;
 };
 
 struct dev_context {
-	const struct rdtech_dps_model *model;
+	const struct xy_sk120_model *model;
 	double current_multiplier;
 	double voltage_multiplier;
 	struct sr_sw_limits limits;
@@ -70,8 +69,8 @@ struct dev_context {
 };
 
 /* Container to get and set parameter values. */
-struct rdtech_dps_state {
-	enum rdtech_dps_state_mask {
+struct xy_sk120_state {
+	enum xy_sk120_state_mask {
 		STATE_LOCK = 1 << 0,
 		STATE_OUTPUT_ENABLED = 1 << 1,
 		STATE_REGULATION_CC = 1 << 2,
@@ -93,26 +92,28 @@ struct rdtech_dps_state {
 	float voltage_target, current_limit;
 	float ovp_threshold, ocp_threshold;
 	float voltage, current, power;
+	float charge, energy;
+	float voltage_source, temperature_internal;
 	size_t range;
 };
 
-enum rdtech_dps_state_context {
+enum xy_sk120_state_context {
 	ST_CTX_NONE,
 	ST_CTX_CONFIG,
 	ST_CTX_PRE_ACQ,
 	ST_CTX_IN_ACQ,
 };
-SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
-	struct rdtech_dps_state *state, enum rdtech_dps_state_context reason);
-SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
-	struct rdtech_dps_state *state);
+SR_PRIV int xy_sk120_get_state(const struct sr_dev_inst *sdi,
+	struct xy_sk120_state *state, enum xy_sk120_state_context reason);
+SR_PRIV int xy_sk120_set_state(const struct sr_dev_inst *sdi,
+	struct xy_sk120_state *state);
 
-SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
-	enum rdtech_dps_model_type model_type,
+SR_PRIV int xy_sk120_get_model_version(struct sr_modbus_dev_inst *modbus,
+	enum xy_sk120_model_type model_type,
 	uint16_t *model, uint16_t *version, uint32_t *serno);
-SR_PRIV void rdtech_dps_update_multipliers(const struct sr_dev_inst *sdi);
-SR_PRIV int rdtech_dps_update_range(const struct sr_dev_inst *sdi);
-SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi);
-SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV void xy_sk120_update_multipliers(const struct sr_dev_inst *sdi);
+SR_PRIV int xy_sk120_update_range(const struct sr_dev_inst *sdi);
+SR_PRIV int xy_sk120_seed_receive(const struct sr_dev_inst *sdi);
+SR_PRIV int xy_sk120_receive_data(int fd, int revents, void *cb_data);
 
 #endif
