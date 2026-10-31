@@ -97,6 +97,31 @@ struct rigol_ds_model {
 	const struct rigol_ds_command *cmds;
 };
 
+/* Waveform of the built-in signal generator. */
+struct rigol_ds_awg_waveform {
+	const char *scpi_name;
+	const char *name;
+	/* Maximum output frequency, 0 if the frequency doesn't apply. */
+	double freq_max;
+};
+
+extern const struct rigol_ds_awg_waveform rigol_ds_awg_waveforms[];
+extern const unsigned int rigol_ds_num_awg_waveforms;
+
+/* Cached signal generator state, see rigol_ds_get_awg_cfg(). */
+struct rigol_ds_awg_state {
+	/* FALSE if the state couldn't be read from the device. */
+	gboolean valid;
+	gboolean enabled;
+	/* Index into rigol_ds_awg_waveforms, -1 if unknown. */
+	int waveform;
+	double frequency;
+	double amplitude;
+	double offset;
+	double phase;
+	double duty_cycle;
+};
+
 enum wait_events {
 	WAIT_NONE,    /* Don't wait */
 	WAIT_TRIGGER, /* Wait for trigger (only live capture) */
@@ -117,6 +142,9 @@ struct dev_context {
 	/* Channel groups */
 	struct sr_channel_group **analog_groups;
 	struct sr_channel_group *digital_group;
+	/* Built-in signal generator settings, a group without channels.
+	 * NULL if the model has no signal generator. */
+	struct sr_channel_group *awg_group;
 
 	/* Acquisition settings */
 	GSList *enabled_channels;
@@ -142,6 +170,9 @@ struct dev_context {
 	char *trigger_slope;
 	float trigger_level;
 	char *coupling[MAX_ANALOG_CHANNELS];
+	struct rigol_ds_awg_state awg;
+	/* An acquisition is running, waveform data may be in transfer. */
+	gboolean acquiring;
 
 	/* Number of frames received in total. */
 	uint64_t num_frames;
@@ -172,5 +203,6 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi);
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data);
 SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi);
 SR_PRIV int rigol_ds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi);
+SR_PRIV int rigol_ds_get_awg_cfg(const struct sr_dev_inst *sdi);
 
 #endif

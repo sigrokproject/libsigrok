@@ -66,6 +66,20 @@
  * Each data block has a trailing linefeed too.
  */
 
+/*
+ * Waveforms of the built-in signal generator of the DHO900 "S" models.
+ * Frequency limits as reported by a DHO914S with firmware 00.01.04.
+ */
+const struct rigol_ds_awg_waveform rigol_ds_awg_waveforms[] = {
+	{ "SIN",  "Sine",   25.0e6 },
+	{ "SQU",  "Square", 15.0e6 },
+	{ "RAMP", "Ramp",   150.0e3 },
+	{ "ARB",  "Arb",    10.0e6 },
+	{ "NOIS", "Noise",  0 },
+	{ "DC",   "DC",     0 },
+};
+const unsigned int rigol_ds_num_awg_waveforms = ARRAY_SIZE(rigol_ds_awg_waveforms);
+
 static int parse_int(const char *str, int *ret)
 {
 	char *e;
@@ -534,6 +548,19 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
 				return SR_ERR;
 		}
+
+		/*
+		 * The DHO series doesn't return a fixed number of screen
+		 * points (seen: 999 or 1000), so ask for the current count.
+		 */
+		if (devc->model->series->protocol == PROTOCOL_V6 &&
+				devc->data_source == DATA_SOURCE_LIVE) {
+			int points;
+			if (sr_scpi_get_int(sdi->conn, ":WAV:POIN?", &points) != SR_OK)
+				return SR_ERR;
+			if (points > 0)
+				devc->analog_frame_size = devc->digital_frame_size = points;
+		}
 		break;
 	}
 
@@ -995,6 +1022,73 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	if (sr_scpi_get_float(sdi->conn, ":TRIG:EDGE:LEV?", &devc->trigger_level) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current trigger level %g", devc->trigger_level);
+
+	/*
+	 * Signal generator. Don't fail opening the oscilloscope if its
+	 * state can't be read, only the generator settings are unavailable.
+	 */
+	if (devc->awg_group && rigol_ds_get_awg_cfg(sdi) != SR_OK)
+		sr_warn("Failed to read the signal generator state.");
+
+	return SR_OK;
+}
+
+/*
+ * Read the state of the built-in signal generator into devc->awg.
+ *
+ * The state is cached because frontends query config values at any time,
+ * also while waveform data is being transferred, and an interleaved query
+ * would corrupt the transfer. Call this after changing a generator
+ * setting, the device may have clamped the value (e.g. the offset is
+ * limited by the amplitude).
+ */
+SR_PRIV int rigol_ds_get_awg_cfg(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi;
+	struct rigol_ds_awg_state awg;
+	char *wf;
+	unsigned int i;
+
+	devc = sdi->priv;
+	scpi = sdi->conn;
+
+	/* Only replace the cached state when everything could be read. */
+	if (sr_scpi_get_bool(scpi, ":SOUR:OUTP:STAT?", &awg.enabled) != SR_OK)
+		return SR_ERR;
+
+	if (sr_scpi_get_string(scpi, ":SOUR:FUNC?", &wf) != SR_OK)
+		return SR_ERR;
+	awg.waveform = -1;
+	for (i = 0; i < rigol_ds_num_awg_waveforms; i++) {
+		if (!g_ascii_strcasecmp(wf, rigol_ds_awg_waveforms[i].scpi_name)) {
+			awg.waveform = i;
+			break;
+		}
+	}
+	if (awg.waveform < 0)
+		sr_warn("Unknown signal generator waveform '%s'.", wf);
+	g_free(wf);
+
+	if (sr_scpi_get_double(scpi, ":SOUR:FREQ?", &awg.frequency) != SR_OK)
+		return SR_ERR;
+	if (sr_scpi_get_double(scpi, ":SOUR:VOLT:AMPL?", &awg.amplitude) != SR_OK)
+		return SR_ERR;
+	if (sr_scpi_get_double(scpi, ":SOUR:VOLT:OFFS?", &awg.offset) != SR_OK)
+		return SR_ERR;
+	if (sr_scpi_get_double(scpi, ":SOUR:PHAS?", &awg.phase) != SR_OK)
+		return SR_ERR;
+	if (sr_scpi_get_double(scpi, ":SOUR:FUNC:SQU:DUTY?", &awg.duty_cycle) != SR_OK)
+		return SR_ERR;
+
+	awg.valid = TRUE;
+	devc->awg = awg;
+
+	sr_dbg("Signal generator: output %s, %s, %g Hz, %g Vpp, offset %g V, "
+		"phase %g deg, duty %g %%", awg.enabled ? "on" : "off",
+		awg.waveform >= 0 ? rigol_ds_awg_waveforms[awg.waveform].name : "?",
+		awg.frequency, awg.amplitude, awg.offset, awg.phase,
+		awg.duty_cycle);
 
 	return SR_OK;
 }
