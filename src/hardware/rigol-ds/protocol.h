@@ -188,6 +188,8 @@ struct dev_context {
 	uint64_t num_block_bytes;
 	/* Number of data block bytes already read */
 	uint64_t num_block_read;
+	/* Bytes of an incomplete sample carried over to the next read */
+	unsigned int num_leftover_bytes;
 	/* What to wait for in *_receive */
 	enum wait_events wait_event;
 	/* Trigger/block copying/stop waiting status */

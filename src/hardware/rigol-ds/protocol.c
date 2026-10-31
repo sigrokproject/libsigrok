@@ -104,6 +104,15 @@ static int parse_int(const char *str, int *ret)
 	return SR_OK;
 }
 
+/*
+ * Bytes per analog sample in waveform data. The DHO series has a 12 bit
+ * ADC, its WORD format (16 bit little endian) keeps the full resolution.
+ */
+static unsigned int analog_bytes_per_sample(const struct dev_context *devc)
+{
+	return devc->model->series->protocol == PROTOCOL_V6 ? 2 : 1;
+}
+
 /* Set the next event to wait for in rigol_ds_receive */
 static void rigol_ds_set_wait_event(struct dev_context *devc, enum wait_events event)
 {
@@ -407,7 +416,9 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	case PROTOCOL_V4:
 	case PROTOCOL_V5:
 	case PROTOCOL_V6:
-		if (first_frame && rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
+		if (first_frame && rigol_ds_config_set(sdi,
+				analog_bytes_per_sample(devc) == 2 ?
+					":WAV:FORM WORD" : ":WAV:FORM BYTE") != SR_OK)
 			return SR_ERR;
 		if (devc->data_source == DATA_SOURCE_LIVE) {
 			if (first_frame && rigol_ds_config_set(sdi, ":WAV:MODE NORM") != SR_OK)
@@ -548,19 +559,6 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
 				return SR_ERR;
 		}
-
-		/*
-		 * The DHO series doesn't return a fixed number of screen
-		 * points (seen: 999 or 1000), so ask for the current count.
-		 */
-		if (devc->model->series->protocol == PROTOCOL_V6 &&
-				devc->data_source == DATA_SOURCE_LIVE) {
-			int points;
-			if (sr_scpi_get_int(sdi->conn, ":WAV:POIN?", &points) != SR_OK)
-				return SR_ERR;
-			if (points > 0)
-				devc->analog_frame_size = devc->digital_frame_size = points;
-		}
 		break;
 	}
 
@@ -587,6 +585,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 	devc->num_channel_bytes = 0;
 	devc->num_header_bytes = 0;
 	devc->num_block_bytes = 0;
+	devc->num_leftover_bytes = 0;
 
 	return SR_OK;
 }
@@ -660,7 +659,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
 	double vdiv, offset, origin;
-	int len, i, vref;
+	int len, i, vref, num_samples, num_bytes;
+	unsigned int bps, leftover;
+	gboolean live_block_size;
 	struct sr_channel *ch;
 	gsize expected_data_bytes;
 
@@ -707,16 +708,27 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	ch = devc->channel_entry->data;
 
-	expected_data_bytes = ch->type == SR_CHANNEL_ANALOG ?
-			devc->analog_frame_size : devc->digital_frame_size;
+	bps = ch->type == SR_CHANNEL_ANALOG ? analog_bytes_per_sample(devc) : 1;
+	expected_data_bytes = bps * (ch->type == SR_CHANNEL_ANALOG ?
+			devc->analog_frame_size : devc->digital_frame_size);
+	/*
+	 * The DHO series returns either 999 or 1000 screen points, and the
+	 * count can change between frames. Its live frame size is taken
+	 * from each data block instead.
+	 */
+	live_block_size = devc->model->series->protocol == PROTOCOL_V6 &&
+			devc->data_source == DATA_SOURCE_LIVE;
 
 	if (devc->num_block_bytes == 0) {
 		if (devc->model->series->protocol >= PROTOCOL_V4) {
+			/* :WAV:START and :WAV:STOP are given in samples. */
 			if (first_frame && rigol_ds_config_set(sdi, ":WAV:START %d",
-					devc->num_channel_bytes + 1) != SR_OK)
+					devc->num_channel_bytes / bps + 1) != SR_OK)
 				return TRUE;
 			if (first_frame && rigol_ds_config_set(sdi, ":WAV:STOP %d",
-					MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
+					MIN(devc->num_channel_bytes / bps + ACQ_BLOCK_SIZE,
+						live_block_size ?
+						devc->model->series->live_samples :
 						devc->analog_frame_size)) != SR_OK)
 				return TRUE;
 		}
@@ -749,7 +761,13 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			 * Discard these, the complete data block will appear
 			 * eventually.
 			 */
-			if (devc->data_source == DATA_SOURCE_LIVE
+			if (live_block_size) {
+				expected_data_bytes = len;
+				if (ch->type == SR_CHANNEL_ANALOG)
+					devc->analog_frame_size = len / bps;
+				else
+					devc->digital_frame_size = len / bps;
+			} else if (devc->data_source == DATA_SOURCE_LIVE
 					&& (unsigned)len < expected_data_bytes) {
 				sr_dbg("Discarding short data block: got %d/%d bytes\n", len, (int)expected_data_bytes);
 				sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
@@ -763,12 +781,14 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		devc->num_block_read = 0;
 	}
 
+	/* An incomplete sample from the previous read is at the buffer start. */
+	leftover = devc->num_leftover_bytes;
 	len = devc->num_block_bytes - devc->num_block_read;
-	if (len > ACQ_BUFFER_SIZE)
-		len = ACQ_BUFFER_SIZE;
+	if (len > ACQ_BUFFER_SIZE - (int)leftover)
+		len = ACQ_BUFFER_SIZE - leftover;
 	sr_dbg("Requesting read of %d bytes", len);
 
-	len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
+	len = sr_scpi_read_data(scpi, (char *)devc->buffer + leftover, len);
 
 	if (len == -1) {
 		sr_err("Error while reading block data, aborting capture.");
@@ -782,21 +802,32 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	devc->num_block_read += len;
 
 	if (ch->type == SR_CHANNEL_ANALOG) {
+		num_bytes = leftover + len;
+		num_samples = num_bytes / bps;
 		vref = devc->vert_reference[ch->index];
 		vdiv = devc->vert_inc[ch->index];
 		origin = devc->vert_origin[ch->index];
 		offset = devc->vert_offset[ch->index];
-		if (devc->model->series->protocol >= PROTOCOL_V3)
-			for (i = 0; i < len; i++)
+		if (bps == 2)
+			for (i = 0; i < num_samples; i++)
+				devc->data[i] = ((int)RL16(&devc->buffer[2 * i])
+					- vref - origin) * vdiv;
+		else if (devc->model->series->protocol >= PROTOCOL_V3)
+			for (i = 0; i < num_samples; i++)
 				devc->data[i] = ((int)devc->buffer[i] - vref - origin) * vdiv;
 		else
-			for (i = 0; i < len; i++)
+			for (i = 0; i < num_samples; i++)
 				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
+		/* Keep the bytes of an incomplete sample for the next read. */
+		devc->num_leftover_bytes = num_bytes % bps;
+		if (devc->num_leftover_bytes)
+			memmove(devc->buffer, devc->buffer + num_bytes -
+				devc->num_leftover_bytes, devc->num_leftover_bytes);
 		float vdivlog = log10f(vdiv);
 		int digits = -(int)vdivlog + (vdivlog < 0.0);
 		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 		analog.meaning->channels = g_slist_append(NULL, ch);
-		analog.num_samples = len;
+		analog.num_samples = num_samples;
 		analog.data = devc->data;
 		analog.meaning->mq = SR_MQ_VOLTAGE;
 		analog.meaning->unit = SR_UNIT_VOLT;
