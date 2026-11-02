@@ -113,6 +113,9 @@ ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0020", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Basic
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0021", ENV{ID_SIGROK}="1"
 
+# FNIRSI DLA-32 Plus (shared WCH USB interface; driver confirms the model)
+ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="5537", ENV{ID_SIGROK}="1"
+
 # Great Scott Gadgets
 # GreatFET One
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="60e6", ENV{ID_SIGROK}="1"

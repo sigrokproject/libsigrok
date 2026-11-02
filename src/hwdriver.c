@@ -265,6 +265,10 @@ static struct sr_key_info sr_key_info_config[] = {
 
 	{SR_CONF_GATE_TIME, SR_T_RATIONAL_PERIOD, "gate_time",
 		"Gate time", NULL},
+	{SR_CONF_CAPTURE_STATUS, SR_T_STRING, "capture_status",
+		"Capture status", "Host acquisition outcome; does not certify waveform integrity"},
+	{SR_CONF_CAPTURE_ERROR, SR_T_STRING, "capture_error",
+		"Capture error", "Reason the acquisition could not finish normally"},
 	ALL_ZERO
 };
 
@@ -595,26 +599,42 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 /**
  * Call driver cleanup function for all drivers.
  *
+ * Successfully cleaned drivers are marked uninitialized. On the first
+ * failure, leave that driver and all remaining drivers initialized so
+ * cleanup can be retried without cleaning successful drivers twice.
+ *
  * @param[in] ctx Pointer to a libsigrok context struct. Must not be NULL.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid context.
+ * @retval other Driver cleanup failed; the context remains valid.
  *
  * @private
  */
-SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
+SR_PRIV int sr_hw_cleanup_all(const struct sr_context *ctx)
 {
-	int i;
+	int i, ret;
 	struct sr_dev_driver **drivers;
 
 	if (!ctx)
-		return;
+		return SR_ERR_ARG;
 
 	sr_dbg("Cleaning up all drivers.");
 
 	drivers = sr_driver_list(ctx);
 	for (i = 0; drivers[i]; i++) {
-		if (drivers[i]->cleanup)
-			drivers[i]->cleanup(drivers[i]);
+		if (!drivers[i]->context)
+			continue;
+		if (drivers[i]->cleanup) {
+			ret = drivers[i]->cleanup(drivers[i]);
+			if (ret != SR_OK) {
+				sr_err("Driver %s cleanup failed: %d.", drivers[i]->name, ret);
+				return ret;
+			}
+		}
 		drivers[i]->context = NULL;
 	}
+	return SR_OK;
 }
 
 /**

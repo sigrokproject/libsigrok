@@ -1267,6 +1267,14 @@ enum sr_configkey {
 	 */
 	SR_CONF_GATE_TIME,
 
+	/** Host acquisition outcome, not waveform integrity or calibration.
+	 * Project extension: string, read-only for hardware; also carried in META.
+	 * Values: unknown, running, complete, stopped, disconnected, timeout, error.
+	 * Existing numeric configuration keys are unchanged. */
+	SR_CONF_CAPTURE_STATUS = 60000,
+	/** Human-readable acquisition error; empty for normal completion/Stop. */
+	SR_CONF_CAPTURE_ERROR,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };
 

@@ -148,6 +148,7 @@ static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
 START_TEST(test_locale)
 {
 	char *old_locale, *saved_locale;
+	char short_buffer[4] = {0, 0, 0, 'X'};
 
 	/* Get the the current locale. */
 	old_locale = setlocale(LC_NUMERIC, NULL);
@@ -187,6 +188,12 @@ START_TEST(test_locale)
 	test_sr_vsprintf_ascii("0.1234", "%.4f", (double)0.1234);
 	test_sr_vsprintf_ascii("0.12345", "%.5f", (double)0.12345);
 	test_sr_vsprintf_ascii("0.123456", "%.6f", (double)0.123456);
+
+	/* Required length, truncation and size-zero queries must also be ASCII. */
+	ck_assert_int_eq(sr_snprintf_ascii(NULL, 0, "%.2f", 1.23), 4);
+	ck_assert_int_eq(sr_snprintf_ascii(short_buffer, 3, "%.2f", 1.23), 4);
+	ck_assert_str_eq(short_buffer, "1.");
+	ck_assert_int_eq(short_buffer[3], 'X');
 
 #if 0
 	/*

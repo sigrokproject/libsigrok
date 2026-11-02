@@ -34,6 +34,7 @@ struct out_context {
 	gboolean zip_created;
 	uint64_t samplerate;
 	char *filename;
+	char *capture_status, *capture_error;
 	size_t first_analog_index;
 	size_t analog_ch_count;
 	gint *analog_index_map;
@@ -156,6 +157,10 @@ static int zip_create(const struct sr_output *o)
 	g_free(s);
 
 	g_key_file_set_integer(meta, devgroup, "total analog", enabled_analog_channels);
+	if (outc->capture_status)
+		g_key_file_set_string(meta, devgroup, "capture status", outc->capture_status);
+	if (outc->capture_error)
+		g_key_file_set_string(meta, devgroup, "capture error", outc->capture_error);
 
 	outc->analog_ch_count = enabled_analog_channels;
 	alloc_size = sizeof(gint) * outc->analog_ch_count + 1;
@@ -681,6 +686,8 @@ static int zip_append_analog_queue(const struct sr_output *o,
 	return SR_OK;
 }
 
+#include "srzip-capture-status.h"
+
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
@@ -701,6 +708,13 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		meta = packet->payload;
 		for (l = meta->config; l; l = l->next) {
 			src = l->data;
+			if (src->key == SR_CONF_CAPTURE_STATUS || src->key == SR_CONF_CAPTURE_ERROR) {
+				char **value = src->key == SR_CONF_CAPTURE_STATUS ?
+					&outc->capture_status : &outc->capture_error;
+				g_free(*value);
+				*value = g_variant_dup_string(src->data, NULL);
+				continue;
+			}
 			if (src->key != SR_CONF_SAMPLERATE)
 				continue;
 			outc->samplerate = g_variant_get_uint64(src->data);
@@ -738,6 +752,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			ret = zip_append_analog_queue(o, NULL, TRUE);
 			if (ret != SR_OK)
 				return ret;
+			ret = zip_update_capture_status(o);
+			if (ret != SR_OK)
+				return ret;
 		}
 		break;
 	}
@@ -763,6 +780,8 @@ static int cleanup(struct sr_output *o)
 
 	g_free(outc->analog_index_map);
 	g_free(outc->filename);
+	g_free(outc->capture_status);
+	g_free(outc->capture_error);
 	g_free(outc->logic_buff.samples);
 	for (idx = 0; idx < outc->analog_ch_count; idx++)
 		g_free(outc->analog_buff[idx].samples);

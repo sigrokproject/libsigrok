@@ -560,6 +560,16 @@ SR_API int sr_vsprintf_ascii(char *buf, const char *format, va_list args)
 #if defined(_WIN32)
 	int ret;
 
+#if defined(_UCRT)
+	_locale_t numeric_locale;
+
+	numeric_locale = _create_locale(LC_NUMERIC, "C");
+	if (!numeric_locale)
+		return -1;
+	ret = _vsprintf_l(buf, format, numeric_locale, args);
+	_free_locale(numeric_locale);
+	return ret;
+#else
 #if 0
 	/*
 	 * TODO: This part compiles with mingw-w64 but doesn't run with Win7.
@@ -579,6 +589,7 @@ SR_API int sr_vsprintf_ascii(char *buf, const char *format, va_list args)
 	ret = vsprintf(buf, format, args);
 
 	return ret;
+#endif
 #elif defined(__APPLE__)
 	/*
 	 * See:
@@ -733,6 +744,25 @@ SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
 #if defined(_WIN32)
 	int ret;
 
+#if defined(_UCRT)
+	_locale_t numeric_locale;
+	va_list count_args;
+
+	/* UCRT has locale-specific formatting. Preserve the C99 required-length
+	 * result and NUL termination even though _vsnprintf_l truncates with -1. */
+	numeric_locale = _create_locale(LC_NUMERIC, "C");
+	if (!numeric_locale)
+		return -1;
+	va_copy(count_args, args);
+	ret = _vscprintf_l(format, numeric_locale, count_args);
+	va_end(count_args);
+	if (ret >= 0 && buf && buf_size) {
+		_vsnprintf_l(buf, buf_size, format, numeric_locale, args);
+		buf[buf_size - 1] = '\0';
+	}
+	_free_locale(numeric_locale);
+	return ret;
+#else
 #if 0
 	/*
 	 * TODO: This part compiles with mingw-w64 but doesn't run with Win7.
@@ -752,6 +782,7 @@ SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
 	ret = vsnprintf(buf, buf_size, format, args);
 
 	return ret;
+#endif
 #elif defined(__APPLE__)
 	/*
 	 * See:

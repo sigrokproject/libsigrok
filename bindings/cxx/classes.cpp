@@ -28,6 +28,7 @@
 
 #include <sstream>
 #include <cmath>
+#include <cstdio>
 
 namespace sigrok
 {
@@ -117,9 +118,87 @@ SR_PRIV gssize ResourceReader::read_callback(const struct sr_resource *res,
 	}
 }
 
+namespace {
+
+/* Allocate a retirement node before constructing its Context. The last-owner
+ * deleter can then retain the entire owner without allocating or throwing. */
+struct DeferredContext {
+	Context *context;
+	DeferredContext *next;
+};
+
+GRecMutex deferred_context_mutex;
+
+// Serialize initialization, last-owner retirement and explicit retries. In
+// particular, another create() must not bypass a retry with a detached list.
+struct ContextCleanupLock {
+	ContextCleanupLock() noexcept { g_rec_mutex_lock(&deferred_context_mutex); }
+	~ContextCleanupLock() noexcept { g_rec_mutex_unlock(&deferred_context_mutex); }
+};
+DeferredContext *deferred_contexts;
+
+void retain_context(DeferredContext *entry) noexcept
+{
+	// Caller holds the lifecycle lock.
+	entry->next = deferred_contexts;
+	deferred_contexts = entry;
+}
+
+} // namespace
+
+void Context::retry_cleanup()
+{
+	const ContextCleanupLock lock;
+	auto *entry = deferred_contexts;
+	deferred_contexts = nullptr;
+	int first_error = SR_OK;
+	while (entry) {
+		auto *next = entry->next;
+		const int result = sr_exit(entry->context->_structure);
+		if (result == SR_OK) {
+			entry->context->_structure = nullptr;
+			delete entry->context;
+			delete entry;
+		} else {
+			if (first_error == SR_OK)
+				first_error = result;
+			retain_context(entry);
+		}
+		entry = next;
+	}
+	check(first_error);
+}
+
 shared_ptr<Context> Context::create()
 {
-	return shared_ptr<Context>{new Context{}, default_delete<Context>{}};
+	const ContextCleanupLock lock;
+	// Do not initialize another context over drivers awaiting retirement.
+	retry_cleanup();
+	unique_ptr<DeferredContext> holder{new DeferredContext{nullptr, nullptr}};
+	holder->context = new Context{};
+	auto *entry = holder.release();
+	return shared_ptr<Context>{entry->context, [entry](Context *context) noexcept {
+		const ContextCleanupLock lock;
+		const int result = sr_exit(context->_structure);
+		if (result == SR_OK) {
+			context->_structure = nullptr;
+			delete context;
+			delete entry;
+			return;
+		}
+		// No frontend owns this object now. Retain it and the C resources,
+		// but detach callbacks into frontend objects that may be going away.
+		sr_log_callback callback;
+		void *callback_data;
+		if (sr_log_callback_get(&callback, &callback_data) == SR_OK &&
+				callback_data == &context->_log_callback)
+			sr_log_callback_set_default();
+		context->_log_callback = nullptr;
+		sr_resource_set_hooks(context->_structure, nullptr, nullptr, nullptr, nullptr);
+		retain_context(entry);
+		std::fprintf(stderr, "libsigrok: Context cleanup failed (%s); retained for retry_cleanup().\n",
+			sr_strerror(result));
+	}};
 }
 
 Context::Context() :
@@ -216,9 +295,9 @@ map<string, shared_ptr<OutputFormat>> Context::output_formats()
 	return result;
 }
 
-Context::~Context()
+Context::~Context() noexcept
 {
-	check(sr_exit(_structure));
+	// The last-owner deleter or retry_cleanup() has already closed the C context.
 }
 
 const LogLevel *Context::log_level() const

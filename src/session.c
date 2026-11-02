@@ -635,11 +635,28 @@ static int set_main_context(struct sr_session *session)
  */
 static int unset_main_context(struct sr_session *session)
 {
+	GSource *source;
 	int ret;
 
 	g_mutex_lock(&session->main_mutex);
 
 	if (session->main_context) {
+		/* Rolling back a failed start may have removed the final device
+		 * source and queued a stop check which will never be needed. It
+		 * must not retain a session pointer after the caller destroys the
+		 * failed session, or suppress the completion check on retry.
+		 * Find it in its owning context, not the global default context;
+		 * clear the ID before destruction so it cannot refer to a reused
+		 * source ID after this context has been released. The normal stop
+		 * callback clears the ID before calling us, so it is not destroyed
+		 * recursively while it is dispatching. */
+		if (session->stop_check_id) {
+			source = g_main_context_find_source_by_id(session->main_context,
+				session->stop_check_id);
+			session->stop_check_id = 0;
+			if (source)
+				g_source_destroy(source);
+		}
 		g_main_context_unref(session->main_context);
 		session->main_context = NULL;
 		ret = SR_OK;
