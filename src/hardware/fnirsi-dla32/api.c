@@ -1604,6 +1604,9 @@ static int receive_worker_events(struct sr_dev_inst *sdi)
 			sr_err("WCH worker notification failed; acquisition evidence incomplete.");
 			capture_set_failure(devc, "error", "Worker notification failed. The received samples have not been certified as intact.");
 		}
+		if (terminal.stop_status == SR_OK && !terminal.drain_quiet)
+			capture_set_failure(devc, terminal.device_disconnected ? "disconnected" : "error",
+				"Capture cleanup failed: the USB endpoint could not be drained after Stop. Reconnect the analyzer before retrying.");
 		/* A frontend logger may request stop recursively. The completed native
 		 * I/O result is authoritative after all such callbacks have returned. */
 		devc->upload_stop_pending = terminal.stop_pending;
