@@ -1901,8 +1901,11 @@ static int prepare_transfers(struct sr_dev_inst *sdi)
 			free_prepared_transfers(devc);
 			return SR_ERR_MALLOC;
 		}
+		/* The acquisition watchdog owns progress deadlines. Buffer fill and
+		 * trigger waits can legitimately exceed a per-transfer timeout;
+		 * keep reads pending until data arrives or stop cancels them. */
 		libusb_fill_bulk_transfer(transfer, usb->devhdl, 0x81, buffer,
-			TRANSFER_SIZE, receive_transfer, (void *)sdi, TRANSFER_TIMEOUT_MS);
+			TRANSFER_SIZE, receive_transfer, (void *)sdi, 0);
 		devc->transfers[i] = transfer;
 	}
 	return SR_OK;
