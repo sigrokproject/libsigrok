@@ -58,7 +58,7 @@ enum logic_pattern_type {
 
 	/**
 	 * Incrementing number across 8 channels. The pattern is repeated
-	 * every 8 channels, shifted to the right in time by one bit.
+	 * every 8 channels.
 	 */
 	PATTERN_INC,
 
