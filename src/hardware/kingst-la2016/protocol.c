@@ -1140,7 +1140,16 @@ static int la2016_usbxfer_resubmit(const struct sr_dev_inst *sdi,
 	libusb_fill_bulk_transfer(xfer, usb->devhdl,
 		USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
 		xfer->buffer, devc->transfer_bufsize,
-		cb, (void *)sdi, CAPTURE_TIMEOUT_MS);
+		cb, (void *)sdi,
+		/*
+		 * Stream mode: no timeout. All transfers are queued at once
+		 * and each one's timer starts at submission, so at low data
+		 * rates (< ~8 MB/s: 8 x 512 KiB in 500 ms) a queued transfer
+		 * times out while it is being filled. The cancellation
+		 * breaks the device's stream: it stops sending, and the
+		 * acquisition never completes (seen on an LA1010 + Pi 4).
+		 */
+		devc->continuous ? 0 : CAPTURE_TIMEOUT_MS);
 	ret = libusb_submit_transfer(xfer);
 	if (ret != 0) {
 		sr_err("Cannot submit USB transfer: %s.",
@@ -1215,6 +1224,27 @@ SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi)
 	ret = la2016_usbxfer_allocate(sdi);
 	if (ret != SR_OK)
 		return ret;
+
+	/*
+	 * Stream mode transfers carry ~50 ms of data each. Stream
+	 * transfers have no timeout (see la2016_usbxfer_resubmit()), so
+	 * a full 512 KiB transfer would take minutes to complete at low
+	 * rates (1 channel at 20 kHz: 2.5 KB/s), and the acquisition
+	 * would overshoot its sample limit by up to a buffer's worth.
+	 */
+	devc->transfer_bufsize = LA2016_USB_BUFSZ;
+	if (devc->continuous) {
+		uint64_t bytes_per_sec, size;
+		bytes_per_sec = devc->samplerate * devc->stream.enabled_count / 8;
+		size = bytes_per_sec / 20;
+		size = (size + LA2016_EP6_PKTSZ - 1) / LA2016_EP6_PKTSZ * LA2016_EP6_PKTSZ;
+		if (size < 4 * LA2016_EP6_PKTSZ)
+			size = 4 * LA2016_EP6_PKTSZ;
+		if (size > LA2016_USB_BUFSZ)
+			size = LA2016_USB_BUFSZ;
+		devc->transfer_bufsize = size;
+		sr_dbg("Stream transfer size %" PRIu64 " bytes.", size);
+	}
 
 	if (devc->continuous) {
 		ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0);
