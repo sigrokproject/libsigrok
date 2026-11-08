@@ -58,7 +58,7 @@ enum logic_pattern_type {
 
 	/**
 	 * Incrementing number across 8 channels. The pattern is repeated
-	 * every 8 channels, shifted to the right in time by one bit.
+	 * every 8 channels.
 	 */
 	PATTERN_INC,
 
@@ -121,6 +121,7 @@ struct dev_context {
 	int64_t start_us;
 	int64_t spent_us;
 	uint64_t step;
+	gboolean acquisition_running;
 	/* Logic */
 	int32_t num_logic_channels;
 	size_t logic_unitsize;

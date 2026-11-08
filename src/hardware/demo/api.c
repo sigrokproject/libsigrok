@@ -564,6 +564,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_session_source_add(sdi->session, -1, 0, 100,
 			demo_prepare_data, (struct sr_dev_inst *)sdi);
 
+	devc->acquisition_running = TRUE;
 	std_session_send_df_header(sdi);
 
 	if (devc->limit_frames > 0)
@@ -581,9 +582,13 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
+	devc = sdi->priv;
+	if (!devc->acquisition_running)
+		return SR_OK;
+	devc->acquisition_running = FALSE;
+
 	sr_session_source_remove(sdi->session, -1);
 
-	devc = sdi->priv;
 	if (devc->limit_frames > 0)
 		std_session_send_df_frame_end(sdi);
 

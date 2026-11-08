@@ -302,7 +302,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 			devc->logic_data[i] = (uint8_t)(rand() & 0xff);
 		break;
 	case PATTERN_INC:
-		for (i = 0; i < size; i++) {
+		for (i = 0; i < size; i += devc->logic_unitsize) {
 			for (j = 0; j < devc->logic_unitsize; j++)
 				devc->logic_data[i + j] = devc->step;
 			devc->step++;
