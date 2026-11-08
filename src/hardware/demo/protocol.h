@@ -121,6 +121,7 @@ struct dev_context {
 	int64_t start_us;
 	int64_t spent_us;
 	uint64_t step;
+	gboolean acquisition_running;
 	/* Logic */
 	int32_t num_logic_channels;
 	size_t logic_unitsize;
