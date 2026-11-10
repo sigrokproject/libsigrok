@@ -59,6 +59,7 @@ static const struct korad_kaxxxxp_model models[] = {
 	/* Vendor, model name, ID reply, channels, voltage, current, quirks. */
 	{"Korad", "KA3005P", "", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_TRAILING},
+	{"Korad", "KA3305P", "", 2, volts_30, amps_5, 0},
 	{"Korad", "KD3005P", "", 1, volts_30, amps_5, 0},
 	{"Korad", "KD6005P", "", 1, volts_60, amps_5, 0},
 	{"RND", "KA3005P", "RND 320-KA3005P", 1, volts_30, amps_5,
