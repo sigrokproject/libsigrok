@@ -254,14 +254,20 @@ static GSList *ser_hid_hidapi_list(GSList *list, sr_ser_list_append_t append)
  * Enumerate devices for the specified VID:PID pair. Invoke an "append"
  * callback with 'path' for found devices. Exclusively finds supported
  * chip types, skips unknown VID:PID pairs (even if caller specified).
+ *
+ * The 'with_conn' flag selects the format of the appended text. When
+ * set, a complete conn= spec is passed ("hid/<chip>/<port>"), which is
+ * what external callers of .find_usb() can use for open() calls. When
+ * not set, the bare port name is passed ("raw=...", "usb=...", etc),
+ * which is what internal callers like ser_hid_chip_search() expect.
  */
 static GSList *ser_hid_hidapi_find_usb(GSList *list, sr_ser_find_append_t append,
-		uint16_t vendor_id, uint16_t product_id)
+		uint16_t vendor_id, uint16_t product_id, int with_conn)
 {
 	const char *caller_chip;
 	const char *dev_chip;
 	struct hid_device_info *devs, *curdev;
-	const char *name;
+	char *name;
 	char *path;
 
 	caller_chip = ser_hid_chip_find_name_vid_pid(vendor_id, product_id);
@@ -278,10 +284,16 @@ static GSList *ser_hid_hidapi_find_usb(GSList *list, sr_ser_find_append_t append
 		path = get_hidapi_path_copy(curdev->path);
 		if (!path)
 			continue;
+		if (!with_conn) {
+			list = append(list, path);
+			g_free(path);
+			continue;
+		}
 		name = g_strdup_printf("%s/%s/%s",
 			SER_HID_CONN_PREFIX, dev_chip, path);
 		g_free(path);
 		list = append(list, name);
+		g_free(name);
 	}
 	hid_free_enumeration(devs);
 
@@ -878,7 +890,8 @@ static GSList *list_paths_for_vids_pids(const struct vid_pid_item *vid_pids)
 			vid = vid_pids[idx].vid;
 			pid = vid_pids[idx].pid;
 		}
-		list = ser_hid_hidapi_find_usb(list, append_find, vid, pid);
+		list = ser_hid_hidapi_find_usb(list, append_find,
+			vid, pid, FALSE);
 		if (!vid_pids)
 			break;
 	}
@@ -974,9 +987,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 			return SR_ERR_NA;
 		matched = NULL;
 		for (tmplist = list; tmplist; tmplist = tmplist->next) {
-			path = get_hidapi_path_copy(tmplist->data);
-			serno_matched = check_serno(path, serno);
-			g_free(path);
+			serno_matched = check_serno(tmplist->data, serno);
 			if (!serno_matched)
 				continue;
 			matched = tmplist;
@@ -1026,7 +1037,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 		 */
 		if (matched2)
 			sr_info("More than one cable matches, random pick.");
-		path = get_hidapi_path_copy(matched->data);
+		path = g_strdup(matched->data);
 		have_path = 1;
 		g_slist_free_full(list, g_free);
 	}
@@ -1181,7 +1192,8 @@ static GSList *ser_hid_list(GSList *list, sr_ser_list_append_t append)
 static GSList *ser_hid_find_usb(GSList *list, sr_ser_find_append_t append,
 	uint16_t vendor_id, uint16_t product_id)
 {
-	return ser_hid_hidapi_find_usb(list, append, vendor_id, product_id);
+	return ser_hid_hidapi_find_usb(list, append,
+		vendor_id, product_id, TRUE);
 }
 
 static int ser_hid_flush(struct sr_serial_dev_inst *serial)
