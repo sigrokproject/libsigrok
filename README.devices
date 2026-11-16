@@ -58,6 +58,12 @@ The following drivers/devices require a firmware upload upon connection:
    firmware files from the 'sigrok-firmware-fx2lafw' repository/project.
    The firmware is written from scratch and licensed under the GNU GPLv2+.
 
+ - gusmanb-logicanalyzer: Raspberry Pi Pico / Pico W / Pico 2 / RP2040-Zero
+   boards must be flashed with the open-source LogicAnalyzer firmware
+   (V6_0 or newer):
+
+     https://github.com/gusmanb/logicanalyzer
+
  - hantek-dso: The Hantek DSO-2090 (and other supported models of the same
    series of Hantek PC oscilloscopes) need firmware files.
    These can be extracted from the vendor's Windows drivers using a tool

@@ -394,6 +394,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/greatfet/protocol.c \
 	src/hardware/greatfet/api.c
 endif
+if HW_GUSMANB_LOGICANALYZER
+src_libdrivers_la_SOURCES += \
+	src/hardware/gusmanb-logicanalyzer/protocol.h \
+	src/hardware/gusmanb-logicanalyzer/protocol.c \
+	src/hardware/gusmanb-logicanalyzer/api.c
+endif
 if HW_GWINSTEK_GDS_800
 src_libdrivers_la_SOURCES += \
 	src/hardware/gwinstek-gds-800/protocol.h \
