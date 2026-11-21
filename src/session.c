@@ -636,12 +636,17 @@ static int set_main_context(struct sr_session *session)
 static int unset_main_context(struct sr_session *session)
 {
 	int ret;
+	GMainContext* main_context;
 
 	g_mutex_lock(&session->main_mutex);
 
+	main_context = session->main_context;
+	session->main_context = NULL;
+
+	g_mutex_unlock(&session->main_mutex);
+
 	if (session->main_context) {
-		g_main_context_unref(session->main_context);
-		session->main_context = NULL;
+		g_main_context_unref(main_context);
 		ret = SR_OK;
 	} else {
 		/* May happen if the set/unset calls are not matched.
@@ -649,7 +654,6 @@ static int unset_main_context(struct sr_session *session)
 		sr_err("No main context to unset.");
 		ret = SR_ERR;
 	}
-	g_mutex_unlock(&session->main_mutex);
 
 	return ret;
 }
