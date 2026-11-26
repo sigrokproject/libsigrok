@@ -72,6 +72,7 @@
 
 /* Device config flags */
 #define DEVICE_FLAG_IS_DEMON_CORE (1 << 0)
+#define DEVICE_FLAG_SAMPLES_IN_ORDER (1 << 1) /* oldest sample sent first */
 
 /* Basic Trigger Config */
 #define TRIGGER_START              (1 << 3)
@@ -107,6 +108,9 @@ struct dev_context {
 	uint32_t max_samplerate;
 	uint32_t protocol_version;
 	uint16_t device_flags;
+	const uint64_t *samplerates; /* fixed list, NULL: any up to max */
+	size_t num_samplerates;
+	uint32_t sample_block; /* returns whole blocks of samples only */
 
 	/* acquisition-related properties: */
 	uint64_t cur_samplerate;

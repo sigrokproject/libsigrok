@@ -139,6 +139,23 @@ static int convert_trigger(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/*
+ * Logic Pirate: the metadata only holds the name and firmware date, the
+ * rest comes from the OLS client's device profiles. The firmware maps the
+ * divider (computed against the 100 MHz OLS clock) onto these rates.
+ */
+static const uint64_t logic_pirate_40_samplerates[] = {
+	SR_KHZ(2), SR_KHZ(5), SR_KHZ(10), SR_KHZ(20), SR_KHZ(50),
+	SR_KHZ(100), SR_KHZ(200), SR_KHZ(500), SR_MHZ(1), SR_MHZ(2),
+	SR_MHZ(5), SR_MHZ(10), SR_MHZ(20), SR_MHZ(40),
+};
+
+static const uint64_t logic_pirate_60_samplerates[] = {
+	SR_KHZ(2), SR_KHZ(5), SR_KHZ(10), SR_KHZ(20), SR_KHZ(50),
+	SR_KHZ(100), SR_KHZ(200), SR_KHZ(500), SR_MHZ(1), SR_MHZ(2),
+	SR_MHZ(5), SR_MHZ(10), SR_MHZ(15), SR_MHZ(30), SR_MHZ(60),
+};
+
 static void ols_metadata_quirks(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -158,6 +175,25 @@ static void ols_metadata_quirks(struct sr_dev_inst *sdi)
 			devc->max_samples = 256 * 1024;
 		if (!devc->max_samplerate)
 			devc->max_samplerate = SR_MHZ(20);
+	}
+
+	if (sdi->model && g_str_has_prefix(sdi->model, "Logic Pirate")) {
+		if (strstr(sdi->model, "60 MHz")) {
+			devc->samplerates = logic_pirate_60_samplerates;
+			devc->num_samplerates =
+				ARRAY_SIZE(logic_pirate_60_samplerates);
+		} else {
+			devc->samplerates = logic_pirate_40_samplerates;
+			devc->num_samplerates =
+				ARRAY_SIZE(logic_pirate_40_samplerates);
+		}
+		if (!devc->max_channels)
+			devc->max_channels = 8;
+		if (!devc->max_samples)
+			devc->max_samples = 256 * 1024;
+		/* The firmware rounds the read count down to whole blocks. */
+		devc->sample_block = 128;
+		devc->device_flags |= DEVICE_FLAG_SAMPLES_IN_ORDER;
 	}
 
 	if (sdi->version && strstr(sdi->version, "FPGA version 3.07"))
@@ -315,6 +351,15 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 	if (devc->max_samplerate && samplerate > devc->max_samplerate)
 		return SR_ERR_SAMPLERATE;
 
+	if (devc->samplerates) {
+		size_t i = 0;
+		while (i < devc->num_samplerates &&
+		       devc->samplerates[i] != samplerate)
+			i++;
+		if (i == devc->num_samplerates)
+			return SR_ERR_SAMPLERATE;
+	}
+
 	if (samplerate > CLOCK_RATE) {
 		sr_info("Enabling demux mode.");
 		devc->capture_flags |= CAPTURE_FLAG_DEMUX;
@@ -326,6 +371,12 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		devc->capture_flags &= ~CAPTURE_FLAG_DEMUX;
 		devc->capture_flags |= CAPTURE_FLAG_NOISE_FILTER;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
+	}
+
+	/* A fixed-rate device maps the divider onto the exact rate. */
+	if (devc->samplerates) {
+		devc->cur_samplerate = samplerate;
+		return SR_OK;
 	}
 
 	/* Calculate actual samplerate used and complain if it is different
@@ -482,7 +533,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			 * this on the session bus later.
 			 * Here cropping to devc->unitsize happens
 			 */
-			offset = (devc->limit_samples - devc->num_samples) * devc->unitsize;
+			if (devc->device_flags & DEVICE_FLAG_SAMPLES_IN_ORDER)
+				offset = (devc->num_samples - devc->rle_count - 1) *
+					 devc->unitsize;
+			else
+				offset = (devc->limit_samples - devc->num_samples) *
+					 devc->unitsize;
 			for (i = 0; i <= devc->rle_count; i++) {
 				memcpy(devc->raw_sample_buf + offset + (i * devc->unitsize),
 				       devc->sample, devc->unitsize);
@@ -500,6 +556,10 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("Received %d bytes, %d samples, %d decompressed samples.",
 		       devc->cnt_bytes, devc->cnt_samples,
 		       devc->cnt_samples_rle);
+		/* Index of the first (oldest) sample in the buffer. */
+		unsigned int start =
+			(devc->device_flags & DEVICE_FLAG_SAMPLES_IN_ORDER) ?
+			0 : devc->limit_samples - devc->num_samples;
 		if (devc->trigger_at_smpl != OLS_NO_TRIGGER) {
 			/*
 			 * A trigger was set up, so we need to tell the frontend
@@ -512,9 +572,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				logic.length = devc->trigger_at_smpl * devc->unitsize;
 				logic.unitsize = devc->unitsize;
 				logic.data = devc->raw_sample_buf +
-					     (devc->limit_samples -
-					      devc->num_samples) *
-						     devc->unitsize;
+					     start * devc->unitsize;
 				sr_session_send(sdi, &packet);
 			}
 
@@ -533,9 +591,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			(devc->num_samples - num_pre_trigger_samples) * devc->unitsize;
 		logic.unitsize = devc->unitsize;
 		logic.data = devc->raw_sample_buf +
-			     (num_pre_trigger_samples + devc->limit_samples -
-			      devc->num_samples) *
-				     devc->unitsize;
+			     (start + num_pre_trigger_samples) * devc->unitsize;
 		sr_session_send(sdi, &packet);
 
 		g_free(devc->raw_sample_buf);
@@ -599,6 +655,10 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 	uint32_t readcount = (samplecount + 3) / 4;
 	uint32_t delaycount;
 
+	/* Round up to whole blocks (counts are in units of 4 samples). */
+	uint32_t block = MAX(devc->sample_block / 4, 1);
+	readcount = (readcount + block - 1) / block * block;
+
 	/* Basic triggers. */
 	struct ols_basic_trigger_desc basic_trigger_desc;
 	if (convert_trigger(sdi, &basic_trigger_desc) != SR_OK) {
@@ -615,6 +675,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
+		delaycount = (delaycount + block / 2) / block * block;
 		devc->trigger_at_smpl = (readcount - delaycount) * 4 -
 					basic_trigger_desc.num_stages;
 		for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
