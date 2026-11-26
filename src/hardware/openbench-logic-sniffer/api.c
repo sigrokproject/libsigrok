@@ -395,6 +395,11 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		if (!devc)
 			return SR_ERR_ARG;
+		if (devc->samplerates) {
+			*data = std_gvar_samplerates(devc->samplerates,
+						     devc->num_samplerates);
+			break;
+		}
 		samplerates_ovrd[0] = samplerates[0];
 		samplerates_ovrd[1] = samplerates[1];
 		samplerates_ovrd[2] = samplerates[2];
